@@ -1,0 +1,163 @@
+import { gainExperience } from './employee';
+import { updateMarket } from './market';
+import { checkReorders, generateAdhocWork, runFinance, runProduction, scheduleMonthlyWork } from './operations';
+import { completeStage, processWaits, stageWorkInfo, STAGE_LABELS } from './purchasing';
+import type { BacklogItem, DailySnapshot, GameState, PurchaseCase, TimeBlock } from './types';
+import { logEvent } from './util';
+
+const MAX_SCHEDULE_DAYS = 40;
+const MAX_MESSAGES = 600;
+const MAX_EVENTS = 2000;
+
+type Task =
+  | { kind: 'case'; c: PurchaseCase; priority: number }
+  | { kind: 'backlog'; b: BacklogItem; priority: number };
+
+function casePriority(state: GameState, c: PurchaseCase): number {
+  // 낮을수록 먼저. 긴급 → 필요일 임박 → 오래된 순
+  return (c.urgent ? 0 : 1000) + (c.neededByDay - state.day) * 10 + (c.createdDay % 10);
+}
+
+function collectTasks(state: GameState): Task[] {
+  const tasks: Task[] = [];
+  for (const c of state.cases) {
+    if (c.stageMinutesLeft > 0 && stageWorkInfo(c.stage)) {
+      tasks.push({ kind: 'case', c, priority: casePriority(state, c) });
+    }
+  }
+  for (const b of state.backlog) {
+    if (b.minutesLeft > 0) {
+      // 클레임 > 구매 건(필요일 순) > 보고서·일상 업무(마감 순). 마감이 오늘이면 구매 건과 경쟁한다
+      const p = b.kind === 'claim' ? 500 : 1000 + (b.dueDay - state.day) * 40;
+      tasks.push({ kind: 'backlog', b, priority: p });
+    }
+  }
+  return tasks.sort((a, b) => a.priority - b.priority);
+}
+
+/**
+ * 담당자의 하루 업무.
+ * 단계를 마치면 다음 단계가 바로 열리므로 같은 날 이어서 처리할 수 있다.
+ */
+function runWorkday(state: GameState): { minutes: number; compareMinutes: number } {
+  const p = state.params;
+  const blocks: TimeBlock[] = [];
+  let t = 0;
+  const push = (b: Omit<TimeBlock, 'day' | 'start'>) => {
+    if (b.minutes <= 0) return;
+    blocks.push({ day: state.day, start: t, ...b });
+    t += b.minutes;
+  };
+
+  // 메일 확인: 전날 이후 받은 메일 수에 비례
+  const inbox = state.messages.filter((m) => m.day === state.day && m.to.includes(state.employee.name)).length;
+  push({ minutes: Math.min(60, 15 + inbox * 3), label: `메일 확인 (${inbox}건)`, kind: 'mail' });
+  if (state.day % 5 === 1) push({ minutes: 30, label: '주간 팀 회의', kind: 'meeting' });
+
+  let compareMinutes = 0;
+  const hasUrgent = () => state.cases.some((c) => c.urgent && c.stageMinutesLeft > 0 && stageWorkInfo(c.stage));
+  let guard = 0;
+  while (guard++ < 200) {
+    const limit = p.workdayMinutes + (hasUrgent() ? 90 : 0);
+    if (t >= limit) break;
+    const tasks = collectTasks(state);
+    if (tasks.length === 0) break;
+    const task = tasks[0];
+    const available = limit - t;
+    if (task.kind === 'case') {
+      const c = task.c;
+      if (!c.urgent && t >= p.workdayMinutes) break;
+      const work = Math.min(available, c.stageMinutesLeft);
+      const info = stageWorkInfo(c.stage)!;
+      const m = state.materials[c.materialId];
+      const tool = c.stage === 'compare' && c.comparison?.method === 'tool' ? c.comparison.toolId : undefined;
+      const partial = work < c.stageMinutesLeft ? ' (계속)' : '';
+      push({
+        minutes: work,
+        label: `${c.id} ${m.name} · ${info.label}${tool ? ' [도구 사용]' : ''}${partial}`,
+        kind: 'case',
+        caseId: c.id,
+        toolId: tool,
+      });
+      c.stageMinutesLeft -= work;
+      c.minutesSpent += work;
+      if (c.stage === 'compare') compareMinutes += work;
+      if (c.stageMinutesLeft <= 0) completeStage(state, c);
+    } else {
+      const b = task.b;
+      if (t >= p.workdayMinutes) break;
+      const work = Math.min(available, b.minutesLeft);
+      push({ minutes: work, label: b.title + (work < b.minutesLeft ? ' (계속)' : ''), kind: b.kind, caseId: b.caseId });
+      b.minutesLeft -= work;
+      if (b.minutesLeft <= 0) {
+        if (b.kind !== 'adhoc') gainExperience(state, b.kind === 'report' ? 'docs' : 'negotiation', b.minutesTotal);
+        else state.employee.xp += b.minutesTotal / 30;
+        if (b.kind !== 'adhoc') logEvent(state, 'system', 'purchasing', `${b.title} 완료`, `소요 ${b.minutesTotal}분`, b.caseId);
+      }
+    }
+  }
+  state.backlog = state.backlog.filter((b) => b.minutesLeft > 0);
+
+  state.schedule.push(...blocks);
+  const minDay = state.day - MAX_SCHEDULE_DAYS;
+  state.schedule = state.schedule.filter((b) => b.day > minDay);
+  const overtime = Math.max(0, t - p.workdayMinutes);
+  state.stats.employeeMinutes += t;
+  state.stats.overtimeMinutes += overtime;
+  return { minutes: t, compareMinutes };
+}
+
+function inventoryValue(state: GameState): number {
+  return Object.values(state.materials).reduce((a, m) => a + m.stock * m.avgCost, 0);
+}
+
+/** 하루 진행. 상태를 직접 바꾼다 (호출 측에서 필요하면 복제해서 넘긴다). */
+export function advanceDay(state: GameState): GameState {
+  updateMarket(state);
+  runFinance(state);
+  processWaits(state);
+  const prod = runProduction(state);
+  checkReorders(state);
+  scheduleMonthlyWork(state);
+  generateAdhocWork(state);
+  const work = runWorkday(state);
+
+  const snap: DailySnapshot = {
+    day: state.day,
+    cash: Math.round(state.finance.cash),
+    inventoryValue: Math.round(inventoryValue(state)),
+    revenue: prod.produced * state.company.productPrice,
+    produced: prod.produced,
+    demand: prod.demand,
+    priceSavingCum: state.stats.priceSavingKRW,
+    selectionLossCum: state.stats.selectionLossKRW,
+    entryErrorsCum: state.stats.entryErrors,
+    employeeMinutes: work.minutes,
+    compareMinutes: work.compareMinutes,
+    openCases: state.cases.filter((c) => c.stage !== 'done' && c.stage !== 'cancelled').length,
+    prices: { ...state.market.prices },
+    fx: state.market.fx,
+  };
+  state.history.push(snap);
+
+  if (state.messages.length > MAX_MESSAGES) state.messages = state.messages.slice(-MAX_MESSAGES);
+  if (state.events.length > MAX_EVENTS) state.events = state.events.slice(-MAX_EVENTS);
+  // 완료된 지 오래된 구매 건의 견적서 원문은 용량을 줄이기 위해 비운다 (수치 기록은 유지)
+  for (const c of state.cases) {
+    if (c.stage === 'done' && c.closedDay !== undefined && state.day - c.closedDay > 60) {
+      for (const q of c.quotes) if (q.docText) q.docText = '';
+    }
+  }
+
+  state.day += 1;
+  return state;
+}
+
+export function advanceDays(state: GameState, n: number): GameState {
+  for (let i = 0; i < n; i++) advanceDay(state);
+  return state;
+}
+
+export function stageLabel(c: PurchaseCase): string {
+  return STAGE_LABELS[c.stage];
+}
