@@ -171,6 +171,8 @@ const emptyStats = (): CumulativeStats => ({
   cycleDaysSum: 0,
   reportMinutes: 0,
   reportsWritten: 0,
+  lateDaysSum: 0,
+  expediteRecoveredDays: 0,
 });
 
 export function createInitialState(seed = 20270104): GameState {

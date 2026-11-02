@@ -21,6 +21,7 @@ const KIND_COLORS: Record<WorkKind, string> = {
   report: 'var(--series-5)',
   claim: 'var(--danger)',
   adhoc: 'var(--series-2)',
+  expedite: 'var(--warn)',
 };
 
 const KIND_LABELS: Record<WorkKind, string> = {
@@ -30,6 +31,7 @@ const KIND_LABELS: Record<WorkKind, string> = {
   report: '보고서',
   claim: '클레임',
   adhoc: '일상 업무',
+  expedite: '납기 독촉',
 };
 
 type MailFilter = 'all' | 'in' | 'out';

@@ -209,6 +209,11 @@ export interface PurchaseCase {
   savings?: SavingsRecord;
   minutesSpent: number;
   closedDay?: number;
+  /** 구매팀이 납기 지연을 알게 된 날과 방법 */
+  delayKnownDay?: number;
+  delayKnownBy?: 'tool' | 'manual';
+  /** 독촉으로 앞당긴 일수 */
+  expediteRecoveredDays?: number;
 }
 
 export type SkillId = 'market' | 'costing' | 'negotiation' | 'docs';
@@ -226,7 +231,7 @@ export interface Employee {
   milestones: { day: number; text: string }[];
 }
 
-export type WorkKind = 'case' | 'report' | 'mail' | 'claim' | 'meeting' | 'adhoc';
+export type WorkKind = 'case' | 'report' | 'mail' | 'claim' | 'meeting' | 'adhoc' | 'expedite';
 
 export interface TimeBlock {
   day: number;
@@ -383,6 +388,9 @@ export interface VerificationMetrics {
   avgCycleDays: number;
   reportMinutes: number;
   reportsWritten: number;
+  lateDeliveries: number;
+  lateDaysSum: number;
+  expediteRecoveredDays: number;
 }
 
 export interface CostModelParams {
@@ -432,7 +440,7 @@ export interface GameState {
 
 export interface BacklogItem {
   id: string;
-  kind: 'report' | 'claim' | 'adhoc';
+  kind: 'report' | 'claim' | 'adhoc' | 'expedite';
   title: string;
   from?: string;
   createdDay: number;
@@ -478,4 +486,7 @@ export interface CumulativeStats {
   cycleDaysSum: number;
   reportMinutes: number;
   reportsWritten: number;
+  /** 약속일 대비 지연 일수 합 (입고 기준) */
+  lateDaysSum: number;
+  expediteRecoveredDays: number;
 }

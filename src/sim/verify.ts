@@ -28,6 +28,9 @@ function metricsBetween(before: GameState, after: GameState): VerificationMetric
     avgCycleDays: closed > 0 ? (b.cycleDaysSum - a.cycleDaysSum) / closed : 0,
     reportMinutes: b.reportMinutes - a.reportMinutes,
     reportsWritten: b.reportsWritten - a.reportsWritten,
+    lateDeliveries: b.deliveriesLate - a.deliveriesLate,
+    lateDaysSum: b.lateDaysSum - a.lateDaysSum,
+    expediteRecoveredDays: b.expediteRecoveredDays - a.expediteRecoveredDays,
   };
 }
 

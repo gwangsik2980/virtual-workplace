@@ -1,3 +1,4 @@
+import { detectDeliveryRisks, finishExpedite } from './deliveryRisk';
 import { gainExperience } from './employee';
 import { updateMarket } from './market';
 import { checkReorders, generateAdhocWork, runFinance, runProduction, scheduleMonthlyWork } from './operations';
@@ -30,7 +31,7 @@ function collectTasks(state: GameState): Task[] {
   for (const b of state.backlog) {
     if (b.minutesLeft > 0) {
       // 클레임 > 구매 건(필요일 순) > 보고서·일상 업무(마감 순). 마감이 오늘이면 구매 건과 경쟁한다
-      const p = b.kind === 'claim' ? 500 : 1000 + (b.dueDay - state.day) * 40;
+      const p = b.kind === 'expedite' ? 400 : b.kind === 'claim' ? 500 : 1000 + (b.dueDay - state.day) * 40;
       tasks.push({ kind: 'backlog', b, priority: p });
     }
   }
@@ -95,6 +96,7 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
         if (b.kind !== 'adhoc') gainExperience(state, b.kind === 'report' ? 'docs' : 'negotiation', b.minutesTotal);
         else state.employee.xp += b.minutesTotal / 30;
         if (b.kind === 'report') finishReport(state, b);
+        if (b.kind === 'expedite') finishExpedite(state, b);
         if (b.kind !== 'adhoc') logEvent(state, 'system', 'purchasing', `${b.title} 완료`, `소요 ${b.minutesTotal}분`, b.caseId);
       }
     }
@@ -139,6 +141,7 @@ export function advanceDay(state: GameState): GameState {
   updateMarket(state);
   runFinance(state);
   processWaits(state);
+  detectDeliveryRisks(state);
   const prod = runProduction(state);
   checkReorders(state);
   scheduleMonthlyWork(state);

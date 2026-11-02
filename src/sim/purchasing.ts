@@ -380,7 +380,10 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
   s.history.spend += amount;
   if (late) s.history.late += 1;
   else s.history.onTime += 1;
-  if (late) state.stats.deliveriesLate += 1;
+  if (late) {
+    state.stats.deliveriesLate += 1;
+    state.stats.lateDaysSum += state.day - po.promisedDay;
+  }
   else state.stats.deliveriesOnTime += 1;
   state.stats.defectQty += defectQty;
   state.stats.receivedQtyByMaterial[c.materialId] = (state.stats.receivedQtyByMaterial[c.materialId] ?? 0) + po.qty;

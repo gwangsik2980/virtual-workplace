@@ -55,6 +55,8 @@ export interface ToolVersion {
   draftReport?(state: Readonly<GameState>, period: { fromDay: number; toDay: number }): string;
   /** 도구 사용 시 담당자 검토 시간(분). 가정치 */
   reviewMinutes?: number;
+  /** 납기 위험 도구: 약속일 며칠 전에 지연 신호를 잡는가 */
+  detectLeadDays?: number;
 }
 
 export interface ToolDefinition {

@@ -33,7 +33,9 @@ function targetLabel(t: ToolTarget): string {
 }
 
 function nextUseText(tool: ToolDefinition): string {
-  return tool.targetStage === 'report' ? '다음 월말 보고부터' : `다음 ${targetLabel(tool.targetStage)}부터`;
+  if (tool.targetStage === 'report') return '다음 월말 보고부터';
+  if (tool.targetStage === 'awaitDelivery') return '내일 점검부터';
+  return `다음 ${targetLabel(tool.targetStage)}부터`;
 }
 
 const PRIORITY_LABEL: Record<Improvement['priority'], string> = { high: '높음', mid: '보통', low: '낮음' };
@@ -340,6 +342,33 @@ const REPORT_ROWS: MetricRow[] = [
   { key: 'stock', label: '결품일', get: (m) => m.stockoutDays, fmt: (v) => `${num(v)}일`, lowerBetter: true },
 ];
 
+const DELIVERY_ROWS: MetricRow[] = [
+  { key: 'lated', label: '약속일 대비 지연 일수 합', get: (m) => m.lateDaysSum ?? 0, fmt: (v) => `${num(v)}일`, lowerBetter: true },
+  { key: 'laten', label: '지연 입고 건수', get: (m) => m.lateDeliveries ?? 0, fmt: (v) => `${num(v)}건`, lowerBetter: true },
+  { key: 'rec', label: '독촉으로 만회한 일수', get: (m) => m.expediteRecoveredDays ?? 0, fmt: (v) => `${num(v)}일`, lowerBetter: false },
+  { key: 'stock', label: '결품일', get: (m) => m.stockoutDays, fmt: (v) => `${num(v)}일`, lowerBetter: true },
+  { key: 'cycle', label: '구매 건 평균 처리일수', get: (m) => m.avgCycleDays, fmt: (v) => `${num(v, 1)}일`, lowerBetter: true },
+  { key: 'emp', label: '담당자 총 근무시간', get: (m) => m.totalEmployeeMinutes, fmt: (v) => `${num(v)}분`, lowerBetter: true },
+];
+
+function interpretDelivery(run: VerificationRun): string[] {
+  const b = run.baseline;
+  const t = run.withTool;
+  if (!b.lateDeliveries && !t.lateDeliveries && !b.expediteRecoveredDays) return ['이 기간에는 납기 지연이 없어서 효과를 비교할 수 없습니다. 기간을 늘려 보세요.'];
+  const lines = [
+    `지연 일수 합 ${num(b.lateDaysSum)}일 → ${num(t.lateDaysSum)}일, 지연 입고 ${b.lateDeliveries}건 → ${t.lateDeliveries}건. 독촉으로 만회한 일수 ${b.expediteRecoveredDays}일 → ${t.expediteRecoveredDays}일.`,
+  ];
+  if (b.stockoutDays === t.stockoutDays) {
+    lines.push(
+      '결품일은 달라지지 않았습니다. 결품이 난 건을 보면 처음부터 필요일보다 늦게 오는 업체를 고른 경우가 많아서, 약속보다 늦는 것을 줄이는 이 도구로는 막을 수 없습니다. 견적 비교에서 납기를 얼마나 무겁게 보는지가 다음 개선 대상입니다.',
+    );
+  } else {
+    lines.push(`결품일 ${b.stockoutDays}일 → ${t.stockoutDays}일.`);
+  }
+  lines.push('일찍 알수록 만회 폭이 커진다는 규칙(남은 시간의 절반까지 만회, 성공 확률 65%)은 가정치입니다.');
+  return lines;
+}
+
 const METRIC_ROWS: MetricRow[] = [
   { key: 'cmp', label: '견적 비교 시간', get: (m) => m.compareMinutes, fmt: (v) => `${num(v)}분`, lowerBetter: true },
   { key: 'perq', label: '견적 1건당 시간', get: (m) => m.compareMinutes / Math.max(1, m.quotesProcessed), fmt: (v) => `${num(v, 1)}분`, lowerBetter: true },
@@ -398,7 +427,8 @@ function VerificationPanel({ tool }: { tool: ToolDefinition }) {
   const runs = state.verifications.filter((v) => v.toolId === tool.id);
   const latest = runs[runs.length - 1];
   const isReport = tool.targetStage === 'report';
-  const rows = isReport ? REPORT_ROWS : METRIC_ROWS;
+  const isDelivery = tool.id === 'delivery-risk';
+  const rows = isReport ? REPORT_ROWS : isDelivery ? DELIVERY_ROWS : METRIC_ROWS;
 
   const run = () => {
     setBusy(true);
@@ -484,7 +514,12 @@ function VerificationPanel({ tool }: { tool: ToolDefinition }) {
           </div>
           <BarList
             items={
-              isReport
+              isDelivery
+                ? [
+                    { label: '지연 일수 합 · 도구 없음', value: latest.baseline.lateDaysSum ?? 0, color: 'var(--series-2)' },
+                    { label: '지연 일수 합 · 도구 적용', value: latest.withTool.lateDaysSum ?? 0, color: 'var(--series-1)' },
+                  ]
+                : isReport
                 ? [
                     { label: '보고 작성 시간 · 도구 없음', value: latest.baseline.reportMinutes ?? 0, color: 'var(--series-2)' },
                     { label: '보고 작성 시간 · 도구 적용', value: latest.withTool.reportMinutes ?? 0, color: 'var(--series-1)' },
@@ -494,17 +529,17 @@ function VerificationPanel({ tool }: { tool: ToolDefinition }) {
                     { label: '견적 비교 시간 · 도구 적용', value: latest.withTool.compareMinutes, color: 'var(--series-1)' },
                   ]
             }
-            format={(v) => `${num(v)}분`}
+            format={(v) => (isDelivery ? `${num(v)}일` : `${num(v)}분`)}
           />
           <div className="notice">
-            {(isReport ? interpretReport(latest) : interpret(latest)).map((l) => (
+            {(isReport ? interpretReport(latest) : isDelivery ? interpretDelivery(latest) : interpret(latest)).map((l) => (
               <div key={l}>{l}</div>
             ))}
           </div>
         </div>
       )}
 
-      {runs.length > 1 && !isReport && (
+      {runs.length > 1 && !isReport && !isDelivery && (
         <>
           <h4 style={{ marginTop: 18, marginBottom: 6 }}>검증 기록</h4>
           <div className="table-wrap">
