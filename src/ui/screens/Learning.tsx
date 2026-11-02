@@ -56,8 +56,11 @@ export function Learning() {
         </div>
       </div>
       <div className="notice notice-warn">
-        개념 설명은 일반적인 구매 실무 지식을 바탕으로 정리했고 특정 문헌을 인용하지 않았습니다. 실무 자료로 검증한 내용이 아니므로 교재나 실무
-        자료와 대조해 보길 권합니다.
+        개념 설명은 일반적인 구매 실무 지식을 바탕으로 정리했고, 공개 자료와 대조해 일부를 고쳤습니다. 다만 원문까지 확인하지 못한 출처가 있고
+        실무자 검증은 거치지 않았으니 교재나 실무 자료와 대조해 보길 권합니다.{' '}
+        <a href="https://github.com/gwangsik2980/virtual-workplace/blob/main/docs/practice-sources.md" target="_blank" rel="noreferrer">
+          대조 결과와 출처 보기
+        </a>
       </div>
 
       <div className="row">
