@@ -91,6 +91,10 @@ export interface EnteredQuote {
   unitPriceKRW: number;
   leadTimeDays: number;
   paymentTermsDays: number;
+  /** 비교 당시 입력값 기준 평가 점수 (KRW/기준단위, 낮을수록 좋음) */
+  score?: number;
+  /** 비교 당시 진실값 기준 평가 점수 */
+  trueScore?: number;
   /** 어떤 필드가 어떻게 틀렸는지 (검증·학습용 기록. 담당자는 이 사실을 모른다) */
   errors: EntryError[];
   /** 도구가 처리하지 못해 사람이 입력한 필드 */
@@ -158,7 +162,7 @@ export interface SavingsRecord {
   priceSavingKRW: number;
   /** 목표가 대비 차이 (참고) */
   vsTargetKRW: number;
-  /** 시장가격 변동분 (구매 활동 성과와 분리하기 위한 기록) */
+  /** 시장가격 변동분 = (정산일 시장가 − 시장조사 시점 시장가) × 수량. 양수면 시장 상승. 구매 성과와 분리하기 위한 기록 */
   marketMoveKRW: number;
   formula: string;
 }
@@ -303,6 +307,8 @@ export interface DailySnapshot {
   revenue: number;
   produced: number;
   demand: number;
+  /** 원료 부족으로 생산이 줄었다면 그 원료 */
+  shortMaterial?: MaterialId;
   priceSavingCum: number;
   selectionLossCum: number;
   entryErrorsCum: number;
@@ -375,6 +381,8 @@ export interface VerificationMetrics {
   priceSavingKRW: number;
   stockoutDays: number;
   avgCycleDays: number;
+  reportMinutes: number;
+  reportsWritten: number;
 }
 
 export interface CostModelParams {
@@ -416,6 +424,8 @@ export interface GameState {
   params: CostModelParams;
   learning: LearningState;
   verifications: VerificationRun[];
+  /** 작성된 월간 보고서 */
+  reports: ReportRecord[];
   counters: Record<string, number>;
   stats: CumulativeStats;
 }
@@ -430,6 +440,23 @@ export interface BacklogItem {
   minutesLeft: number;
   minutesTotal: number;
   caseId?: string;
+  /** 보고서 업무: 대상 기간 */
+  periodFrom?: number;
+  periodTo?: number;
+  /** 이 업무에 쓰인 도구 */
+  toolId?: string;
+  toolVersion?: string;
+}
+
+export interface ReportRecord {
+  id: string;
+  day: number;
+  fromDay: number;
+  toDay: number;
+  method: 'manual' | 'tool';
+  toolVersion?: string;
+  minutes: number;
+  text: string;
 }
 
 export interface CumulativeStats {
@@ -449,4 +476,6 @@ export interface CumulativeStats {
   defectQty: number;
   closedCases: number;
   cycleDaysSum: number;
+  reportMinutes: number;
+  reportsWritten: number;
 }

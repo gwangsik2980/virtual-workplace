@@ -1,5 +1,7 @@
 import { unlockConcept } from './learning';
 import { makeRng } from './rng';
+import { monthPeriod } from '../tools/monthlyReport/draft';
+import { getToolVersion } from '../tools/registry';
 import { dailyUsage, demandToday } from './market';
 import { createCase } from './purchasing';
 import type { GameState, MaterialId } from './types';
@@ -112,16 +114,26 @@ export function checkReorders(state: GameState): void {
 }
 
 /** 월말 구매 실적 보고 (반복 문서 업무: 향후 개선 도구 대상) */
+export const MANUAL_REPORT_MINUTES = 150;
+
 export function scheduleMonthlyWork(state: GameState): void {
   if (isMonthEnd(state.startDate, state.day)) {
+    const period = monthPeriod(state, state.day);
+    const applied = state.tools.find((t) => t.toolId === 'monthly-report' && t.removedDay === undefined);
+    const version = applied ? getToolVersion(applied.toolId, applied.version) : undefined;
+    const minutes = version?.reviewMinutes ?? MANUAL_REPORT_MINUTES;
     state.backlog.push({
       id: nextId(state, 'BL'),
       kind: 'report',
       title: '월간 구매 실적 보고서 작성',
       createdDay: state.day,
       dueDay: state.day + 2,
-      minutesLeft: 150,
-      minutesTotal: 150,
+      minutesLeft: minutes,
+      minutesTotal: minutes,
+      periodFrom: period.fromDay,
+      periodTo: period.toDay,
+      toolId: version ? applied!.toolId : undefined,
+      toolVersion: version?.version,
     });
     sendMessage(state, {
       from: '구매팀 이팀장',

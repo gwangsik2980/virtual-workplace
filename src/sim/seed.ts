@@ -169,6 +169,8 @@ const emptyStats = (): CumulativeStats => ({
   defectQty: 0,
   closedCases: 0,
   cycleDaysSum: 0,
+  reportMinutes: 0,
+  reportsWritten: 0,
 });
 
 export function createInitialState(seed = 20270104): GameState {
@@ -196,7 +198,8 @@ export function createInitialState(seed = 20270104): GameState {
     market: { prices, fx: 1350, demandBoost: 1, demandBoostUntil: 0, shocks: [] },
     finance: {
       cash: 600_000_000,
-      receivables: [],
+      // 이미 운영 중인 회사로 시작: 지난 22영업일 매출의 채권이 순차적으로 들어온다
+      receivables: Array.from({ length: 22 }, (_, i) => ({ day: i + 1, amount: BASE_DEMAND * 4500 })),
       payables: [],
       revenueCum: 0,
       cogsCum: 0,
@@ -226,6 +229,7 @@ export function createInitialState(seed = 20270104): GameState {
     params: { ...DEFAULT_PARAMS },
     learning: { unlocked: {}, understood: {}, notes: [], improvements: [] },
     verifications: [],
+    reports: [],
     counters: {},
     stats: emptyStats(),
   };

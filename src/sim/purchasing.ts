@@ -300,7 +300,8 @@ function closeCase(state: GameState, c: PurchaseCase): void {
     qty: accepted,
     priceSavingKRW: Math.round((baseline - final) * accepted),
     vsTargetKRW: Math.round((target - final) * accepted),
-    marketMoveKRW: Math.round(((c.marketPriceAtStart ?? marketNow) - marketNow) * accepted),
+    // 양수 = 구매 기간 중 시장가격 상승분. 구매 활동과 무관한 변화라 절감액과 분리해 기록한다
+    marketMoveKRW: Math.round((marketNow - (c.marketPriceAtStart ?? marketNow)) * accepted),
     formula: `(협상 전 최초 견적 ${won(baseline)} − 최종 단가 ${won(final)}) × 입고 수량 ${accepted.toLocaleString('ko-KR')}`,
   };
   state.stats.priceSavingKRW += c.savings.priceSavingKRW;

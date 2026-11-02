@@ -1,3 +1,4 @@
+import { createInitialState, DEFAULT_PARAMS } from './seed';
 import type { GameState } from './types';
 
 /**
@@ -22,7 +23,7 @@ export function loadLocal(): GameState | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as GameState;
-    return isValidState(parsed) ? parsed : null;
+    return isValidState(parsed) ? migrate(parsed) : null;
   } catch {
     return null;
   }
@@ -49,5 +50,19 @@ export function exportJson(state: GameState): string {
 export function importJson(text: string): GameState {
   const parsed = JSON.parse(text);
   if (!isValidState(parsed)) throw new Error('올바른 저장 파일이 아닙니다.');
-  return parsed;
+  return migrate(parsed);
+}
+
+/**
+ * 예전 버전 저장 파일에 없는 필드를 기본값으로 채운다.
+ * 새 필드를 GameState에 추가하면 여기서 기본값이 들어가는지 확인할 것.
+ */
+export function migrate(s: GameState): GameState {
+  const base = createInitialState(s.seed);
+  const out = { ...base, ...s } as GameState;
+  out.params = { ...DEFAULT_PARAMS, ...(s.params ?? {}) };
+  out.learning = { ...base.learning, ...(s.learning ?? {}) };
+  out.stats = { ...base.stats, ...(s.stats ?? {}) };
+  out.counters = s.counters ?? {};
+  return out;
 }

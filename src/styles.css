@@ -116,6 +116,8 @@ h4 {
   display: grid;
   grid-template-columns: 220px 1fr;
   min-height: 100vh;
+  /* 사이드바 배경이 긴 페이지 끝까지 이어지도록 */
+  background: linear-gradient(to right, var(--surface) 219px, var(--border) 219px, var(--border) 220px, var(--bg) 220px);
 }
 
 .sidebar {
@@ -679,6 +681,7 @@ button:focus-visible {
 @media (max-width: 860px) {
   .app {
     grid-template-columns: 1fr;
+    background: var(--bg);
   }
   .sidebar {
     position: static;

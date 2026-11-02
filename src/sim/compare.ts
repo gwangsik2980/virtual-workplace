@@ -177,7 +177,7 @@ export function runComparison(state: GameState, c: PurchaseCase): ComparisonReco
 
   for (const q of c.quotes) {
     // 난수 키에 방식(수작업/도구)을 넣지 않는다 → 같은 필드를 사람이 입력하면 두 세계에서 같은 결과
-    const extraction = toolVersion?.extractQuote(q, ctx);
+    const extraction = toolVersion?.extractQuote?.(q, ctx);
     if (toolVersion) minutes += p.toolReviewMinutesPerQuote * skillTimeFactor(docs);
     const values: Partial<Record<QuoteField, number>> = {};
     const errors: EntryError[] = [];
@@ -216,17 +216,20 @@ export function runComparison(state: GameState, c: PurchaseCase): ComparisonReco
 
   // 입력값 기준 선택 vs 진실값 기준 최적
   const supOf = (id: string) => state.suppliers.find((s) => s.id === id)!;
+  const trueScore = (q: Quote) =>
+    scoreQuote(state, c, supOf(q.supplierId), q.truth.unitPriceKRW, q.truth.leadTimeDays, q.truth.paymentTermsDays);
   let selected = entered[0];
   let selScore = Infinity;
   for (const e of entered) {
     const s = scoreQuote(state, c, supOf(e.supplierId), e.unitPriceKRW, e.leadTimeDays, e.paymentTermsDays);
+    e.score = Math.round(s * 10) / 10;
+    const q = c.quotes.find((x) => x.id === e.quoteId)!;
+    e.trueScore = Math.round(trueScore(q) * 10) / 10;
     if (s < selScore) {
       selScore = s;
       selected = e;
     }
   }
-  const trueScore = (q: Quote) =>
-    scoreQuote(state, c, supOf(q.supplierId), q.truth.unitPriceKRW, q.truth.leadTimeDays, q.truth.paymentTermsDays);
   let best = c.quotes[0];
   for (const q of c.quotes) if (trueScore(q) < trueScore(best)) best = q;
   const selectedQuote = c.quotes.find((q) => q.id === selected.quoteId)!;

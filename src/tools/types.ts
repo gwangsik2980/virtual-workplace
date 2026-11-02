@@ -1,5 +1,8 @@
 import type { GameState, Quote, Stage } from '../sim/types';
 
+/** 도구가 연결되는 지점: 구매 업무 단계 또는 반복 문서 업무 */
+export type ToolTarget = Stage | 'report';
+
 /**
  * 도구 슬롯 규격.
  *
@@ -46,13 +49,18 @@ export interface ToolContext {
 export interface ToolVersion {
   version: string;
   releasedNote: string;
-  extractQuote(quote: Quote, ctx: ToolContext): QuoteExtraction;
+  /** 견적 비교 단계 도구 */
+  extractQuote?(quote: Quote, ctx: ToolContext): QuoteExtraction;
+  /** 월간 보고 도구: 보고서 초안 본문 */
+  draftReport?(state: Readonly<GameState>, period: { fromDay: number; toDay: number }): string;
+  /** 도구 사용 시 담당자 검토 시간(분). 가정치 */
+  reviewMinutes?: number;
 }
 
 export interface ToolDefinition {
   id: string;
   name: string;
-  targetStage: Stage;
+  targetStage: ToolTarget;
   summary: string;
   /** 자동화하는 일 */
   automates: string[];

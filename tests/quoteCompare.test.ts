@@ -27,7 +27,7 @@ describe('견적서 정보 추출', () => {
       const { state, quotes } = quotesFor(material);
       const ctx = makeToolContext(state);
       for (const q of quotes) {
-        const ex = v11.extractQuote(q, ctx);
+        const ex = v11.extractQuote!(q, ctx);
         const price = ex.fields.unitPrice?.value;
         if (price == null) continue;
         expect(Math.abs(price / q.truth.unitPriceKRW - 1)).toBeLessThan(0.005);
@@ -43,8 +43,8 @@ describe('견적서 정보 추출', () => {
     const scanned = quotes.filter((q) => q.scanned);
     expect(scanned.length).toBeGreaterThan(0);
     for (const q of scanned) {
-      expect(v10.extractQuote(q, ctx).fields.unitPrice?.value).toBeNull();
-      expect(v11.extractQuote(q, ctx).fields.unitPrice?.value).toBeNull();
+      expect(v10.extractQuote!(q, ctx).fields.unitPrice?.value).toBeNull();
+      expect(v11.extractQuote!(q, ctx).fields.unitPrice?.value).toBeNull();
     }
   });
 
@@ -53,7 +53,7 @@ describe('견적서 정보 추출', () => {
     const ctx = makeToolContext(state);
     const textD = quotes.filter((q) => q.format === 'D' && !q.scanned);
     const count = (v: typeof v10) =>
-      textD.reduce((a, q) => a + Object.values(v.extractQuote(q, ctx).fields).filter((f) => f?.value != null).length, 0);
+      textD.reduce((a, q) => a + Object.values(v.extractQuote!(q, ctx).fields).filter((f) => f?.value != null).length, 0);
     expect(count(v11)).toBeGreaterThan(count(v10));
   });
 
@@ -61,7 +61,7 @@ describe('견적서 정보 추출', () => {
     const { state, quotes } = quotesFor('flour');
     const ctx = makeToolContext(state);
     for (const q of quotes.filter((x) => x.format === 'A')) {
-      const ex = v10.extractQuote(q, ctx);
+      const ex = v10.extractQuote!(q, ctx);
       for (const f of Object.values(ex.fields)) expect(f?.value).not.toBeNull();
     }
   });
@@ -70,7 +70,7 @@ describe('견적서 정보 추출', () => {
     const { state, quotes } = quotesFor('flour');
     const ctx = makeToolContext(state);
     const c = quotes.find((q) => q.format === 'C')!;
-    const price = v10.extractQuote(c, ctx).fields.unitPrice!.value!;
+    const price = v10.extractQuote!(c, ctx).fields.unitPrice!.value!;
     expect(Math.abs(price / c.truth.unitPriceKRW - 1)).toBeLessThan(0.005);
   });
 });

@@ -26,6 +26,8 @@ function metricsBetween(before: GameState, after: GameState): VerificationMetric
     priceSavingKRW: b.priceSavingKRW - a.priceSavingKRW,
     stockoutDays: b.stockoutDays - a.stockoutDays,
     avgCycleDays: closed > 0 ? (b.cycleDaysSum - a.cycleDaysSum) / closed : 0,
+    reportMinutes: b.reportMinutes - a.reportMinutes,
+    reportsWritten: b.reportsWritten - a.reportsWritten,
   };
 }
 

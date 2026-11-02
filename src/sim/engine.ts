@@ -3,7 +3,9 @@ import { updateMarket } from './market';
 import { checkReorders, generateAdhocWork, runFinance, runProduction, scheduleMonthlyWork } from './operations';
 import { completeStage, processWaits, stageWorkInfo, STAGE_LABELS } from './purchasing';
 import type { BacklogItem, DailySnapshot, GameState, PurchaseCase, TimeBlock } from './types';
-import { logEvent } from './util';
+import { draftMonthlyReport } from '../tools/monthlyReport/draft';
+import { getToolVersion } from '../tools/registry';
+import { logEvent, nextId } from './util';
 
 const MAX_SCHEDULE_DAYS = 40;
 const MAX_MESSAGES = 600;
@@ -15,7 +17,7 @@ type Task =
 
 function casePriority(state: GameState, c: PurchaseCase): number {
   // 낮을수록 먼저. 긴급 → 필요일 임박 → 오래된 순
-  return (c.urgent ? 0 : 1000) + (c.neededByDay - state.day) * 10 + (c.createdDay % 10);
+  return (c.urgent ? 0 : 1000) + (c.neededByDay - state.day) * 10 + c.createdDay / 1000;
 }
 
 function collectTasks(state: GameState): Task[] {
@@ -92,6 +94,7 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
       if (b.minutesLeft <= 0) {
         if (b.kind !== 'adhoc') gainExperience(state, b.kind === 'report' ? 'docs' : 'negotiation', b.minutesTotal);
         else state.employee.xp += b.minutesTotal / 30;
+        if (b.kind === 'report') finishReport(state, b);
         if (b.kind !== 'adhoc') logEvent(state, 'system', 'purchasing', `${b.title} 완료`, `소요 ${b.minutesTotal}분`, b.caseId);
       }
     }
@@ -105,6 +108,26 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
   state.stats.employeeMinutes += t;
   state.stats.overtimeMinutes += overtime;
   return { minutes: t, compareMinutes };
+}
+
+/** 월간 보고서 완료: 도구를 썼으면 도구 초안, 아니면 담당자가 직접 정리한 같은 내용의 보고서가 남는다 */
+function finishReport(state: GameState, b: BacklogItem): void {
+  const period = { fromDay: b.periodFrom ?? state.day, toDay: b.periodTo ?? state.day };
+  const version = b.toolId && b.toolVersion ? getToolVersion(b.toolId, b.toolVersion) : undefined;
+  const text = version?.draftReport ? version.draftReport(state, period) : draftMonthlyReport(state, period);
+  state.reports.push({
+    id: nextId(state, 'RPT'),
+    day: state.day,
+    fromDay: period.fromDay,
+    toDay: period.toDay,
+    method: version ? 'tool' : 'manual',
+    toolVersion: version?.version,
+    minutes: b.minutesTotal,
+    text,
+  });
+  if (state.reports.length > 24) state.reports = state.reports.slice(-24);
+  state.stats.reportMinutes += b.minutesTotal;
+  state.stats.reportsWritten += 1;
 }
 
 function inventoryValue(state: GameState): number {
@@ -129,6 +152,7 @@ export function advanceDay(state: GameState): GameState {
     revenue: prod.produced * state.company.productPrice,
     produced: prod.produced,
     demand: prod.demand,
+    shortMaterial: prod.produced < Math.min(prod.demand, state.company.capacityPerDay) ? prod.shortMaterial : undefined,
     priceSavingCum: state.stats.priceSavingKRW,
     selectionLossCum: state.stats.selectionLossKRW,
     entryErrorsCum: state.stats.entryErrors,
