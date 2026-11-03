@@ -5,6 +5,7 @@ import type { PurchaseCase, Stage } from '../../sim/types';
 import { formatDay, formatDayShort } from '../../sim/util';
 import { HeroFacts, RowList, ScreenHero, SectionHead } from '../components/Editorial';
 import { Reveal } from '../motion';
+import { stageAtNow, useRealtime } from '../realtime';
 import { useStore } from '../store';
 import './desk.css';
 
@@ -41,31 +42,44 @@ const STAGE_TOOLS: Partial<Record<Stage, { id: string; name: string }>> = {
 
 export function ProcessMap() {
   const { state, openCase } = useStore();
+  const rt = useRealtime();
+  const liveKey = rt.liveMinute === null ? 'off' : `${rt.target}:${rt.liveMinute}`;
+  // 실시간 근무 중에는 지금 시각 기준 단계로 보여 준다 (오늘 저녁 결과를 미리 보여 주지 않는다)
+  const stageOf = useMemo(() => {
+    const m = new Map<string, Stage>();
+    for (const c of state.cases) m.set(c.id, stageAtNow(state, c, rt));
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, liveKey]);
+  const st = (c: PurchaseCase) => stageOf.get(c.id) ?? c.stage;
 
   const byStage = useMemo(() => {
     const map = new Map<Stage, PurchaseCase[]>();
     for (const c of state.cases) {
-      if (c.stage === 'done' || c.stage === 'cancelled') continue;
-      const arr = map.get(c.stage) ?? [];
+      const s = st(c);
+      if (s === 'done' || s === 'cancelled') continue;
+      const arr = map.get(s) ?? [];
       arr.push(c);
-      map.set(c.stage, arr);
+      map.set(s, arr);
     }
     for (const arr of map.values()) arr.sort((a, b) => Number(b.urgent) - Number(a.urgent) || a.neededByDay - b.neededByDay);
     return map;
-  }, [state.cases]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.cases, stageOf]);
 
   const recentDone = useMemo(
     () =>
       state.cases
-        .filter((c) => c.stage === 'done')
+        .filter((c) => st(c) === 'done')
         .sort((a, b) => (b.closedDay ?? 0) - (a.closedDay ?? 0))
         .slice(0, 8),
-    [state.cases],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.cases, stageOf],
   );
 
   const openCases = [...byStage.values()].flat();
   const urgentCount = openCases.filter((c) => c.urgent).length;
-  const waitingCount = openCases.filter((c) => WAIT_STAGES.includes(c.stage)).length;
+  const waitingCount = openCases.filter((c) => WAIT_STAGES.includes(st(c))).length;
   const supName = (id?: string) => state.suppliers.find((s) => s.id === id)?.name;
   const reportTool = activeTool(state, 'monthly-report');
 

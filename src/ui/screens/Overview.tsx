@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { activeTool } from '../../sim/compare';
 import { dailyUsage } from '../../sim/market';
 import { onOrderQty, reorderPoint } from '../../sim/operations';
@@ -82,6 +82,18 @@ function HeroCard() {
 const PHASE_LABEL: Record<string, string> = { before: '출근 전', working: '근무 중', after: '퇴근', holiday: '휴일', manual: '', ahead: '' };
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** 초 단위 시계. 첫 화면 큰 시각에만 쓴다 (앱 전체를 매초 다시 그리지 않으려고 따로 둔다) */
+function useSecondClock(enabled: boolean): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    if (!enabled) return;
+    setNow(new Date());
+    const id = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(id);
+  }, [enabled]);
+  return now;
+}
 
 /** 지금 하는 일, 구매 단계, 다음 일정, 진행 중인 구매 */
 function NowPanel() {
@@ -174,10 +186,12 @@ function Hero() {
   const rt = useRealtime();
   const today = useTodayDay();
   const liveStatus = useLiveStatus();
-  const d = rt.isRealtime && rt.phase !== 'ahead' ? rt.now : dayToDate(state.startDate, today);
+  const showClock = rt.isRealtime && rt.phase !== 'ahead';
+  const sec = useSecondClock(showClock);
+  const d = showClock ? sec : dayToDate(state.startDate, today);
   const titleLines = [
-    `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`,
-    rt.isRealtime && rt.phase !== 'ahead' ? `${pad2(rt.now.getHours())}:${pad2(rt.now.getMinutes())}` : `${today}일차`,
+    `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}(${WEEK[d.getDay()]})`,
+    showClock ? `${pad2(sec.getHours())}:${pad2(sec.getMinutes())}:${pad2(sec.getSeconds())}` : `${today}일차`,
   ];
   return (
     <section className="hero" aria-label="소개">
@@ -188,7 +202,7 @@ function Hero() {
         <div className="hero-left">
           <Reveal gated delay={200} y={0.625}>
             <span className="eyebrow">
-              {WEEK[d.getDay()]}요일 · {rt.isRealtime ? (rt.phase === 'ahead' ? `현실보다 ${rt.aheadDays}영업일 앞서 진행 중` : `실시간, ${PHASE_LABEL[rt.phase]}`) : '수동 진행'} · {today}일차
+              {rt.isRealtime ? (rt.phase === 'ahead' ? `현실보다 ${rt.aheadDays}영업일 앞서 진행 중` : `실시간, ${PHASE_LABEL[rt.phase]}`) : '수동 진행'} · {today}일차
             </span>
           </Reveal>
           <LineReveal as="h1" gated delay={250} stagger={120} lines={titleLines} className="hero-clock" />

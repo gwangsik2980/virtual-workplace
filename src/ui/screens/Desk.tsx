@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import { RANKS } from '../../sim/employee';
 import { STAGE_LABELS } from '../../sim/purchasing';
-import type { Quote, SkillId, TimeBlock, WorkKind } from '../../sim/types';
+import type { Quote, SkillId, Stage, TimeBlock, WorkKind } from '../../sim/types';
 import { formatDay, formatDayShort } from '../../sim/util';
-import { CaseStatus, clock } from '../components/Common';
+import { CaseStatus, clock, StageBadge } from '../components/Common';
 import { HeroFacts, RowList, ScreenHero, SectionHead } from '../components/Editorial';
 import { ArrowRight, Reveal } from '../motion';
 import { useLiveStatus } from '../components/LiveWidgets';
-import { useRealtime } from '../realtime';
+import { stageAtNow, useRealtime } from '../realtime';
 import { useStore } from '../store';
 import './desk.css';
 
@@ -47,6 +47,8 @@ const KIND_LABELS: Record<WorkKind, string> = {
   lunch: '점심',
 };
 
+const WAIT_STAGE_SET = new Set<Stage>(['awaitQuotes', 'approve', 'awaitDelivery']);
+
 type MailFilter = 'all' | 'in' | 'out';
 
 function useRank() {
@@ -71,7 +73,14 @@ export function Desk() {
 
   const blocks = useMemo(() => state.schedule.filter((b) => b.day === day).sort((a, b) => a.start - b.start), [state.schedule, day]);
   const minDay = useMemo(() => state.schedule.reduce((m, b) => Math.min(m, b.day), lastDay), [state.schedule, lastDay]);
-  const openCases = state.cases.filter((c) => c.stage !== 'done' && c.stage !== 'cancelled');
+  // 실시간 근무 중에는 지금 시각 기준 단계로 보여 준다
+  const live = rt.isRealtime && rt.phase === 'working' && rt.liveMinute !== null;
+  const stageOf = (c: (typeof state.cases)[number]) => stageAtNow(state, c, rt);
+  const openCases = state.cases.filter((c) => {
+    const s = live ? stageOf(c) : c.stage;
+    return s !== 'done' && s !== 'cancelled';
+  });
+  const todayBlocks = (id: string) => state.schedule.filter((b) => b.day === rt.target && b.caseId === id).sort((a, b) => a.start - b.start);
   const lastDayMinutes = state.schedule.filter((b) => b.day === lastDay && b.kind !== 'lunch').reduce((a, b) => a + b.minutes, 0);
 
   const heroLines = [`${e.name} ${e.rank}의`, '하루'];
@@ -175,6 +184,17 @@ export function Desk() {
             const m = state.materials[c.materialId];
             const left = c.neededByDay - state.day;
             const waiting = c.stageMinutesTotal === 0 || c.stageMinutesLeft === 0;
+            const s = live ? stageOf(c) : c.stage;
+            const tb = live ? todayBlocks(c.id) : [];
+            const cur = tb.find((b) => b.start <= rt.liveMinute! && rt.liveMinute! < b.start + b.minutes);
+            const nextB = tb.find((b) => b.start > rt.liveMinute!);
+            const liveDesc = cur
+              ? `${STAGE_LABELS[s]}, 지금 작업 중 (${clock(cur.start)}~${clock(cur.start + cur.minutes)})`
+              : nextB
+                ? `${STAGE_LABELS[s]}, 오늘 ${clock(nextB.start)} 작업 예정`
+                : WAIT_STAGE_SET.has(s)
+                  ? `${STAGE_LABELS[s]}, 담당자가 기다리는 단계`
+                  : `${STAGE_LABELS[s]}, 다음 영업일에 이어서`;
             return {
               key: c.id,
               index: c.id.replace('PR-', ''),
@@ -187,7 +207,9 @@ export function Desk() {
                   </span>
                 </span>
               ),
-              desc: waiting ? (
+              desc: live ? (
+                liveDesc
+              ) : waiting ? (
                 `${STAGE_LABELS[c.stage]}, 담당자가 기다리는 단계`
               ) : (
                 <span className="stack" style={{ gap: '0.375rem' }}>
@@ -202,7 +224,14 @@ export function Desk() {
               meta: (
                 <>
                   <span className={`badge ${left < 0 ? 'badge-danger' : left <= 2 ? 'badge-warn' : ''}`}>{left >= 0 ? `D-${left}` : `${-left}일 지남`}</span>
-                  <CaseStatus c={c} />
+                  {live ? (
+                    <span className="row" style={{ gap: '0.25rem' }}>
+                      {c.urgent && <span className="badge badge-danger">긴급</span>}
+                      <StageBadge stage={s} />
+                    </span>
+                  ) : (
+                    <CaseStatus c={c} />
+                  )}
                 </>
               ),
               onClick: () => openCase(c.id),
