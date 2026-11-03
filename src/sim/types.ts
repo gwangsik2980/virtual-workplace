@@ -489,6 +489,8 @@ export interface GameState {
   /** 작성된 월간 보고서 */
   reports: ReportRecord[];
   counters: Record<string, number>;
+  /** 업체 선정 기준. 없으면 v2(결품 손실 반영). v1은 비교 검증용 */
+  selectionRule?: 'v1' | 'v2';
   /** 시간 흐름: realtime = 현실 날짜와 함께 흐름, manual = 버튼으로만 진행 */
   clock?: { mode: 'realtime' | 'manual' };
   /** 담당자 급여와 통장 */

@@ -75,3 +75,20 @@ describe('공급업체 관리와 교육', () => {
     expect(again.suppliers.map((x) => x.name)).toEqual(runs[1].suppliers.map((x) => x.name));
   });
 });
+
+describe('업체 선정 기준 v2', () => {
+  it('결품 손실을 점수에 넣으면 필요일보다 늦게 오는 업체를 덜 고르고 결품이 줄어든다', () => {
+    let lateV1 = 0, lateV2 = 0, outV1 = 0, outV2 = 0;
+    for (const seed of [20270104, 2, 3, 4]) {
+      for (const rule of ['v1', 'v2'] as const) {
+        const st = createInitialState(seed, '2026-11-03', 'manual');
+        st.selectionRule = rule;
+        const s = advanceDays(st, 250);
+        const late = s.cases.filter((c) => c.po && c.po.promisedDay > c.neededByDay + 1).length;
+        if (rule === 'v1') { lateV1 += late; outV1 += s.stats.stockoutDays; } else { lateV2 += late; outV2 += s.stats.stockoutDays; }
+      }
+    }
+    expect(lateV2).toBeLessThan(lateV1);
+    expect(outV2).toBeLessThan(outV1);
+  });
+});

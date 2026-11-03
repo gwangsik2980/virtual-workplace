@@ -135,7 +135,31 @@ export function makeToolContext(state: GameState): ToolContext {
   };
 }
 
-/** 업체 평가 점수 (KRW/기준단위 환산, 낮을수록 좋음) */
+/** 견적 뒤 실제 지연 일수 분포: 약속을 어기면 1~4일 늦는다 (purchasing.ts 발주 단계와 같은 가정) */
+const DELAY_DAYS = [1, 2, 3, 4];
+
+/**
+ * 결품 하루에 잃는 이익 (원). 못 만든 세트의 공헌이익 = 판매가 − 세트당 변동비(기타 원재료 + 추적 원료 시세).
+ * 고정비는 결품과 상관없이 나가므로 넣지 않는다.
+ */
+export function stockoutLossPerDay(state: GameState): number {
+  const co = state.company;
+  const materialCost = Object.values(state.materials).reduce((a, m) => a + m.usagePerProduct * state.market.prices[m.id], 0);
+  const margin = co.productPrice - (co.otherCostPerUnit ?? 0) - materialCost;
+  return Math.max(0, co.baseDemand * state.market.demandBoost * margin);
+}
+
+/** 업체 납기 신뢰도 추정: 입고가 3건 이상 쌓이면 실제 준수율, 그 전에는 등록 때 받은 값 */
+export function estimatedReliability(sup: Supplier): number {
+  const n = sup.history.onTime + sup.history.late;
+  return n >= 3 ? sup.history.onTime / n : sup.reliability;
+}
+
+/**
+ * 업체 평가 점수 (KRW/기준단위 환산, 낮을수록 좋음).
+ * v2(기본): 납기 위험을 "결품 날 기대 일수 × 결품 하루 손실 ÷ 구매 수량"으로 계산한다.
+ * v1: 필요일을 넘기는 하루마다 단가의 3% (예전 기준, 비교용으로 남겨 둠)
+ */
 export function scoreQuote(
   state: GameState,
   c: PurchaseCase,
@@ -150,13 +174,19 @@ export function scoreQuote(
   const h = sup.history;
   const defect = h.receivedQty > 0 ? h.defectQty / h.receivedQty : sup.defectRate;
   const qualityCost = price * defect * 1.5;
-  // 납기: 필요일을 넘기면 하루당 3% 위험 비용
   const arrival = state.day + leadTime;
-  const lateDays = Math.max(0, arrival - c.neededByDay);
-  const latePenalty = price * 0.03 * lateDays;
-  // 납기 신뢰도
-  const relCost = price * (1 - sup.reliability) * 0.05;
-  return price - financing + qualityCost + latePenalty + relCost;
+  if (state.selectionRule === 'v1') {
+    const lateDays = Math.max(0, arrival - c.neededByDay);
+    return price - financing + qualityCost + price * 0.03 * lateDays + price * (1 - sup.reliability) * 0.05;
+  }
+  // 필요일은 재고가 바닥나기 하루 전으로 잡혀 있어서, 필요일 다음 날부터 도착 전날까지 결품이 난다
+  const rel = estimatedReliability(sup);
+  const short = (a: number) => Math.max(0, a - (c.neededByDay + 1));
+  const expectedShortDays = rel * short(arrival) + ((1 - rel) / DELAY_DAYS.length) * DELAY_DAYS.reduce((a, d) => a + short(arrival + d), 0);
+  const stockoutCost = (expectedShortDays * stockoutLossPerDay(state)) / Math.max(1, c.qty);
+  // 결품까지 가지 않아도 늦으면 일정 조율 부담이 생긴다 (작은 값)
+  const relCost = price * (1 - rel) * 0.05;
+  return price - financing + qualityCost + stockoutCost + relCost;
 }
 
 export function activeTool(state: GameState, toolId: string): AppliedTool | undefined {

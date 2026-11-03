@@ -319,7 +319,7 @@ export function CaseDrawer({ caseId, onClose }: { caseId: string; onClose: () =>
                   </table>
                 </div>
                 <div className="faint">
-                  평가점수 = 단가 − 결제 유예 효과 + 품질 위험 + 납기 위험 (원/{unit} 환산, 낮을수록 유리). 업체 실적은 현재 기준이라 비교 당시와 조금 다를 수 있습니다.
+                  평가점수 = 단가 − 결제 유예 효과 + 품질 위험 + 결품 위험 + 신뢰도 위험 (원/{unit} 환산, 낮을수록 유리). 업체 실적은 현재 기준이라 비교 당시와 조금 다를 수 있습니다.
                 </div>
                 {observer && (
                   <div className={`notice ${cmp.errorCount > 0 ? 'notice-warn' : ''}`}>
