@@ -72,8 +72,8 @@
 
 /* 이정표 목록 */
 .milestones { list-style: none; margin-top: 1rem; }
-.milestones li { display: grid; grid-template-columns: 6.25rem 1fr; gap: 0.75rem; padding: 0.625rem 0; border-top: 1px solid var(--line); font-size: 0.8125rem; }
-.milestones li span:first-child { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.milestones li { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 1rem; padding: 0.625rem 0; border-top: 1px solid var(--line); font-size: 0.8125rem; }
+.milestones li span:first-child { color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .tool-hist { list-style: none; }
 .tool-hist li { padding: 0.875rem 0; border-top: 1px solid var(--line); }

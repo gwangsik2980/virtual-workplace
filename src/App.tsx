@@ -385,8 +385,9 @@ function Shell() {
       </main>
       <footer className="shell" style={{ paddingBottom: '2.5rem' }}>
         <div className="row between faint" style={{ borderTop: '1px solid var(--line)', paddingTop: '1.25rem', fontSize: '0.75rem' }}>
-          <span>회사, 인물, 업체, 시세는 모두 가상 데이터입니다.</span>
-          <span>{saveOk ? '이 브라우저에 자동 저장됨' : '자동 저장 실패: 메뉴에서 내보내기로 백업하세요'}</span>
+          <span>© 2026 GWANG. All rights reserved.</span>
+          {/* 저장이 실패할 때만 알린다 */}
+          {!saveOk && <span>자동 저장 실패: 메뉴에서 내보내기로 백업하세요</span>}
         </div>
       </footer>
       <NavMenu

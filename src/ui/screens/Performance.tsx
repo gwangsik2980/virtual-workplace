@@ -26,6 +26,8 @@ const DOT: Partial<Record<EventType, string>> = {
 export function Performance() {
   const { state, openCase } = useStore();
   const st = state.stats;
+  /** 손해 금액. 0이면 '−0원' 대신 '0원' */
+  const loss = (krw: number) => (krw > 0 ? `−${wonShort(krw)}원` : '0원');
   const [dept, setDept] = useState<DeptId | 'all'>('all');
   const [type, setType] = useState<EventType | 'all'>('all');
   const [shown, setShown] = useState(PAGE);
@@ -165,28 +167,38 @@ export function Performance() {
           {
             key: 'scrap',
             title: '생산 중 불량 폐기',
-            desc: `검수를 통과한 원료에서 생산 중 불량이 나와 버린 금액. ${st.qualityIncidents ?? 0}건, 클레임으로 ${wonShort(st.claimRecoveredKRW ?? 0)}원 돌려받음`,
-            meta: `−${wonShort(Math.max(0, (st.scrapKRW ?? 0) - (st.claimRecoveredKRW ?? 0)))}원`,
+            desc: st.qualityIncidents
+              ? `검수를 통과한 원료에서 생산 중 불량이 나와 버린 금액. ${st.qualityIncidents}건, 클레임으로 ${wonShort(st.claimRecoveredKRW ?? 0)}원 돌려받음`
+              : '검수를 통과한 원료에서 생산 중 불량이 나와 버린 금액. 아직 없음',
+            meta: loss(Math.max(0, (st.scrapKRW ?? 0) - (st.claimRecoveredKRW ?? 0))),
           },
           {
             key: 'return',
             title: '불량 반품 처리비',
-            desc: `입고 검수 불량을 반품하면서 회사가 떠안은 운송 대기·재검사 비용. 불량 ${num(st.defectQty)}단위`,
-            meta: `−${wonShort(st.defectHandlingKRW ?? 0)}원`,
+            desc: st.defectQty
+              ? `입고 검수 불량을 반품하면서 회사가 떠안은 운송 대기·재검사 비용. 불량 ${num(st.defectQty)}단위`
+              : '입고 검수 불량을 반품하면서 회사가 떠안은 운송 대기·재검사 비용. 아직 없음',
+            meta: loss(st.defectHandlingKRW ?? 0),
           },
           {
             key: 'spot',
             title: '긴급 현물 구매 웃돈',
-            desc: `결품 직전 시세보다 비싸게 산 차액. ${st.spotBuys ?? 0}번 샀고, 못 구한 날 ${st.spotFailures ?? 0}일`,
-            meta: `−${wonShort(st.spotPremiumKRW ?? 0)}원`,
+            desc:
+              st.spotBuys || st.spotFailures
+                ? `결품 직전 시세보다 비싸게 산 차액. ${st.spotBuys ?? 0}번 샀고, 못 구한 날 ${st.spotFailures ?? 0}일`
+                : '결품 직전 시세보다 비싸게 산 차액. 아직 없음',
+            meta: loss(st.spotPremiumKRW ?? 0),
           },
           {
             key: 'up',
             title: '업체 단가 인상',
-            desc: `시세 상승기 견적 뒤 인상 요구 ${st.priceIncreaseCases ?? 0}건. 연초 단가 인상 합의 ${st.annualIncreases ?? 0}건${
-              st.annualIncreases ? `, 평균 ${(((st.annualIncreaseRateSum ?? 0) / st.annualIncreases) * 100).toFixed(1)}%` : ''
-            } (이후 견적에 계속 반영)`,
-            meta: `−${wonShort(st.priceIncreaseKRW ?? 0)}원`,
+            desc:
+              st.priceIncreaseCases || st.annualIncreases
+                ? `시세 상승기 견적 뒤 인상 요구 ${st.priceIncreaseCases ?? 0}건. 연초 단가 인상 합의 ${st.annualIncreases ?? 0}건${
+                    st.annualIncreases ? `, 평균 ${(((st.annualIncreaseRateSum ?? 0) / st.annualIncreases) * 100).toFixed(1)}%` : ''
+                  } (이후 견적에 계속 반영)`
+                : '견적 뒤 인상 요구와 연초 단가 인상 합의. 아직 없음',
+            meta: loss(st.priceIncreaseKRW ?? 0),
           },
           {
             key: 'stockout',

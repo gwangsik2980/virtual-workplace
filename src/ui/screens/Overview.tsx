@@ -205,7 +205,7 @@ function Hero() {
         <div className="hero-left">
           <Reveal gated delay={200} y={0.625}>
             <span className={`eyebrow live-eyebrow light-${light.light}`}>
-              {rt.isRealtime && rt.phase !== 'ahead' ? `실시간, ${light.text}` : light.text} · {today}일차
+              {light.text} · {today}일차
             </span>
           </Reveal>
           <LineReveal as="h1" gated delay={250} stagger={120} lines={titleLines} className="hero-clock" />
@@ -234,7 +234,7 @@ function Hero() {
             <div className="lbl">거래 공급업체 {state.suppliers.length}곳</div>
             <ul>
               {state.suppliers.map((s) => (
-                <li key={s.id} title={s.name}>
+                <li key={s.id} title={s.name} className={nameWidth(s.name) > 7 ? 'wide' : undefined}>
                   <span style={{ color: 'var(--text-3)', display: 'inline-flex', fontSize: '0.875rem' }}>
                     <DotIcon />
                   </span>
@@ -249,7 +249,6 @@ function Hero() {
         <span>
           {liveStatus}
         </span>
-        <span className="mid">회사, 인물, 업체, 시세는 모두 가상</span>
         <span>스크롤해서 보기 ↓</span>
       </Reveal>
     </section>
@@ -447,6 +446,9 @@ function deptStatus(state: GameState): Record<DeptId, { text: string; tone?: 'wa
     quality: { text: recentDefects ? `최근 10일 불량 이슈 ${recentDefects}건` : '최근 불량 이슈 없음', tone: recentDefects ? 'warn' : 'ok' },
   };
 }
+
+/** 이름이 차지하는 대략의 폭 (한글 1, 영문·숫자·공백 0.55). 넓으면 공급업체 목록에서 두 칸을 쓴다 */
+const nameWidth = (name: string) => [...name].reduce((w, c) => w + (/[\u3131-\uD79D]/.test(c) ? 1 : 0.55), 0);
 
 export function Overview() {
   const { state, openCase } = useStore();
