@@ -228,7 +228,7 @@ export function AwayModal() {
           {formatDay(state.startDate, fromDay)} ~ {formatDay(state.startDate, toDay)} 동안 회사는 계속 돌아갔어요. 발주 {ordered}건, 구매 완료 {closed}건이 있었습니다.
         </p>
         <div className="away-counts">
-          {(Object.keys(ALERT_LABELS) as AlertKind[]).map((k) => (
+          {(Object.keys(ALERT_LABELS) as AlertKind[]).filter((k) => k !== 'payroll').map((k) => (
             <div key={k} className={`away-count ${counts.get(k) ? 'has' : ''}`}>
               <span>{ALERT_LABELS[k]}</span>
               <b>{counts.get(k) ?? 0}</b>

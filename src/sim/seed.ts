@@ -1,3 +1,4 @@
+import { emptyPayroll } from './payroll';
 import type {
   CostModelParams,
   CumulativeStats,
@@ -235,6 +236,7 @@ export function createInitialState(seed = 20270104, startDate: string = START_DA
     learning: { unlocked: {}, understood: {}, notes: [], improvements: [] },
     verifications: [],
     reports: [],
+    payroll: emptyPayroll(seed),
     counters: {},
     stats: emptyStats(),
   };

@@ -6,12 +6,12 @@ import { useRealtime } from './realtime';
 import { useStore } from './store';
 
 /**
- * 알림: 결품, 긴급 요청, 납기 지연, 품질 이슈, 정산 불일치, 납기 위험 알림.
+ * 알림: 결품, 긴급 요청, 납기 지연, 품질 이슈, 정산 불일치, 납기 위험 알림, 급여 입금.
  * 사이트가 열려 있는 동안 브라우저 알림으로도 보낸다 (권한을 허용했을 때).
  * 읽음·알림 보낸 위치와 설정은 이 브라우저에만 저장한다.
  */
 
-export type AlertKind = 'stockout' | 'urgent' | 'delay' | 'quality' | 'finance' | 'risk';
+export type AlertKind = 'stockout' | 'urgent' | 'delay' | 'quality' | 'finance' | 'risk' | 'payroll';
 
 export const ALERT_LABELS: Record<AlertKind, string> = {
   stockout: '결품',
@@ -20,6 +20,7 @@ export const ALERT_LABELS: Record<AlertKind, string> = {
   quality: '품질',
   finance: '정산 불일치',
   risk: '납기 위험 알림',
+  payroll: '급여 입금',
 };
 
 export function alertKind(e: EventLog): AlertKind | null {
@@ -29,6 +30,7 @@ export function alertKind(e: EventLog): AlertKind | null {
   if (e.type === 'quality') return 'quality';
   if (e.type === 'finance' && e.title.startsWith('정산 불일치')) return 'finance';
   if (e.type === 'tool' && e.title.startsWith('납기 위험 알림')) return 'risk';
+  if (e.type === 'payroll') return 'payroll';
   return null;
 }
 
@@ -73,7 +75,7 @@ export function useAlerts() {
   const { state } = useStore();
   const rt = useRealtime();
   const [prefs, setPrefsRaw] = useState<Record<AlertKind, boolean>>(() => {
-    const all = { stockout: true, urgent: true, delay: true, quality: true, finance: true, risk: true };
+    const all = { stockout: true, urgent: true, delay: true, quality: true, finance: true, risk: true, payroll: true };
     try {
       return { ...all, ...JSON.parse(localStorage.getItem(PREF_KEY) ?? '{}') };
     } catch {

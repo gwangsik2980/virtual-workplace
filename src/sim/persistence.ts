@@ -1,4 +1,5 @@
 import { createInitialState, DEFAULT_PARAMS } from './seed';
+import { emptyPayroll } from './payroll';
 import type { GameState } from './types';
 
 /**
@@ -64,6 +65,8 @@ export function migrate(s: GameState): GameState {
   out.learning = { ...base.learning, ...(s.learning ?? {}) };
   out.stats = { ...base.stats, ...(s.stats ?? {}) };
   out.counters = s.counters ?? {};
+  // 급여 기능 추가 전 저장 파일: 빈 통장으로 시작한다
+  if (!s.payroll) out.payroll = emptyPayroll(s.seed);
   // 담당자 이름 변경 (서지우 → GWANG). 예전 저장 파일도 새 이름으로 보이게 한다
   // 비용 구조 변경 (기타 원재료 추가, 고정비 조정). 예전 저장 파일은 새 비용 구조로 바꾼다
   if (out.company && out.company.otherCostPerUnit === undefined) {

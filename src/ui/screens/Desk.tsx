@@ -7,6 +7,7 @@ import { CaseStatus, clock, StageBadge } from '../components/Common';
 import { HeroFacts, RowList, ScreenHero, SectionHead } from '../components/Editorial';
 import { ArrowRight, Reveal } from '../motion';
 import { useLiveStatus } from '../components/LiveWidgets';
+import { PayrollPanel } from '../components/PayrollPanel';
 import { stageAtNow, useRealtime } from '../realtime';
 import { useStore } from '../store';
 import './desk.css';
@@ -107,6 +108,7 @@ export function Desk() {
           }
         />
         <Skills />
+        <PayrollPanel />
         <Career />
       </>
     );
@@ -154,6 +156,7 @@ export function Desk() {
       />
 
       <Skills />
+      <PayrollPanel />
 
       <SectionHead
         eyebrow="Timeline"

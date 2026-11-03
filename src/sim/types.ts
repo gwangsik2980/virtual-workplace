@@ -269,6 +269,7 @@ export type EventType =
   | 'finance'
   | 'tool'
   | 'career'
+  | 'payroll'
   | 'system';
 
 export interface EventLog {
@@ -446,6 +447,8 @@ export interface GameState {
   counters: Record<string, number>;
   /** 시간 흐름: realtime = 현실 날짜와 함께 흐름, manual = 버튼으로만 진행 */
   clock?: { mode: 'realtime' | 'manual' };
+  /** 담당자 급여와 통장 */
+  payroll: Payroll;
   /** 하루 계산 중 지금 몇 분째인지 (사건 시각 기록용, 계산이 끝나면 비움) */
   nowMinute?: number;
   stats: CumulativeStats;
@@ -502,4 +505,41 @@ export interface CumulativeStats {
   /** 약속일 대비 지연 일수 합 (입고 기준) */
   lateDaysSum: number;
   expediteRecoveredDays: number;
+}
+
+export interface PayLine {
+  label: string;
+  amount: number;
+  /** 지급 항목만: 과세 여부 */
+  taxable?: boolean;
+}
+
+export interface Payslip {
+  id: string;
+  /** 지급한 날 (영업일 번호) */
+  day: number;
+  /** salary = 10일 월급, extra = 25일 연장근로수당·성과급 */
+  kind: 'salary' | 'extra';
+  /** 어느 달 몫인지 (YYYY-MM) */
+  period: string;
+  rank: string;
+  earnings: PayLine[];
+  deductions: PayLine[];
+  gross: number;
+  totalDeduction: number;
+  net: number;
+  note?: string;
+}
+
+export interface BankTxn {
+  day: number;
+  amount: number;
+  balance: number;
+  memo: string;
+  payslipId?: string;
+}
+
+export interface Payroll {
+  account: { bank: string; number: string; balance: number; txns: BankTxn[] };
+  payslips: Payslip[];
 }

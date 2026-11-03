@@ -106,6 +106,7 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   finance: '정산·재무',
   tool: 'AI 도구',
   career: '경력',
+  payroll: '급여',
   system: '업무',
 };
 

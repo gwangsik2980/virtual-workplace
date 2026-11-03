@@ -1097,6 +1097,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .bell-kind { grid-row: span 2; align-self: start; font-size: 0.6875rem; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 99px; background: var(--surface-2); color: var(--text-2); white-space: nowrap; }
 .bell-kind.k-stockout, .bell-kind.k-urgent { background: var(--danger-soft); color: var(--danger); }
 .bell-kind.k-delay, .bell-kind.k-risk { background: var(--accent-soft); color: var(--accent-text); }
+.bell-kind.k-payroll { background: var(--ok-soft); color: var(--ok); }
 .bell-title { font-size: 0.8125rem; font-weight: 500; line-height: 1.35; }
 .bell-when { font-size: 0.6875rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .bell-prefs { padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }

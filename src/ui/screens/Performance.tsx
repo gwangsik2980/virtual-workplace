@@ -20,6 +20,7 @@ const DOT: Partial<Record<EventType, string>> = {
   finance: 'var(--accent)',
   tool: 'var(--foreground)',
   career: 'var(--ok)',
+  payroll: 'var(--ok)',
 };
 
 export function Performance() {

@@ -3,6 +3,7 @@ import { detectDeliveryRisks, finishExpedite } from './deliveryRisk';
 import { gainExperience } from './employee';
 import { updateMarket } from './market';
 import { checkReorders, generateAdhocWork, runFinance, runProduction, scheduleMonthlyWork } from './operations';
+import { runPayroll } from './payroll';
 import { completeStage, processWaits, stageWorkInfo, STAGE_LABELS } from './purchasing';
 import type { BacklogItem, DailySnapshot, GameState, PurchaseCase, TimeBlock } from './types';
 import { draftMonthlyReport } from '../tools/monthlyReport/draft';
@@ -166,6 +167,7 @@ export function advanceDay(state: GameState): GameState {
   state.nowMinute = 0;
   updateMarket(state);
   runFinance(state);
+  runPayroll(state);
   processWaits(state);
   detectDeliveryRisks(state);
   const prod = runProduction(state);
