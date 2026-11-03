@@ -26,6 +26,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        env:
+          # 회사 공유·닫아 둔 동안 알림 서버 (worker/, push-worker.yml이 배포)
+          VITE_SERVER: https://vw-push.kgs2980.workers.dev
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

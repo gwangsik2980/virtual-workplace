@@ -6,9 +6,9 @@
 
 - 저장소 `gwangsik2980/virtual-workplace`, 배포 https://gwangsik2980.github.io/virtual-workplace/
 - `main`에 푸시하면 GitHub Actions가 바로 배포한다. **사용자가 "배포해줘"라고 한 뒤에만** `main`에 올린다. 작업은 세션 브랜치에서 하고, 끝나면 "배포할까요?"라고 묻는다.
-- **진행 중 (main에 안 올림)**: 브랜치 `claude/determined-euler-1ada5z`에 "회사 공유(관리자 키)"와 "닫아 둔 동안 알림" 작업이 있다. 새 세션은 이 브랜치를 받아서 이어 간다 (`git fetch origin claude/determined-euler-1ada5z && git checkout claude/determined-euler-1ada5z`). 자세한 내용은 아래 "진행 중: 회사 공유와 닫아 둔 동안 알림". (`claude/adoring-ptolemy-f90lwf`는 이 브랜치의 이전 단계라 지워도 된다.)
-- `main`(사이트)은 커밋 `1e88994` 상태. 그 뒤 작업은 모두 위 브랜치에만 있다.
-- 브랜치 기준 테스트 83개 통과 (`npm test`), 타입 검사 통과 (`npx tsc --noEmit`). 새 컨테이너는 `npm ci`부터.
+- 2026-11-03 밤 "회사 공유(관리자 키)"와 "닫아 둔 동안 알림"을 main에 배포했다. 서버 https://vw-push.kgs2980.workers.dev (Cloudflare 무료, 사용자 계정 kgs2980). 사이트 빌드에 `VITE_SERVER`로 들어간다(`.github/workflows/deploy.yml`). 남은 것은 아래 "회사 공유와 닫아 둔 동안 알림"의 사용자 확인.
+- `claude/adoring-ptolemy-f90lwf`, `claude/determined-euler-1ada5z`는 main에 반영돼 지워도 된다.
+- 테스트 83개 통과 (`npm test`), 타입 검사 통과 (`npx tsc --noEmit`). 새 컨테이너는 `npm ci`부터.
 - 하위 세션을 열면 프롬프트에 "main 푸시 금지"를 분명히 쓰고, 끝나면 바로 보관한다. (2026-11-03 공휴일 대조 하위 세션이 끝난 뒤 다시 깨어나 main에 직접 올린 일이 있었다. 내용은 검토한 것과 같아 문제는 없었다.)
 
 ## 지금까지 만든 것 (요약)
@@ -31,9 +31,9 @@
 | 손실 | 불량 반품 처리비, 생산 중 불량 폐기와 보상 클레임, 결품 직전 긴급 현물 구매(시세 +12~18%, 못 구할 때도 있음), 견적 뒤 인상 요구, 연초 단가 인상 협상. 기타 손실은 `finance.otherExpenseCum`으로 영업이익에서 뺀다. 성과 화면 "손해 본 돈" | `src/sim/losses.ts`, `purchasing.ts` |
 | 공급업체 관리 | 신규 공급처 탐색→샘플 시험→등록, 분기 평가→개선 미팅·거래 중지, 분기 사내 교육(하루 종일, 연 32시간). 공급업체 화면 "공급업체 관리" | `src/sim/suppliers.ts` |
 | 업체 선정 기준 v2 | 견적 점수의 납기 위험 = 기대 결품 일수 × 결품 하루 공헌이익 ÷ 구매 수량. 납기 신뢰도는 입고 3건부터 실적값. v1(하루 3%)은 `state.selectionRule = 'v1'`로 비교용. 시드 8개 1년: 결품 6.3일 → 2.6일, 이익률 5.92% → 6.19% | `src/sim/compare.ts` `scoreQuote` |
-| 회사 공유와 닫아 둔 동안 알림 (**브랜치에만 있음**) | 서버(Cloudflare Worker + Durable Object, 무료)에 회사가 하나 있다. 누구나 열면 그 회사를 보고, 바꾸기와 알림은 관리자 키를 넣은 기기만. 알림은 사이트가 열려 있을 때 30영업일(약 6주)을 미리 돌려 만든 예정표를 서버가 시각에 맞춰 웹 푸시로 보낸다 | `worker/`, `src/ui/sync.ts`, `src/ui/push.ts`, `src/ui/components/OwnerKey.tsx`, `src/sim/pushSchedule.ts`, `public/sw.js` |
+| 회사 공유와 닫아 둔 동안 알림 | 서버(Cloudflare Worker + Durable Object, 무료)에 회사가 하나 있다. 누구나 열면 그 회사를 보고, 바꾸기와 알림은 관리자 키를 넣은 기기만. 알림은 사이트가 열려 있을 때 30영업일(약 6주)을 미리 돌려 만든 예정표를 서버가 시각에 맞춰 웹 푸시로 보낸다 | `worker/`, `src/ui/sync.ts`, `src/ui/push.ts`, `src/ui/components/OwnerKey.tsx`, `src/sim/pushSchedule.ts`, `public/sw.js` |
 
-## 진행 중: 회사 공유와 닫아 둔 동안 알림 (2026-11-03 밤)
+## 회사 공유와 닫아 둔 동안 알림 (2026-11-03 밤 배포)
 
 **사용자가 원하는 것**
 1. 폰(홈 화면 앱)과 PC 웹이 **같은 회사**를 본다. 지금은 브라우저마다 저장이 따로라 다르다.
@@ -57,9 +57,7 @@
 - 로컬 확인(wrangler dev + 브라우저 4개): 키 만들기 → 새 방문자가 열면 같은 회사 → 틀린 키는 "키가 맞지 않아요" → 방문자가 파일을 불러와도 서버 회사 그대로 → 폰에 키 입력 → 폰에서 바꾸면 PC와 방문자도 바뀜. 1440·390px, 라이트·다크 확인.
 
 **남은 것 (이 순서로)**
-1. 사용자가 GitHub Secrets에 `CLOUDFLARE_API_TOKEN`("Edit Cloudflare Workers" 템플릿), `CLOUDFLARE_ACCOUNT_ID`를 넣는다. 토큰은 채팅으로 받지 않는다.
-2. 사용자가 "배포해줘"라고 하면 main에 올린다 → 서버 배포 워크플로 실행 → 배포 기록에서 `https://vw-push.<하위주소>.workers.dev`를 찾는다.
-3. 그 주소를 사이트 빌드에 넣는다(`.github/workflows`의 사이트 빌드 단계에 `VITE_SERVER` 환경 변수, 또는 `src/ui/server.ts` 기본값) → 다시 main에 올려 사이트 배포.
+1~3. (완료) GitHub Secrets 등록, 서버 배포, 사이트 빌드에 `VITE_SERVER` 추가.
 4. 사용자 확인: **회사가 맞는 기기(엣지 말고)**에서 메뉴 → 관리자 키 → 키 만들기 → 키를 다른 기기에 붙여넣기 → 폰 홈 화면 앱에서 알림 켜기 → "알림이 연결됐어요".
 
 **알아 둘 것**
