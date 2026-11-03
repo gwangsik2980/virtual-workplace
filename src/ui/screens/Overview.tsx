@@ -231,8 +231,7 @@ function Hero() {
             <HeroCard />
           </Reveal>
           <Reveal gated delay={550} y={0.875} className="hero-partners">
-            <div className="lbl">거래 공급업체 {state.suppliers.length}곳</div>
-            <ul>
+            <ul aria-label={`거래 공급업체 ${state.suppliers.length}곳`}>
               {state.suppliers.map((s) => (
                 <li key={s.id} title={s.name}>
                   <span style={{ color: 'var(--text-3)', display: 'inline-flex', fontSize: '0.875rem' }}>
