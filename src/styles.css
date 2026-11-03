@@ -207,7 +207,11 @@ h4 { font-size: 0.8125rem; color: var(--text-2); font-weight: 600; }
   font-size: 0.875rem;
   font-weight: 500;
 }
-@media (min-width: 1880px) { .header-nav { display: flex; gap: 1.25rem; } }
+/* 메뉴가 헤더에 나올 때 로고·About이 줄어들어 메뉴와 겹치지 않게 한다. 대신 메뉴 간격을 조금 좁힌다 */
+@media (min-width: 1880px) {
+  .header-nav { display: flex; gap: 0.875rem; }
+  .brand-group { flex-shrink: 0; }
+}
 .header-nav button {
   opacity: 0.6;
   transition: opacity 0.35s var(--spring-snap), transform 0.35s var(--spring-snap);
@@ -664,6 +668,8 @@ textarea { width: 100%; resize: vertical; min-height: 4.5rem; }
   transition: color 0.2s, transform 0.35s var(--spring-snap);
 }
 .round-btn:hover { color: var(--foreground); transform: scale(1.08); }
+/* 관찰 대상 카드와 거래 공급업체 목록의 폭을 맞춘다 (카드가 내용 폭으로 줄어 왼쪽이 비지 않게) */
+.hero-card-wrap,
 .hero-partners { width: 100%; max-width: 24rem; }
 .hero-partners .lbl { margin-bottom: 0.75rem; font-size: 0.75rem; font-weight: 500; color: rgba(var(--fg-rgb), 0.45); }
 @media (min-width: 1024px) { .hero-partners .lbl { text-align: right; } }

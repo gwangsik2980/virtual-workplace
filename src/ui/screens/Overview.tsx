@@ -227,7 +227,7 @@ function Hero() {
           </Reveal>
         </div>
         <div className="hero-right">
-          <Reveal gated delay={400} y={1} scale={0.96}>
+          <Reveal gated delay={400} y={1} scale={0.96} className="hero-card-wrap">
             <HeroCard />
           </Reveal>
           <Reveal gated delay={550} y={0.875} className="hero-partners">
