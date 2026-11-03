@@ -34,3 +34,17 @@ describe('저장본 압축', () => {
     await expect(decodeState(btoa('nope'))).rejects.toThrow();
   });
 });
+
+describe('업체명 변경 마이그레이션', () => {
+  it('예전 저장본의 Pacific Agri Trading을 제당제일로 바꾼다 (메일 문장까지)', async () => {
+    const { migrate } = await import('../src/sim/persistence');
+    const s = createInitialState(5, '2026-10-06', 'realtime');
+    advanceDays(s, 20);
+    const old = JSON.parse(JSON.stringify(s).split('제당제일').join('Pacific Agri Trading'));
+    expect(JSON.stringify(old)).toContain('Pacific Agri Trading');
+    const m = migrate(old);
+    expect(JSON.stringify(m)).not.toContain('Pacific Agri Trading');
+    expect(m.suppliers.find((x) => x.id === 'S03')?.name).toBe('제당제일');
+    expect(JSON.stringify(m)).toBe(JSON.stringify(migrate(s)));
+  });
+});

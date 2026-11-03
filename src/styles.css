@@ -675,11 +675,15 @@ textarea { width: 100%; resize: vertical; min-height: 4.5rem; }
 .hero-partners { width: 100%; max-width: 24rem; }
 .hero-partners .lbl { margin-bottom: 0.75rem; font-size: 0.75rem; font-weight: 500; color: rgba(var(--fg-rgb), 0.45); }
 @media (min-width: 1024px) { .hero-partners .lbl { text-align: right; } }
-/* 2열: 3열이면 영문 업체명(Pacific Agri Trading)이 잘린다 */
-.hero-partners ul { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.625rem 1rem; }
+.hero-partners ul { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem 0.75rem; }
 .hero-partners li {
-  display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; color: rgba(var(--fg-rgb), 0.7); opacity: 0.8;
+  display: flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; color: rgba(var(--fg-rgb), 0.7); opacity: 0.8;
   transition: transform 0.35s var(--spring-snap), opacity 0.3s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* 넓은 화면은 글자를 키운다. 폰은 6글자 업체명이 3열에 들어가도록 조금 작게 */
+@media (min-width: 1024px) {
+  .hero-partners ul { column-gap: 1rem; }
+  .hero-partners li { font-size: 0.875rem; }
 }
 .hero-partners li:hover { opacity: 1; transform: translateY(-2px); }
 .hero-status {

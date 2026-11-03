@@ -85,5 +85,9 @@ export function migrate(s: GameState): GameState {
     out.suppliers = out.suppliers.map((x) => (x.name === '대한제분유통' ? { ...x, name: '제분대한유통' } : x));
   }
   if (out.employee?.name === '서지우') out.employee = { ...out.employee, name: 'GWANG' };
+  // 영문 업체명 정리 (Pacific Agri Trading → 제당제일). 메일·사건·채팅 문장에 남은 이름까지 바꾼다
+  const OLD_S03 = 'Pacific Agri Trading';
+  const text = JSON.stringify(out);
+  if (text.includes(OLD_S03)) return JSON.parse(text.split(OLD_S03).join('제당제일')) as GameState;
   return out;
 }
