@@ -1154,3 +1154,41 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 /* 날짜 뒤 요일은 작게 */
 .hero-weekday { font-size: 0.42em; font-weight: 500; letter-spacing: 0; margin-left: 0.2em; color: var(--text-2); vertical-align: 0.12em; }
 .chip-weekday { font-size: 0.85em; font-weight: 400; margin-left: 0.1em; color: rgba(var(--fg-rgb), 0.55); }
+
+/* 실시간 / 수동 전환 */
+.mode-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 99px; padding: 0.1875rem; gap: 0.125rem; flex-shrink: 0; }
+.mode-switch button { padding: 0.3125rem 0.75rem; border-radius: 99px; font-size: 0.8125rem; font-weight: 500; color: var(--text-2); transition: background 0.25s, color 0.25s; }
+.mode-switch button:hover { color: var(--text); }
+.mode-switch button.on { background: var(--ink); color: #fff; }
+:root[data-theme='dark'] .mode-switch button.on { background: #ededed; color: #0a0a0a; }
+
+/* 진행 버튼 줄 접기 (폰에서만) */
+.controls-toggle { display: none; }
+@media (max-width: 640px) {
+  .controls-toggle { display: grid; }
+  .day-controls {
+    max-height: 0; opacity: 0; overflow: hidden; pointer-events: none; margin-top: -0.5rem;
+    transition: max-height 0.4s var(--spring), opacity 0.3s, margin-top 0.4s var(--spring);
+  }
+  .day-controls.open { max-height: 4rem; opacity: 1; pointer-events: auto; margin-top: 0; }
+  .day-controls .mode-switch { flex: 0 0 auto; }
+}
+@media (max-width: 640px) {
+  /* 헤더 첫 줄에 다 들어가도록 MENU 글자는 숨기고 아이콘만 */
+  .menu-btn > span:not(.badge-dot) { display: none; }
+  .menu-btn { padding: 0.5rem 0.625rem; }
+  .header-right { gap: 0.375rem; }
+  /* 펼친 진행 버튼 줄: 한 줄에 다 들어가게 */
+  .day-controls { gap: 0.3125rem; justify-content: space-between; }
+  .day-controls .pill { flex: 0 0 auto; }
+  .day-controls .pill-arrow { padding-left: 0.875rem; gap: 0.5rem; }
+  .day-controls .pill-arrow .arrow-badge { width: 1.75rem; height: 1.75rem; }
+  .mode-switch button { padding: 0.3125rem 0.625rem; }
+}
+@media (max-width: 380px) {
+  .day-controls { gap: 0.25rem; }
+  .day-controls .pill, .day-controls .mode-switch button { font-size: 0.75rem; }
+  .day-controls .pill-sm { padding: 0.4375rem 0.625rem; }
+  .day-controls .pill-arrow { padding-left: 0.75rem; }
+  .mode-switch button { padding: 0.3125rem 0.5rem; }
+}

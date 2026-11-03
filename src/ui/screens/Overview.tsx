@@ -370,8 +370,11 @@ function MaterialFlow({ state }: { state: GameState }) {
           ))}
         </g>
         <line x1={colX[0] + 64} y1={130} x2={colX[1] - 112} y2={130} stroke="var(--text-3)" strokeWidth={1.5} markerEnd="url(#arrow)" />
-        <text x={(colX[0] + colX[1]) / 2 - 22} y={122} textAnchor="middle">
-          입고 대기 {inTransit}건
+        <text x={(colX[0] + 64 + colX[1] - 112) / 2} y={121} textAnchor="middle">
+          입고 대기
+        </text>
+        <text x={(colX[0] + 64 + colX[1] - 112) / 2} y={147} textAnchor="middle" style={{ fontWeight: 600, fill: 'var(--text-2)' }}>
+          {inTransit}건
         </text>
 
         <g>
