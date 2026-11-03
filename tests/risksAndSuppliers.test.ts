@@ -99,7 +99,18 @@ describe('팀 채팅', () => {
     const threads = new Set(s.chats.map((c) => c.thread));
     expect(threads.has('lead')).toBe(true);
     expect(threads.has('prod')).toBe(true);
-    expect([...threads].every((t) => ['lead', 'prod', 'qa', 'logi', 'fin', 'sales'].includes(t))).toBe(true);
+    expect([...threads].every((t) => ['team', 'lead', 'prod', 'qa', 'logi', 'fin', 'sales'].includes(t))).toBe(true);
+    // 구매팀 단체방: 매주 대화가 있고, 상대 말에는 누가 했는지 남는다
+    const team = s.chats.filter((c) => c.thread === 'team');
+    expect(team.length).toBeGreaterThan(10);
+    expect(team.filter((c) => c.from === 'them').every((c) => c.who === '이팀장' || c.who === '최대리')).toBe(true);
+    // 시간 순서: 같은 방 같은 날에는 쌓인 순서대로 시각이 늘어난다 (대화가 앞 대화 사이로 끼어들지 않는다)
+    for (let i = 1; i < s.chats.length; i++) {
+      const a = s.chats[i - 1];
+      const b = s.chats.slice(0, i).reverse().find((c) => c.thread === s.chats[i].thread && c.day === s.chats[i].day);
+      if (b) expect(s.chats[i].minute).toBeGreaterThan(b.minute);
+      void a;
+    }
     // 구매 요청마다 생산팀 대화가 남는다 (보관 한도 안에서)
     const firstDay = s.chats[0].day;
     const requested = s.cases.filter((c) => c.createdDay >= firstDay).length;

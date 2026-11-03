@@ -1,4 +1,5 @@
 import { LUNCH_MINUTES, LUNCH_START } from './calendar';
+import { teamChat } from './chat';
 import { detectDeliveryRisks, finishExpedite } from './deliveryRisk';
 import { annualReview, gainExperience } from './employee';
 import { checkLatentDefects, emergencySpotBuy, finishClaim, receiveInbound } from './losses';
@@ -192,6 +193,7 @@ export function advanceDay(state: GameState): GameState {
   scheduleSupplierWork(state);
   generateAdhocWork(state);
   const work = runWorkday(state);
+  teamChat(state);
   const otherExpense = Math.round((state.finance.otherExpenseCum ?? 0) - expenseBefore);
 
   const snap: DailySnapshot = {

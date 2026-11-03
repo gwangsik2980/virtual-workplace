@@ -77,7 +77,10 @@ export function Inbox() {
       else byFolder.inbox.push(m);
       if (m.quoteId) byFolder.quotes.push(m);
     }
-    for (const k of Object.keys(byFolder) as Folder[]) byFolder[k].reverse();
+    // 최신이 위로: 날짜, 시각, 쌓인 순서
+    const num = (id: string) => Number(id.replace(/\D/g, '')) || 0;
+    const newestFirst = (a: Message, b: Message) => b.day - a.day || (b.minute ?? 0) - (a.minute ?? 0) || num(b.id) - num(a.id);
+    for (const k of Object.keys(byFolder) as Folder[]) byFolder[k].sort(newestFirst);
     return byFolder;
   }, [visible, me]); // eslint-disable-line react-hooks/exhaustive-deps
 

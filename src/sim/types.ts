@@ -314,7 +314,7 @@ export type EventType =
   | 'payroll'
   | 'system';
 
-export type ChatThread = 'lead' | 'prod' | 'qa' | 'logi' | 'fin' | 'sales';
+export type ChatThread = 'team' | 'lead' | 'prod' | 'qa' | 'logi' | 'fin' | 'sales';
 
 /** 사내 메신저 한 줄. from이 me면 GWANG이 보낸 것 */
 export interface ChatMessage {
@@ -324,6 +324,8 @@ export interface ChatMessage {
   minute: number;
   thread: ChatThread;
   from: 'me' | 'them';
+  /** 단체방에서 말한 사람 (from이 'them'일 때). 1:1 방에는 없다 */
+  who?: string;
   text: string;
   caseId?: string;
 }

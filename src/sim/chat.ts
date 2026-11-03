@@ -1,14 +1,16 @@
 import { makeRng } from './rng';
 import type { ChatThread, GameState } from './types';
-import { nextId } from './util';
+import { dayToDate, nextId } from './util';
 
 /**
  * 가상 팀 채팅 (사내 메신저).
  * 메일은 공식 요청·문서, 메신저는 상사 지시와 다른 부서와의 짧은 협조를 담는다.
  * GWANG은 사원이라 부하 직원 대화방은 없다. 모든 인물은 가상이다.
+ * 'team'은 구매팀 단체방(이팀장, 최대리, GWANG)이다.
  */
 
-export const CHAT_PEOPLE: Record<ChatThread, { name: string; dept: string; role: string }> = {
+export const CHAT_PEOPLE: Record<ChatThread, { name: string; dept: string; role: string; group?: boolean }> = {
+  team: { name: '구매팀', dept: '구매팀', role: '이팀장, 최대리, GWANG', group: true },
   lead: { name: '이팀장', dept: '구매팀', role: '직속 상사' },
   prod: { name: '김대리', dept: '생산팀', role: '구매 요청·재고' },
   qa: { name: '정주임', dept: '품질팀', role: '입고 검사·불량' },
@@ -23,16 +25,21 @@ const MAX_CHATS = 1500;
  * 대화 한 묶음을 남긴다. lines의 첫 줄은 지금 시각(state.nowMinute), 다음 줄은 몇 분씩 뒤에 온다.
  * 'me'는 GWANG, 'them'은 대화 상대.
  */
-export type ChatLine = ['me' | 'them', string | string[]];
+export type ChatLine = ['me' | 'them', string | string[], string?];
 
 export function chat(state: GameState, thread: ChatThread, lines: ChatLine[], caseId?: string): void {
   if (!state.chats) state.chats = [];
   const rng = makeRng(state.seed, 'chat', thread, state.day, state.counters['CH'] ?? 0);
-  let minute = state.nowMinute ?? 0;
+  // 시간 순서: 같은 방에서 오늘 이미 오간 대화보다 앞선 시각으로 끼어들지 않게, 마지막 말 뒤에서 시작한다
+  let lastToday = -1;
+  for (let i = state.chats.length - 1; i >= 0 && state.chats[i].day === state.day; i--) {
+    if (state.chats[i].thread === thread) lastToday = Math.max(lastToday, state.chats[i].minute);
+  }
+  let minute = Math.max(state.nowMinute ?? 0, lastToday + 1);
   // 같은 상황에도 말투가 조금씩 다르게: 문장 후보 중 하나를 고른다 (시드·날짜·순번으로 정해져 재현된다)
-  for (const [from, text] of lines) {
+  for (const [from, text, who] of lines) {
     const pick = Array.isArray(text) ? rng.pick(text) : text;
-    state.chats.push({ id: nextId(state, 'CH'), day: state.day, minute, thread, from, text: pick, caseId });
+    state.chats.push({ id: nextId(state, 'CH'), day: state.day, minute, thread, from, text: pick, caseId, ...(who ? { who } : {}) });
     minute += rng.int(1, 8);
   }
   if (state.chats.length > MAX_CHATS) state.chats = state.chats.slice(-MAX_CHATS);
@@ -48,4 +55,63 @@ export function chatOncePerDay(state: GameState, thread: ChatThread, key: string
     if (old.startsWith(`chat:${key}:`) && old !== k) delete state.counters[old];
   }
   chat(state, thread, lines);
+}
+
+// ── 구매팀 단체방 ─────────────────────────────────────
+
+/** 월요일 기준 주 번호 (같은 주인지 비교용) */
+function weekKey(d: Date): number {
+  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
+  return monday.getTime();
+}
+
+/**
+ * 구매팀 단체방. 주 첫 영업일 아침 인사와 주간 공유 요청, 주 마지막 영업일 마무리,
+ * 그날 결품이나 입고 불량이 있으면 최대리가 짚는다. 하루 일이 끝난 뒤(advanceDay 끝) 부른다.
+ */
+export function teamChat(state: GameState): void {
+  const today = dayToDate(state.startDate, state.day);
+  const firstOfWeek = state.day === 1 || weekKey(dayToDate(state.startDate, state.day - 1)) !== weekKey(today);
+  const lastOfWeek = weekKey(dayToDate(state.startDate, state.day + 1)) !== weekKey(today);
+  const rng = makeRng(state.seed, 'teamchat', state.day);
+  const saved = state.nowMinute;
+  const todays = state.events.filter((e) => e.day === state.day);
+
+  if (firstOfWeek) {
+    state.nowMinute = rng.int(2, 12);
+    chat(state, 'team', [
+      ['them', ['좋은 아침입니다. 이번 주도 잘 부탁드립니다. 금요일 오후까지 주간 구매 현황 공유해 주세요.', '한 주 시작이네요. 이번 주 납기 걸린 건 먼저 챙겨 주시고, 금요일에 주간 현황 공유 부탁드립니다.', '다들 주말 잘 쉬셨죠? 이번 주 입고 예정 건 오전 중에 한 번씩 확인 부탁드립니다.'], '이팀장'],
+      ['them', ['네 팀장님, 정리해서 올리겠습니다.', '네, 이번 주 입고 일정부터 확인하겠습니다.'], '최대리'],
+      ['me', ['네 알겠습니다!', '네, 맡은 건 정리해서 금요일에 올리겠습니다.', '네 팀장님, 확인하겠습니다.']],
+    ]);
+  }
+
+  const stockout = todays.find((e) => e.type === 'stockout' && e.title.includes('생산 차질'));
+  if (stockout) {
+    state.nowMinute = rng.int(300, 420);
+    chat(state, 'team', [
+      ['them', [`오늘 ${stockout.title.replace(' 부족으로 생산 차질', '')} 결품으로 생산 차질이 있었네요. 원인 같이 한번 봐요.`, `결품 소식 들으셨죠? ${stockout.title.replace(' 부족으로 생산 차질', '')} 건이요. 재주문 시점이 늦었던 건지 확인해 봐야겠어요.`], '최대리'],
+      ['me', ['네, 발주 시점이랑 입고 일정 정리해서 공유드리겠습니다.', '네 대리님, 재고 추이부터 확인해 보겠습니다.']],
+      ['them', ['좋아요. 내일 아침에 짧게 같이 봅시다.', '고마워요. 정리되면 팀장님께도 같이 보고드리죠.'], '이팀장'],
+    ]);
+  }
+
+  const defect = todays.find((e) => e.type === 'quality' && e.title.includes('입고 불량'));
+  if (defect && !stockout) {
+    state.nowMinute = rng.int(240, 400);
+    chat(state, 'team', [
+      ['them', ['입고 불량 건 클레임 넣을 때 지난 불량 이력도 같이 적어 주세요. 반복되면 평가에 반영해야 해서요.', '불량 건 보셨죠? 업체에 회신 받으면 대체품 일정도 꼭 확인해 주세요.'], '최대리'],
+      ['me', ['네, 이력까지 정리해서 보내겠습니다.', '네, 대체품 일정 확인해서 공유드리겠습니다.']],
+    ]);
+  }
+
+  if (lastOfWeek) {
+    state.nowMinute = rng.int(500, 530);
+    chat(state, 'team', [
+      ['them', ['이번 주도 다들 고생 많았습니다. 주간 현황은 월요일 아침에 같이 보죠.', '한 주 수고하셨습니다. 급한 건 없으면 오늘은 제때 퇴근하세요.', '이번 주 고생 많았어요. 다음 주 납기 건만 한 번 더 확인 부탁드립니다.'], '이팀장'],
+      ['them', ['수고하셨습니다!', '고생하셨습니다. 주말 잘 보내세요.'], '최대리'],
+      ['me', ['수고하셨습니다!', '고생 많으셨습니다. 좋은 주말 보내세요!']],
+    ]);
+  }
+  state.nowMinute = saved;
 }
