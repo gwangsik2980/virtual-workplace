@@ -13,6 +13,20 @@ describe('영업일 달력', () => {
     expect(isBusinessDay(at('2027-09-15'))).toBe(false); // 추석
   });
 
+  it('2028~2030년 설·추석과 대체공휴일을 쉰다', () => {
+    expect(isBusinessDay(at('2028-01-27'))).toBe(false); // 설날
+    expect(isBusinessDay(at('2028-10-05'))).toBe(false); // 추석이 개천절과 겹친 대체공휴일
+    expect(isBusinessDay(at('2029-01-02'))).toBe(true); // 신정 다음 날, 첫 영업일
+    expect(isBusinessDay(at('2029-09-24'))).toBe(false); // 추석 대체공휴일
+    expect(isBusinessDay(at('2030-02-05'))).toBe(false); // 설날 대체공휴일
+  });
+
+  it('목록이 끝난 해부터는 양력 고정 공휴일만 쉰다', () => {
+    expect(isBusinessDay(at('2031-01-01'))).toBe(false); // 신정 (수)
+    expect(isBusinessDay(at('2031-10-09'))).toBe(false); // 한글날 (목)
+    expect(isBusinessDay(at('2031-01-02'))).toBe(true);
+  });
+
   it('일차를 날짜로 바꿀 때 공휴일을 건너뛴다', () => {
     // 2026-12-24(목) 다음 영업일은 12-28(월)
     expect(formatDay('2026-12-24', 2)).toBe('2026-12-28(월)');

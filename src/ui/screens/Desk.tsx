@@ -5,7 +5,7 @@ import type { Quote, SkillId, Stage, TimeBlock, WorkKind } from '../../sim/types
 import { formatDay, formatDayShort } from '../../sim/util';
 import { CaseStatus, clock, StageBadge } from '../components/Common';
 import { HeroFacts, RowList, ScreenHero, SectionHead } from '../components/Editorial';
-import { ArrowRight, Reveal } from '../motion';
+import { Reveal } from '../motion';
 import { useLiveStatus } from '../components/LiveWidgets';
 import { PayrollPanel } from '../components/PayrollPanel';
 import { stageAtNow, useRealtime } from '../realtime';
@@ -63,7 +63,7 @@ function useRank() {
 }
 
 export function Desk() {
-  const { state, deskDay, setDeskDay, openCase, advance } = useStore();
+  const { state, deskDay, setDeskDay, openCase } = useStore();
   const e = state.employee;
   const lastDay = state.day - 1;
   const day = deskDay ?? lastDay;
@@ -98,13 +98,7 @@ export function Desk() {
           aside={
             <div className="desk-start">
               <span className="faint">아직 근무 기록이 없습니다</span>
-              <p>하루를 진행하면 {e.name}의 첫 근무일이 시작되고, 시간대별 업무와 주고받은 메일이 여기에 나타납니다.</p>
-              <button className="pill pill-dark pill-arrow" onClick={() => advance(1)}>
-                첫날 시작하기
-                <span className="arrow-badge">
-                  <ArrowRight />
-                </span>
-              </button>
+              <p>첫 근무일 09:00가 되면 {e.name}의 시간대별 업무와 주고받은 메일이 여기에 나타납니다.</p>
             </div>
           }
         />

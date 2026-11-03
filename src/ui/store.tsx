@@ -6,6 +6,8 @@ import { createInitialState } from '../sim/seed';
 
 /** 새 회사는 오늘(휴일이면 다음 영업일)을 1일차로, 현실 시간과 함께 흐르도록 시작한다 */
 const newCompany = (seed?: number) => createInitialState(seed, nextBusinessDayISO(), 'realtime');
+/** 웹에서는 실시간 모드만 쓴다. 예전에 수동으로 저장한 회사도 실시간으로 바꿔서 연다 */
+const asRealtime = (s: GameState): GameState => (s.clock?.mode === 'realtime' ? s : { ...s, clock: { mode: 'realtime' } });
 import type { GameState } from '../sim/types';
 
 export type ScreenId = 'overview' | 'desk' | 'process' | 'market' | 'lab' | 'performance' | 'learning' | 'assumptions';
@@ -42,7 +44,7 @@ const Ctx = createContext<Store | null>(null);
 const UNDO_LIMIT = 10;
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<GameState>(() => loadLocal() ?? newCompany());
+  const [state, setState] = useState<GameState>(() => asRealtime(loadLocal() ?? newCompany()));
   const [saveOk, setSaveOk] = useState(true);
   const [screen, setScreenRaw] = useState<ScreenId>(() => {
     try {
@@ -124,7 +126,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const replace = useCallback(
-    (next: GameState) => {
+    (loaded: GameState) => {
+      const next = asRealtime(loaded);
       stateRef.current = next;
       setState(next);
       clearUndo();

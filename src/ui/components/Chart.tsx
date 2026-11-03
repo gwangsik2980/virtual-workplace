@@ -73,7 +73,7 @@ export function LineChart({ series, labels, height = 180, format = (v) => v.toLo
   if (n === 0 || series.every((s) => s.values.length === 0)) {
     return (
       <div ref={setWrapEl} className="empty">
-        아직 데이터가 없습니다. 하루를 진행해 보세요.
+        아직 데이터가 없습니다. 근무일이 지나면 쌓입니다.
       </div>
     );
   }

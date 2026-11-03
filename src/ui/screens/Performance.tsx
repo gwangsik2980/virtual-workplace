@@ -157,7 +157,7 @@ export function Performance() {
 
       <SectionHead eyebrow="Cases" title="구매 건별 절감 내역" desc={`완료 ${closed.length}건, 최근 것부터 보여 줍니다. 누르면 견적부터 정산까지의 기록이 열립니다.`} />
       <RowList
-        empty="아직 완료된 구매 건이 없습니다. 하루를 진행해 보세요."
+        empty="아직 완료된 구매 건이 없습니다. 근무일이 지나면 쌓입니다."
         items={closed.slice(0, casesShown).map((c) => {
           const sv = c.savings!;
           const m = state.materials[c.materialId];

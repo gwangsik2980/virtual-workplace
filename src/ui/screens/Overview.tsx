@@ -180,7 +180,7 @@ function NowPanel() {
 }
 
 function Hero() {
-  const { state, advance, setScreen } = useStore();
+  const { state, setScreen } = useStore();
   const ready = useIntroReady();
   const rt = useRealtime();
   const today = useTodayDay();
@@ -214,31 +214,15 @@ function Hero() {
           </Reveal>
           <Reveal gated delay={700} y={0.75}>
             <div className="row" style={{ gap: '0.75rem' }}>
-              {rt.isRealtime ? (
-                <>
-                  <button className="pill pill-dark pill-arrow" onClick={() => setScreen('desk')}>
-                    담당자 업무 보기
-                    <span className="arrow-badge">
-                      <ArrowRight />
-                    </span>
-                  </button>
-                  <button className="pill pill-white" onClick={() => setScreen('process')}>
-                    프로세스 맵
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button className="pill pill-dark pill-arrow" onClick={() => advance(1)}>
-                    {state.day === 1 ? '첫날 시작하기' : '하루 진행'}
-                    <span className="arrow-badge">
-                      <ArrowRight />
-                    </span>
-                  </button>
-                  <button className="pill pill-white" onClick={() => setScreen('desk')}>
-                    담당자 업무 보기
-                  </button>
-                </>
-              )}
+              <button className="pill pill-dark pill-arrow" onClick={() => setScreen('desk')}>
+                담당자 업무 보기
+                <span className="arrow-badge">
+                  <ArrowRight />
+                </span>
+              </button>
+              <button className="pill pill-white" onClick={() => setScreen('process')}>
+                프로세스 맵
+              </button>
             </div>
           </Reveal>
         </div>
@@ -499,7 +483,7 @@ export function Overview() {
         <Stat label="결품 발생일" value={`${s.stockoutDays}일`} tone={s.stockoutDays > 0 ? 'danger' : undefined} note="원료 부족으로 생산 차질" />
       </div>
 
-      <Card title="자재 흐름" sub={last ? `${formatDay(state.startDate, last.day)} 기준` : '하루를 진행하면 흐름이 표시됩니다'}>
+      <Card title="자재 흐름" sub={last ? `${formatDay(state.startDate, last.day)} 기준` : '첫 근무일이 지나면 흐름이 표시됩니다'}>
         <MaterialFlow state={state} />
       </Card>
 
