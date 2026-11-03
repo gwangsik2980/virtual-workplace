@@ -1,0 +1,49 @@
+# 작업 인계 (2026-11-03 기준)
+
+새 세션에서 이어서 작업할 때 먼저 읽는 문서. 규칙과 명령은 `CLAUDE.md`, 수치 근거는 `docs/ASSUMPTIONS.md`에 있다.
+
+## 지금 상태
+
+- 저장소 `gwangsik2980/virtual-workplace`, 배포 https://gwangsik2980.github.io/virtual-workplace/
+- `main`에 푸시하면 GitHub Actions가 바로 배포한다. 지금까지는 사용자가 요청한 기능을 확인 후 `main`에 바로 올려 왔다.
+- 마지막 커밋: `9704dab Annual promotion review and higher salary levels`
+- 테스트 52개 통과 (`npm test`), 타입 검사 통과 (`npx tsc --noEmit`)
+
+## 지금까지 만든 것 (요약)
+
+| 영역 | 내용 | 주요 파일 |
+|---|---|---|
+| 시뮬레이션 | 가상 식품회사 가온식품, 구매 담당자 GWANG의 하루. 구매 단계 머신, 견적 비교, 반사실 검증 | `src/sim/engine.ts`, `purchasing.ts`, `verify.ts` |
+| 손익 | 영업이익률 약 5% (1년 3.1~6.5%) | `operations.ts`, `seed.ts` |
+| 실시간 모드 | 현실 시간과 1:1. 09~18시, 점심 12~13시, 주말·공휴일 휴무. 오늘(2026-11-03)이 1일차. 밀린 날은 다시 열 때 따라잡음 | `src/sim/calendar.ts`, `src/ui/realtime.tsx` |
+| 알림 | 결품, 긴급, 지연, 품질, 정산, 납기 위험, 급여 입금. 사이트를 열어 둔 동안 브라우저 알림 | `src/ui/alerts.tsx` |
+| PWA | 홈 화면 설치 가능 | `public/sw.js`, `src/ui/install.ts` |
+| 첫 화면 | 날짜·초 단위 시각·상태 불(근무 초록, 점심 주황, 퇴근 빨강, 그 외 회색)·지금 단계 | `src/ui/screens/Overview.tsx`, `components/LiveWidgets.tsx` |
+| 헤더 | About 드롭다운, 날짜 칩, 알림 종, 테마, 되돌리기/하루/1주, 실시간·수동 전환. 폰에서 진행 버튼 줄 접기 | `src/App.tsx` |
+| 급여 | 통장(가상은행), 10일 전월 급여, 25일 연장근로수당·월 성과급, 휴일이면 직전 영업일. 2026년 4대보험 요율, 소득세는 추정 계산. 입사 월 일할 계산 | `src/sim/payroll.ts`, `components/PayrollPanel.tsx` |
+| 승진 | 매년 1월 첫 영업일 정기 심사만. 사원 2년 → 주임, 주임 2년 → 대리, 대리 4년 → 과장. 근속 1년 이상이면 매년 3% 인상. 연봉 이력은 달별 저장 | `src/sim/employee.ts` |
+| 연봉 | 사원 4,200 / 주임 4,600 / 대리 5,200 / 과장 6,000만원 (가정치, 대형 식자재 유통사 수준. 출처는 ASSUMPTIONS) | `payroll.ts` `SALARY_BY_RANK` |
+
+## 남은 일과 보류 항목
+
+사용자가 정할 것, 또는 다음에 할 수 있는 것.
+
+1. **성과 평가 등급**: 지금은 경험치 조건이 늘 먼저 차서 연차만으로 승진이 정해진다. S/A/B 평가로 승진·인상률·성과급이 달라지게 할지 제안해 둔 상태.
+2. **2028년 이후 공휴일**: `calendar.ts`의 `HOLIDAYS`에 2026~2027만 있다. 2029-01-01 신정에도 심사가 열린다.
+3. **보류 (사용자 결정)**: 업체 선정 기준 v2, 다른 부서 확장, 닫아 둔 동안 오는 폰 알림(서버 필요), 출처 원문 대조(네트워크 허용 필요), 포트폴리오 "배운 것" 보강(`docs/PORTFOLIO.md`).
+4. **남은 원격 브랜치**: `wip-desk-process`, `wip-autoplay`. 프록시 때문에 세션에서 못 지웠다. 사용자가 GitHub Branches 화면에서 지우면 된다.
+
+## 사용자 선호 (작업 방식)
+
+- 한국어로 답한다. 소제목과 줄바꿈으로 나누고, 이유와 근거를 함께 쓴다.
+- 수치에는 출처를 남기고, 추정이면 추정이라고 밝힌다. 공식 자료를 못 찾으면 그렇다고 말한다.
+- 부족한 점은 돌려 말하지 않고 짚는다.
+- 과하게 큰 UI 요소를 싫어한다. 화면을 바꾸면 Playwright로 1440px·390px, 라이트·다크를 찍어 확인한다.
+- 링크 페이지(`gwangsik2980.github.io/links/`) 같은 다른 공개 페이지를 바꿀 때는 먼저 확인받는다.
+- 앱 안에서는 실제 기업명을 쓰지 않는다 (예: 연봉 기준 회사명은 문서에만).
+
+## 화면 확인 요령
+
+- 데이터가 쌓인 상태를 보려면 Vitest로 `createInitialState(seed, '2026-11-03', 'manual')` 후 `advanceDays`를 돌려 JSON으로 저장하고, Playwright에서 localStorage `virtual-workplace/save/v1`에 넣고 새로고침한다.
+- 테마는 localStorage `virtual-workplace/theme`(`light`/`dark`).
+- `npm run build` 후 `npx vite preview --port 4173`, 주소는 `http://localhost:4173/virtual-workplace/`. 서버를 끌 때 `pkill -f`는 자기 셸까지 죽이므로 `lsof -t -i:4173 | xargs kill`을 쓴다.

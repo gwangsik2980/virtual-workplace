@@ -5,6 +5,7 @@
 ## 프로젝트
 
 가상 기업 기반 구매 직무 관찰·학습·업무 개선 시뮬레이션. 정적 웹앱(React + TS + Vite), GitHub Pages 배포.
+새 세션은 먼저 `docs/HANDOFF.md`(현재 상태, 남은 일, 사용자 선호)를 읽는다.
 기획 대응표: `docs/PLAN_MAPPING.md`. 가정: `docs/ASSUMPTIONS.md`. 도구 개발: `docs/TOOL_GUIDE.md`.
 
 ## 명령
