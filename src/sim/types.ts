@@ -289,6 +289,8 @@ export interface TimeBlock {
 export interface Message {
   id: string;
   day: number;
+  /** 그날 09:00부터 몇 분째에 보냈는지. 예전 저장본에는 없다 */
+  minute?: number;
   from: string;
   to: string;
   subject: string;

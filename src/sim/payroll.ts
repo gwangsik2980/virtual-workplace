@@ -322,12 +322,12 @@ export function runPayroll(state: GameState): void {
       to: state.employee.name,
       subject: `[급여명세서] ${y}년 ${Number(mo)}월분 ${name}`,
       body: [
-        `${state.employee.name} ${state.employee.rank}님, ${y}년 ${Number(mo)}월분 ${name} 명세서입니다.`,
+        `${y}년 ${Number(mo)}월분 ${name} 명세서를 아래와 같이 보내 드립니다.`,
         '',
         ...slip.earnings.map((l) => `지급 | ${l.label}: ${won(l.amount)}${l.taxable ? '' : ' (비과세)'}`),
         ...slip.deductions.map((l) => `공제 | ${l.label}: ${won(l.amount)}`),
         '',
-        `실수령액 ${won(slip.net)}을 ${state.payroll.account.bank} ${state.payroll.account.number}로 입금했습니다.`,
+        `실수령액 ${won(slip.net)}을 ${state.payroll.account.bank} ${state.payroll.account.number}로 입금하였습니다.`,
         ...(slip.note ? ['', slip.note] : []),
       ].join('\n'),
     });

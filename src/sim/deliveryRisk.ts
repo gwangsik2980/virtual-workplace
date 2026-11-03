@@ -84,7 +84,7 @@ export function detectDeliveryRisks(state: GameState): void {
       subject: viaTool ? `[알림] ${c.po.id} ${m.name} 출하 지연 신호` : `[확인요청] ${c.po.id} ${m.name} 오늘 입고 예정분 미도착`,
       body: viaTool
         ? `${s.name} 출하 현황이 약속일보다 늦어지고 있습니다.\n약속일: ${formatDay(state.startDate, c.po.promisedDay)}\n현재 재고: ${coverDays.toFixed(1)}일분\n\n업체에 납기 확인과 독촉을 권장합니다.`
-        : `오늘 입고 예정이던 ${m.name}이 도착하지 않았습니다. 업체 확인 부탁드립니다.`,
+        : `오늘 입고 예정이던 ${m.name}이(가) 아직 도착하지 않아 확인을 요청드립니다.\n번거로우시겠지만 업체에 일정 확인 부탁드립니다.`,
       caseId: c.id,
     });
   }
@@ -113,8 +113,8 @@ export function finishExpedite(state: GameState, b: BacklogItem): void {
     subject: `RE: ${c.po.id} 납기 확인 요청`,
     body:
       recovered > 0
-        ? `확인 결과 출하가 늦어지고 있었습니다. 요청하신 대로 우선 출하해 ${formatDay(state.startDate, c.po.actualArrivalDay)}에 입고되도록 하겠습니다.`
-        : `죄송합니다. 현재로서는 ${formatDay(state.startDate, c.po.actualArrivalDay)} 입고가 최선입니다.`,
+        ? `확인해 보니 출하가 늦어지고 있었습니다. 불편을 드려 죄송합니다.\n요청하신 대로 우선 출하하여 ${formatDay(state.startDate, c.po.actualArrivalDay)}에 입고되도록 하겠습니다.`
+        : `불편을 드려 대단히 죄송합니다.\n현재로서는 ${formatDay(state.startDate, c.po.actualArrivalDay)} 입고가 최선인 상황입니다. 너그러운 양해 부탁드립니다.`,
     caseId: c.id,
   });
   logEvent(

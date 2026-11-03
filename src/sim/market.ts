@@ -72,7 +72,7 @@ export function updateMarket(state: GameState): void {
       from: '영업팀 박과장',
       to: '생산팀, 구매팀',
       subject: `[공유] 판촉 행사로 ${length}일간 물량 증가 예상`,
-      body: `안녕하세요, 영업팀입니다.\n대형마트 판촉이 확정되어 ${length}영업일 동안 출고량이 약 ${pct}% 늘어날 예정입니다.\n원료 재고 확인 부탁드립니다.`,
+      body: `대형마트 판촉 행사가 확정되어 공유드립니다.\n\n- 기간: ${length}영업일\n- 예상 출고량: 평소보다 약 ${pct}% 증가\n\n원료 재고 확인 부탁드립니다.`,
     });
     chat(state, 'sales', [
       ['them', [`마트 판촉 확정됐어요. ${length}영업일 동안 물량 ${pct}% 정도 늘 거라 원료 미리 챙겨 주세요.`, `판촉 잡혔어요! ${length}일 정도 출고 ${pct}% 늘 거예요. 원료 모자라지 않게 부탁해요.`]],

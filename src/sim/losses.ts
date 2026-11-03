@@ -87,7 +87,7 @@ export function checkLatentDefects(state: GameState): void {
       from: '품질팀 정주임',
       to: `${state.employee.name}, 생산팀`,
       subject: `[긴급] ${m.name} 생산 중 불량 발견, ${qty.toLocaleString('ko-KR')}${m.unit} 폐기`,
-      body: `생산 투입 중 ${s.name} 입고분에서 불량이 확인되어 해당 로트를 폐기했습니다.\n폐기 금액 약 ${won(value)}입니다. 업체에 손실 보상 청구 부탁드립니다.`,
+      body: `생산 투입 과정에서 ${s.name} 입고분에 불량이 확인되어 해당 로트를 폐기하였음을 알려 드립니다.\n\n- 폐기 수량: ${qty.toLocaleString('ko-KR')}${m.unit}\n- 폐기 금액: 약 ${won(value)}\n\n번거로우시겠지만 업체에 손실 보상 청구를 진행해 주시기 바랍니다.`,
       caseId: c.id,
     });
   }
@@ -108,7 +108,7 @@ export function finishClaim(state: GameState, b: BacklogItem): void {
       from: s.name,
       to: state.employee.name,
       subject: `RE: ${c.po.id} 불량 손실 보상 건`,
-      body: `불편을 드려 죄송합니다. 협의 결과 ${won(recovered)}을 다음 대금에서 차감하는 것으로 처리하겠습니다.`,
+      body: `먼저 불편을 끼쳐 드린 점 진심으로 사과드립니다.\n협의 결과에 따라 아래와 같이 처리하겠습니다.\n\n- 보상 금액: ${won(recovered)}\n- 처리 방법: 다음 대금에서 차감\n\n같은 일이 다시 없도록 품질 관리에 더욱 힘쓰겠습니다.`,
       caseId: c.id,
     });
     logEvent(state, 'quality', 'purchasing', `${s.name} 불량 손실 일부 보상 (${c.id})`, `청구 ${won(b.claimAmount ?? 0)} 중 ${won(recovered)} 보상 합의.`, c.id);
@@ -132,7 +132,7 @@ export function finishClaim(state: GameState, b: BacklogItem): void {
     from: s.name,
     to: state.employee.name,
     subject: `RE: ${c.po.id} 불량 클레임 건`,
-    body: `불량분 ${qty.toLocaleString('ko-KR')}${m.unit}는 회수하고 ${formatDay(state.startDate, arriveDay)}에 대체품을 보내드리겠습니다.`,
+    body: `불량으로 불편을 드려 대단히 죄송합니다.\n말씀해 주신 건은 아래와 같이 조치하겠습니다.\n\n- 불량분 ${qty.toLocaleString('ko-KR')}${m.unit}: 회수\n- 대체품 입고 예정일: ${formatDay(state.startDate, arriveDay)}\n\n재발하지 않도록 출하 검사를 강화하겠습니다.`,
     caseId: c.id,
   });
 }
@@ -225,7 +225,7 @@ export function emergencySpotBuy(state: GameState): void {
       from: '생산팀 김대리',
       to: state.employee.name,
       subject: `[긴급] ${m.name} 내일 생산분 부족`,
-      body: `${m.name} 재고가 내일 생산에 모자랍니다. 비싸더라도 내일 받을 수 있는 곳에서 구해 주세요.`,
+      body: `${m.name} 재고가 내일 생산 계획량에 미치지 못할 것으로 확인되어 급히 연락드립니다.\n단가가 다소 높더라도 내일 입고가 가능한 곳에서 확보해 주시면 감사하겠습니다.`,
     });
   }
 }

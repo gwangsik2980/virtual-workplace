@@ -74,7 +74,7 @@ export function scheduleSupplierWork(state: GameState): void {
           from: s.name,
           to: state.employee.name,
           subject: `[공문] ${year}년 공급 단가 조정 요청`,
-          body: `인건비와 물류비 상승으로 ${year}년 공급 단가를 ${(req * 100).toFixed(1)}% 인상하고자 합니다. 협의 일정 부탁드립니다.`,
+          body: `항상 저희와 거래해 주셔서 감사드립니다.\n인건비와 물류비 상승으로 부득이하게 ${year}년 공급 단가를 ${(req * 100).toFixed(1)}% 인상하고자 합니다.\n협의 일정을 잡아 주시면 찾아뵙고 자세히 말씀드리겠습니다.`,
         });
       }
     }
@@ -117,8 +117,8 @@ function runSourcing(state: GameState): void {
       to: state.employee.name,
       subject: `[샘플 시험] ${cand.name} ${pass ? '합격' : '불합격'}`,
       body: pass
-        ? `${cand.name} 샘플 시험 결과 불량률 ${pct}%로 기준을 통과했습니다. 업체 등록 진행하셔도 됩니다.`
-        : `${cand.name} 샘플 불량률이 ${pct}%로 기준을 넘었습니다. 거래는 어렵겠습니다.`,
+        ? `${cand.name} 샘플 시험 결과를 공유드립니다.\n\n- 불량률: ${pct}%\n- 판정: 합격\n\n업체 등록을 진행하셔도 좋겠습니다.`
+        : `${cand.name} 샘플 시험 결과를 공유드립니다.\n\n- 불량률: ${pct}%\n- 판정: 불합격 (기준 초과)\n\n아쉽지만 거래는 어려울 것으로 판단됩니다.`,
     });
     if (pass) {
       cand.status = 'registering';
@@ -179,7 +179,7 @@ export function finishSourcing(state: GameState, b: BacklogItem): void {
       from: cand.name,
       to: state.employee.name,
       subject: `[회사 소개] ${cand.name} ${names} 공급 제안`,
-      body: `안녕하세요, ${cand.name}입니다.\n요청하신 회사 소개서와 ${names} 샘플을 보내드립니다. 결제조건은 납품 후 ${cand.profile.paymentTermsDays}일, 표준 납기는 발주 후 ${cand.profile.leadTimeDays}영업일입니다.`,
+      body: `요청하신 회사 소개서와 ${names} 샘플을 보내 드립니다.\n\n- 결제 조건: 납품 후 ${cand.profile.paymentTermsDays}일\n- 표준 납기: 발주 후 ${cand.profile.leadTimeDays}영업일\n\n검토 부탁드리며, 궁금하신 점은 언제든 연락 주시기 바랍니다.`,
     });
     return;
   }
@@ -240,7 +240,7 @@ export function finishReview(state: GameState): void {
         from: state.employee.name,
         to: s.name,
         subject: `[통보] 거래 일시 중지 안내`,
-        body: `두 분기 연속 납기·품질 기준에 못 미쳐 신규 발주를 중지합니다. 개선 계획이 확인되면 재평가하겠습니다.`,
+        body: `그동안의 거래에 감사드립니다.\n두 분기 연속 납기·품질 기준에 미치지 못하여, 부득이하게 신규 발주를 일시 중지하게 되었음을 알려 드립니다.\n개선 계획을 보내 주시면 검토 후 재평가하겠습니다.`,
       });
     } else {
       state.backlog.push({ ...item(state, 'meeting', `협력사 개선 미팅: ${s.name} (납기·품질 개선 요청)`, MEETING_MINUTES, 10), supplierId: s.id });
@@ -279,8 +279,8 @@ export function finishMeeting(state: GameState, b: BacklogItem): void {
     to: state.employee.name,
     subject: `RE: 미팅 후속 조치`,
     body: ok
-      ? '말씀 주신 납기·품질 문제는 출하 전 검사 인원을 늘리고 생산 일정을 앞당겨 개선하겠습니다.'
-      : '지적하신 부분은 내부적으로 검토하겠습니다.',
+      ? '미팅에서 말씀해 주신 납기·품질 문제와 관련해 아래와 같이 개선하겠습니다.\n\n- 출하 전 검사 인원 확대\n- 생산 일정 앞당김\n\n진행 상황은 다시 보고드리겠습니다.'
+      : '미팅에서 지적해 주신 부분은 내부적으로 검토한 뒤 다시 회신드리겠습니다.',
   });
 }
 
@@ -299,7 +299,7 @@ function finishPriceTalk(state: GameState, s: Supplier, req: number): void {
     from: s.name,
     to: state.employee.name,
     subject: `RE: 공급 단가 조정 협의 결과`,
-    body: `협의한 대로 ${(final * 100).toFixed(1)}% 인상으로 정리하겠습니다. 다음 견적부터 반영됩니다.`,
+    body: `협의해 주셔서 감사합니다.\n논의한 대로 ${(final * 100).toFixed(1)}% 인상으로 정리하며, 다음 견적부터 반영하겠습니다.`,
   });
 }
 

@@ -63,8 +63,21 @@ export function logEvent(
   return e;
 }
 
+/** 자동으로 나가는 메일. 인사말 대신 발신 전용 안내를 붙인다 */
+const AUTO_SENDERS = new Set(['시장정보 뉴스레터', '납기 위험 알림 도구']);
+
+/**
+ * 업무 메일 형식으로 감싼다: "안녕하세요, ○○입니다." / 본문 / "감사합니다. ○○ 드림".
+ * 호출하는 쪽은 용건만 정중하게 쓰면 된다.
+ */
+export function formalMailBody(state: GameState, from: string, body: string): string {
+  if (AUTO_SENDERS.has(from)) return `${body}\n\n※ 본 메일은 발신 전용입니다. 문의는 담당 부서로 부탁드립니다.`;
+  const who = from === state.employee.name ? `${state.company.name} 구매팀 ${from}` : from;
+  return `안녕하세요,\n${who}입니다.\n\n${body}\n\n감사합니다.\n${who} 드림`;
+}
+
 export function sendMessage(state: GameState, msg: Omit<Message, 'id' | 'day'>): Message {
-  const m: Message = { id: nextId(state, 'MSG'), day: state.day, ...msg };
+  const m: Message = { id: nextId(state, 'MSG'), day: state.day, minute: state.nowMinute ?? 0, ...msg, body: formalMailBody(state, msg.from, msg.body) };
   state.messages.push(m);
   return m;
 }

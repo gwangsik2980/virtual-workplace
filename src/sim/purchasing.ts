@@ -98,7 +98,7 @@ export function createCase(
     from: '생산팀 김대리',
     to: state.employee.name,
     subject: `${urgent ? '[긴급] ' : ''}${m.name} 구매 요청드립니다 (${c.id})`,
-    body: `안녕하세요, 생산팀입니다.\n${reason}\n\n- 품목: ${m.name}\n- 수량: ${qty.toLocaleString('ko-KR')}${m.unit}\n- 필요일: ${formatDay(state.startDate, neededByDay)}\n\n확인 부탁드립니다.`,
+    body: `${reason}\n아래와 같이 구매를 요청드립니다.\n\n- 품목: ${m.name}\n- 수량: ${qty.toLocaleString('ko-KR')}${m.unit}\n- 필요일: ${formatDay(state.startDate, neededByDay)}\n\n검토 후 진행 부탁드립니다.`,
     caseId: c.id,
   });
   const need = formatDayShort(state.startDate, neededByDay);
@@ -190,7 +190,7 @@ export function completeStage(state: GameState, c: PurchaseCase): void {
           from: state.employee.name,
           to: s.name,
           subject: `[견적요청] ${m.name} ${c.qty.toLocaleString('ko-KR')}${m.unit}`,
-          body: `안녕하세요, ${state.company.name} 구매팀 ${state.employee.name}입니다.\n아래 조건으로 견적을 요청드립니다.\n\n- 품목: ${m.name}\n- 수량: ${c.qty.toLocaleString('ko-KR')}${m.unit}\n- 희망 납기: ${formatDay(state.startDate, c.neededByDay)}\n\n회신 부탁드립니다.`,
+          body: `아래 조건으로 견적을 요청드립니다.\n\n- 품목: ${m.name}\n- 수량: ${c.qty.toLocaleString('ko-KR')}${m.unit}\n- 희망 납기: ${formatDay(state.startDate, c.neededByDay)}\n\n바쁘시겠지만 견적서 회신 부탁드립니다.`,
           caseId: c.id,
         });
       }
@@ -250,7 +250,7 @@ export function completeStage(state: GameState, c: PurchaseCase): void {
           from: s.name,
           to: state.employee.name,
           subject: `RE: 단가 조정 요청 건 (${c.id}) - 원자재 상승으로 인상 요청`,
-          body: `원자재 가격이 올라 견적 단가 유지가 어렵습니다. ${(requested * 100).toFixed(1)}% 인상을 요청드렸는데, 말씀 주신 사정을 고려해 ${(up * 100).toFixed(1)}%만 반영하겠습니다.\n${won(initial)}/${m.unit} → ${won(final)}/${m.unit}`,
+          body: `원자재 가격 상승으로 기존 견적 단가를 유지하기 어려운 상황이 되어 양해를 구합니다.\n당초 ${(requested * 100).toFixed(1)}% 인상을 요청드렸으나, 말씀해 주신 사정을 고려하여 ${(up * 100).toFixed(1)}%만 반영하고자 합니다.\n\n- 변경 전: ${won(initial)}/${m.unit}\n- 변경 후: ${won(final)}/${m.unit}\n\n너그러운 이해 부탁드립니다.`,
           caseId: c.id,
         });
         chat(state, 'lead', [
@@ -268,7 +268,7 @@ export function completeStage(state: GameState, c: PurchaseCase): void {
         from: s.name,
         to: state.employee.name,
         subject: `RE: 단가 조정 요청 건 (${c.id})`,
-        body: `말씀하신 내용 검토했습니다.\n${won(initial)}/${m.unit}에서 ${won(final)}/${m.unit}로 조정해 드리겠습니다. (${(discount * 100).toFixed(1)}% 인하)`,
+        body: `말씀해 주신 내용 검토하였습니다.\n아래와 같이 단가를 조정해 드리겠습니다.\n\n- 변경 전: ${won(initial)}/${m.unit}\n- 변경 후: ${won(final)}/${m.unit} (${(discount * 100).toFixed(1)}% 인하)\n\n앞으로도 잘 부탁드립니다.`,
         caseId: c.id,
       });
       enterStage(state, c, 'approve');
@@ -321,7 +321,7 @@ export function completeStage(state: GameState, c: PurchaseCase): void {
         from: state.employee.name,
         to: s.name,
         subject: `[발주서] ${c.po.id} ${m.name}`,
-        body: `발주서를 송부드립니다.\n\n- 품목: ${m.name}\n- 수량: ${c.qty.toLocaleString('ko-KR')}${m.unit}\n- 단가: ${won(unitPriceEntered)}/${m.unit}\n- 납기: ${formatDay(state.startDate, promised)}\n- 결제: 납품 후 ${q.truth.paymentTermsDays}일`,
+        body: `아래와 같이 발주서를 송부드립니다.\n\n- 품목: ${m.name}\n- 수량: ${c.qty.toLocaleString('ko-KR')}${m.unit}\n- 단가: ${won(unitPriceEntered)}/${m.unit}\n- 납기: ${formatDay(state.startDate, promised)}\n- 결제: 납품 후 ${q.truth.paymentTermsDays}일\n\n납기 준수 부탁드리며, 일정에 변동이 생기면 미리 알려 주시기 바랍니다.`,
         caseId: c.id,
       });
       enterStage(state, c, 'awaitDelivery');
@@ -384,7 +384,7 @@ export function processWaits(state: GameState): void {
           from: s.name,
           to: state.employee.name,
           subject: `RE: [견적요청] ${m.name} - 견적서 송부${q.scanned ? ' (스캔본 첨부)' : ''}`,
-          body: q.scanned ? '견적서 스캔본 첨부드립니다.' : '요청하신 견적서 첨부드립니다.',
+          body: q.scanned ? '요청하신 견적서를 스캔본으로 첨부드립니다.\n검토 부탁드립니다.' : '요청하신 견적서를 첨부드립니다.\n검토 부탁드립니다.',
           caseId: c.id,
           quoteId: q.id,
         });
@@ -402,7 +402,7 @@ export function processWaits(state: GameState): void {
         from: '구매팀 이팀장',
         to: state.employee.name,
         subject: `[승인] ${c.id} 품의 승인`,
-        body: '품의 내용 확인했습니다. 진행하세요.',
+        body: '품의 내용 확인하였습니다.\n승인하오니 진행해 주시기 바랍니다.',
         caseId: c.id,
       });
       enterStage(state, c, 'order');
@@ -487,7 +487,7 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
       from: '품질팀 정주임',
       to: state.employee.name,
       subject: `[불량] ${m.name} 입고분 불량 ${defectQty.toLocaleString('ko-KR')}${m.unit}`,
-      body: `입고 검사 결과 불량률 ${(defectRate * 100).toFixed(1)}%입니다. 업체 클레임 진행 부탁드립니다.`,
+      body: `입고 검사 결과를 아래와 같이 공유드립니다.\n\n- 불량 수량: ${defectQty.toLocaleString('ko-KR')}${m.unit}\n- 불량률: ${(defectRate * 100).toFixed(1)}%\n\n번거로우시겠지만 업체 클레임 진행 부탁드립니다.`,
       caseId: c.id,
     });
   }
@@ -508,7 +508,7 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
       from: '재무팀 한사원',
       to: state.employee.name,
       subject: `[확인요청] ${po.id} 발주 단가와 청구 단가 불일치`,
-      body: `발주서 단가 ${won(po.unitPriceEntered)}, 청구서 단가 ${won(po.unitPriceAgreed)}입니다.\n확인 후 수정 부탁드립니다.`,
+      body: `${po.id} 정산 과정에서 단가가 일치하지 않아 확인을 요청드립니다.\n\n- 발주서 단가: ${won(po.unitPriceEntered)}\n- 청구서 단가: ${won(po.unitPriceAgreed)}\n\n확인 후 수정 부탁드립니다.`,
       caseId: c.id,
     });
   }
