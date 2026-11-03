@@ -7,7 +7,7 @@ import type { DeptId, GameState, MaterialId, Stage } from '../../sim/types';
 import { dayToDate, DEPT_NAMES, formatDay, formatDayShort, wonShort } from '../../sim/util';
 import { LineChart } from '../components/Chart';
 import { Card, clock, EventBadge, pct, Stat } from '../components/Common';
-import { useLiveStatus, useTodayDay } from '../components/LiveWidgets';
+import { useLight, useLiveStatus, useTodayDay } from '../components/LiveWidgets';
 import { currentBlock, stageAtNow, useRealtime } from '../realtime';
 import { ArrowRight, DotIcon, LineReveal, Mark, Reveal, useIntroReady, useScrollCount } from '../motion';
 import { useStore, type ScreenId } from '../store';
@@ -79,7 +79,6 @@ function HeroCard() {
   );
 }
 
-const PHASE_LABEL: Record<string, string> = { before: '출근 전', working: '근무 중', after: '퇴근', holiday: '휴일', manual: '', ahead: '' };
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
@@ -186,11 +185,15 @@ function Hero() {
   const rt = useRealtime();
   const today = useTodayDay();
   const liveStatus = useLiveStatus();
+  const light = useLight();
   const showClock = rt.isRealtime && rt.phase !== 'ahead';
   const sec = useSecondClock(showClock);
   const d = showClock ? sec : dayToDate(state.startDate, today);
   const titleLines = [
-    `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}(${WEEK[d.getDay()]})`,
+    <>
+      {d.getFullYear()}-{pad2(d.getMonth() + 1)}-{pad2(d.getDate())}
+      <span className="hero-weekday">({WEEK[d.getDay()]})</span>
+    </>,
     showClock ? `${pad2(sec.getHours())}:${pad2(sec.getMinutes())}:${pad2(sec.getSeconds())}` : `${today}일차`,
   ];
   return (
@@ -201,8 +204,8 @@ function Hero() {
       <div className="hero-grid">
         <div className="hero-left">
           <Reveal gated delay={200} y={0.625}>
-            <span className="eyebrow">
-              {rt.isRealtime ? (rt.phase === 'ahead' ? `현실보다 ${rt.aheadDays}영업일 앞서 진행 중` : `실시간, ${PHASE_LABEL[rt.phase]}`) : '수동 진행'} · {today}일차
+            <span className={`eyebrow live-eyebrow light-${light.light}`}>
+              {rt.isRealtime && rt.phase !== 'ahead' ? `실시간, ${light.text}` : light.text} · {today}일차
             </span>
           </Reveal>
           <LineReveal as="h1" gated delay={250} stagger={120} lines={titleLines} className="hero-clock" />

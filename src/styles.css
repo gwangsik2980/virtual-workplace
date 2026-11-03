@@ -1053,8 +1053,20 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 
 /* 실시간 칩 */
 .live-dot { width: 0.5rem; height: 0.5rem; border-radius: 99px; background: var(--subtle); flex-shrink: 0; }
-.live-dot.on { background: #2f9e44; box-shadow: 0 0 0 0 rgba(47, 158, 68, 0.5); animation: live-pulse 2s infinite; }
-@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(47, 158, 68, 0.45); } 70% { box-shadow: 0 0 0 0.45rem rgba(47, 158, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(47, 158, 68, 0); } }
+/* 상태 불: 근무 중 초록, 점심 주황, 퇴근 빨강, 꺼짐 회색 */
+.light-green { --light: #2f9e44; --light-glow: rgba(47, 158, 68, 0.45); }
+.light-orange { --light: #e8890c; --light-glow: rgba(232, 137, 12, 0.45); }
+.light-red { --light: #e03131; --light-glow: rgba(224, 49, 49, 0); }
+.light-off { --light: var(--subtle); --light-glow: rgba(0, 0, 0, 0); }
+.live-dot[class*='light-'] { background: var(--light); }
+.live-dot.light-green, .live-dot.light-orange { animation: light-pulse 2s infinite; }
+.live-eyebrow::before { width: 0.5rem; height: 0.5rem; background: var(--light) !important; }
+.live-eyebrow.light-green::before, .live-eyebrow.light-orange::before { animation: light-pulse 2s infinite; }
+@keyframes light-pulse {
+  0% { box-shadow: 0 0 0 0 var(--light-glow); }
+  70% { box-shadow: 0 0 0 0.45rem rgba(0, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
 
 /* 알림 종 */
 .bell-wrap { position: relative; }
@@ -1138,3 +1150,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .now-cases li button:hover { background: rgba(var(--fg-rgb), 0.05); }
 .now-stage { font-size: 0.6875rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent-text); background: var(--accent-soft); border-radius: 99px; padding: 0.0625rem 0.4375rem; }
 .now-case-name { display: inline-flex; align-items: center; gap: 0.375rem; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 날짜 뒤 요일은 작게 */
+.hero-weekday { font-size: 0.42em; font-weight: 500; letter-spacing: 0; margin-left: 0.2em; color: var(--text-2); vertical-align: 0.12em; }
+.chip-weekday { font-size: 0.85em; font-weight: 400; margin-left: 0.1em; color: rgba(var(--fg-rgb), 0.55); }

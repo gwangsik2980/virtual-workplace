@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { LUNCH_MINUTES, LUNCH_START } from '../../sim/calendar';
 import { formatDay } from '../../sim/util';
 import { ALERT_LABELS, alertKind, useAlerts, type AlertKind } from '../alerts';
 import { currentBlock, useRealtime } from '../realtime';
@@ -25,25 +26,54 @@ const two = (n: number) => String(n).padStart(2, '0');
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const realDate = (d: Date) => `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}(${WD[d.getDay()]})`;
 
+/** "2026-11-03(화)"에서 요일 부분만 작게 */
+function DateWithDay({ text }: { text: string }) {
+  const m = text.match(/^(.*)(\(.\))$/);
+  if (!m) return <>{text}</>;
+  return (
+    <>
+      {m[1]}
+      <span className="chip-weekday">{m[2]}</span>
+    </>
+  );
+}
+
+export type Light = 'green' | 'orange' | 'red' | 'off';
+
+/** 상태 불: 근무 중 초록, 점심 주황, 퇴근·출근 전·휴일 빨강, 실시간이 아니면 꺼짐 */
+export function useLight(): { light: Light; text: string } {
+  const rt = useRealtime();
+  if (!rt.isRealtime) return { light: 'off', text: '수동 진행' };
+  if (rt.phase === 'ahead') return { light: 'off', text: `현실보다 ${rt.aheadDays}일 앞섬` };
+  if (rt.phase === 'working') {
+    const lunch = rt.liveMinute !== null && rt.liveMinute >= LUNCH_START && rt.liveMinute < LUNCH_START + LUNCH_MINUTES;
+    return lunch ? { light: 'orange', text: '점심시간' } : { light: 'green', text: '근무 중' };
+  }
+  return { light: 'red', text: PHASE_TEXT[rt.phase] };
+}
+
 /** 헤더 날짜 칩 */
 export function ClockChip({ title }: { title: string }) {
   const { state } = useStore();
   const rt = useRealtime();
   const day = useTodayDay();
+  const light = useLight();
   return (
     <span className="chip-glass clock-chip" title={title}>
       {rt.isRealtime ? (
-        <span className={`live-dot ${rt.phase === 'working' ? 'on' : ''}`} aria-hidden />
+        <span className={`live-dot light-${light.light}`} aria-hidden title={light.text} />
       ) : (
         <span className="label">{state.company.name}</span>
       )}
-      <span className="val">{rt.isRealtime && rt.phase === 'holiday' ? realDate(rt.now) : formatDay(state.startDate, day)}</span>
+      <span className="val">
+        <DateWithDay text={rt.isRealtime && rt.phase === 'holiday' ? realDate(rt.now) : formatDay(state.startDate, day)} />
+      </span>
       {rt.isRealtime && (
         <>
           <span className="val">
             {two(rt.now.getHours())}:{two(rt.now.getMinutes())}
           </span>
-          <span className="label">{rt.phase === 'ahead' ? `현실보다 ${rt.aheadDays}일 앞섬` : PHASE_TEXT[rt.phase]}</span>
+          <span className="label">{light.text}</span>
         </>
       )}
       <span className="sep">•</span>
