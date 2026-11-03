@@ -18,8 +18,8 @@ export const LATENT_DEFECT_FACTOR = 4;
 export const SCRAP_DISPOSAL_RATE = 0.03;
 /** 생산 중 불량 클레임으로 업체가 보상하는 비율 범위. 가정치 */
 export const CLAIM_RECOVERY = [0.3, 0.8] as const;
-/** 긴급 현물 구매 웃돈 범위 (시세 대비). 가정치 */
-export const SPOT_PREMIUM = [0.12, 0.25] as const;
+/** 긴급 현물 구매 웃돈 범위 (시세 대비). 계약 밖 구매 손실 12~18% 자료에 맞춤 (docs/ASSUMPTIONS.md) */
+export const SPOT_PREMIUM = [0.12, 0.18] as const;
 /** 하루 안에 현물을 구할 수 있을 확률. 가정치 */
 export const SPOT_AVAILABILITY = 0.6;
 /** 긴급 현물 구매 업무 시간(분). 가정치 */

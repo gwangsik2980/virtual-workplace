@@ -31,7 +31,8 @@ export const REVIEW_MINUTES = 120;
 export const MEETING_MINUTES = 75;
 /** 협력사 개선 미팅이 실제 개선으로 이어질 확률 */
 export const MEETING_SUCCESS = 0.6;
-export const TRAINING_MINUTES = 120;
+/** 분기마다 하루(8시간) 교육, 연 32시간. 1인당 연 교육훈련 37.8시간 통계에 가깝게 (docs/ASSUMPTIONS.md) */
+export const TRAINING_MINUTES = 480;
 /** 연초 단가 인상 통보 확률(업체별)과 요구 폭. 가정치 */
 export const ANNUAL_UP_CHANCE = 0.6;
 export const ANNUAL_UP_RANGE = [0.02, 0.06] as const;
