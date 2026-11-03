@@ -125,7 +125,7 @@ export function PushSync() {
       try {
         const sub = await currentSubscription();
         if (!sub || cancelled) return;
-        const items = buildPushSchedule(state, new Date(), readAlertPrefs());
+        const items = buildPushSchedule(state, new Date());
         const sig = JSON.stringify(items.map((i) => [i.at, i.title]));
         const prev = JSON.parse(get(SENT_KEY) ?? 'null') as { sig: string; t: number; endpoint: string } | null;
         if (prev && prev.sig === sig && prev.endpoint === sub.endpoint && Date.now() - prev.t < RESEND_MS) return;
