@@ -129,3 +129,9 @@
 }
 .formula b { color: var(--text); font-weight: 600; }
 .small-note { font-size: 0.75rem; color: var(--text-3); }
+
+/* 업체 상태 표시: 신규, 평가 미달, 거래 중지 */
+.supplier-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.25rem; }
+.tag-chip.warn { border-color: var(--accent); color: var(--accent); }
+.tag-chip.off { border-color: transparent; background: rgba(255, 255, 255, 0.14); }
+.supplier-card.is-off { opacity: 0.5; }

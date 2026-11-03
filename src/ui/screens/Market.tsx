@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { dailyUsage } from '../../sim/market';
 import { onOrderQty, reorderPoint } from '../../sim/operations';
-import type { MaterialId, QuoteFormat } from '../../sim/types';
+import type { MaterialId, QuoteFormat, SupplierCandidate } from '../../sim/types';
 import { formatDay, formatDayShort, num, won, wonShort } from '../../sim/util';
 import { LineChart } from '../components/Chart';
 import { Card, CaseStatus, pct } from '../components/Common';
@@ -15,6 +15,14 @@ const FORMAT_LABELS: Record<QuoteFormat, string> = {
   B: '영문, USD',
   C: '포장단위, VAT 포함',
   D: '불규칙, 스캔본',
+};
+
+const CANDIDATE_STATUS: Record<SupplierCandidate['status'], string> = {
+  searching: '탐색 중',
+  sampling: '샘플 시험 중',
+  registering: '등록 진행 중',
+  approved: '등록 완료',
+  rejected: '샘플 불합격',
 };
 
 export function Market() {
@@ -203,13 +211,18 @@ export function Market() {
       <ul className="supplier-grid">
         {supplierRows.map(({ s, onTime, defect }, i) => (
           <Reveal as="li" key={s.id} delay={Math.min(i, 6) * 70} y={2}>
-            <article className="ink supplier-card">
+            <article className={`ink supplier-card ${s.active === false ? 'is-off' : ''}`}>
               <div className="supplier-top">
                 <div>
                   <h3>{s.name}</h3>
                   <p>{s.materialIds.map((id) => state.materials[id].name).join(', ')}</p>
                 </div>
-                <span className="tag-chip">{FORMAT_LABELS[s.quoteFormat]}</span>
+                <span className="supplier-chips">
+                  {s.active === false && <span className="tag-chip off">거래 중지</span>}
+                  {s.addedDay !== undefined && <span className="tag-chip">신규 {formatDayShort(state.startDate, s.addedDay)}</span>}
+                  {s.active !== false && (s.warnings ?? 0) > 0 && <span className="tag-chip warn">평가 미달 {s.warnings}회</span>}
+                  <span className="tag-chip">{FORMAT_LABELS[s.quoteFormat]}</span>
+                </span>
               </div>
               <div className="supplier-big">
                 <strong>{onTime === null ? '-' : Math.round(onTime * 100)}</strong>
@@ -239,6 +252,22 @@ export function Market() {
           </Reveal>
         ))}
       </ul>
+      <SectionHead
+        eyebrow="Sourcing"
+        title="공급업체 관리"
+        desc={`분기마다 납기·품질 실적으로 업체를 평가합니다. 기준 미달이면 개선 미팅을 하고, 두 분기 연속 미달이면 거래를 중지합니다. 신규 업체는 탐색, 샘플 시험, 등록을 거쳐 견적 대상에 들어갑니다. 지금까지 신규 등록 ${state.stats.suppliersAdded ?? 0}곳, 거래 중지 ${state.stats.suppliersSuspended ?? 0}곳, 개선 미팅 ${state.stats.supplierMeetings ?? 0}번.`}
+      />
+      <RowList
+        empty="아직 신규 공급처를 찾아본 적이 없습니다. 거래 실적이 쌓이면 업체가 적은 원료부터 찾습니다."
+        items={[...state.sourcing.candidates].reverse().map((c) => ({
+          key: c.id,
+          title: c.name,
+          desc: `${c.materialIds.map((id) => state.materials[id].name).join(', ')}${
+            c.sampleDefectRate !== undefined ? ` · 샘플 불량률 ${pct(c.sampleDefectRate)}` : ''
+          }${c.foundDay !== undefined ? ` · 발굴 ${formatDay(state.startDate, c.foundDay)}` : ''}`,
+          meta: CANDIDATE_STATUS[c.status],
+        }))}
+      />
       <Reveal>
         <p className="formula">
           <b>업체 평가 점수</b> (원/기준단위, 낮을수록 유리) = 단가 − 결제 유예 금융효과(연 5%, 30일 기준) + 품질 위험(단가 × 불량률 × 1.5) + 납기 위험(필요일을 넘기는

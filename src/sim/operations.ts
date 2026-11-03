@@ -17,7 +17,7 @@ import { isMonthEnd, isMonthStart, logEvent, nextId, sendMessage, won } from './
 
 /** 회사의 평균 리드타임 추정치 (재주문점 계산용) */
 function expectedLead(state: GameState, id: MaterialId): number {
-  const sups = state.suppliers.filter((s) => s.materialIds.includes(id));
+  const sups = state.suppliers.filter((s) => s.materialIds.includes(id) && s.active !== false);
   const lead = sups.reduce((a, s) => a + s.leadTimeDays, 0) / Math.max(1, sups.length);
   // 요청 → 견적 → 승인까지 행정 소요 약 4영업일
   return lead + 4;
@@ -152,10 +152,8 @@ export function scheduleMonthlyWork(state: GameState): void {
 
 const ADHOC_TEMPLATES: { title: string; from: string; min: number; max: number }[] = [
   { title: '생산팀 원료 사양 문의 회신', from: '생산팀', min: 20, max: 45 },
-  { title: '업체 영업 담당자 미팅', from: '공급업체', min: 45, max: 90 },
   { title: 'ERP 단가 마스터 갱신', from: '구매팀', min: 30, max: 60 },
   { title: '재무팀 매입 증빙 자료 요청 대응', from: '재무팀', min: 25, max: 50 },
-  { title: '신규 공급업체 소개 자료 검토', from: '구매팀', min: 30, max: 60 },
   { title: '품질팀 시험성적서 요청 전달', from: '품질팀', min: 15, max: 30 },
   { title: '물류팀 입고 일정 조율', from: '물류팀', min: 20, max: 40 },
   { title: '영업팀 신제품 원가 문의 대응', from: '영업팀', min: 40, max: 80 },

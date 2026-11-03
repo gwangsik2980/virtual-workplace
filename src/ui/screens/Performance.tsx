@@ -155,6 +155,48 @@ export function Performance() {
         </div>
       </InkStats>
 
+      <SectionHead
+        eyebrow="Losses"
+        title="손해 본 돈"
+        desc="절감액과 반대로 회사가 잃은 돈입니다. 반품 처리비와 폐기 손실은 영업이익에서 바로 빠지고, 웃돈과 단가 인상은 원료 원가를 올려 이익을 줄입니다."
+      />
+      <RowList
+        items={[
+          {
+            key: 'scrap',
+            title: '생산 중 불량 폐기',
+            desc: `검수를 통과한 원료에서 생산 중 불량이 나와 버린 금액. ${st.qualityIncidents ?? 0}건, 클레임으로 ${wonShort(st.claimRecoveredKRW ?? 0)}원 돌려받음`,
+            meta: `−${wonShort(Math.max(0, (st.scrapKRW ?? 0) - (st.claimRecoveredKRW ?? 0)))}원`,
+          },
+          {
+            key: 'return',
+            title: '불량 반품 처리비',
+            desc: `입고 검수 불량을 반품하면서 회사가 떠안은 운송 대기·재검사 비용. 불량 ${num(st.defectQty)}단위`,
+            meta: `−${wonShort(st.defectHandlingKRW ?? 0)}원`,
+          },
+          {
+            key: 'spot',
+            title: '긴급 현물 구매 웃돈',
+            desc: `결품 직전 시세보다 비싸게 산 차액. ${st.spotBuys ?? 0}번 샀고, 못 구한 날 ${st.spotFailures ?? 0}일`,
+            meta: `−${wonShort(st.spotPremiumKRW ?? 0)}원`,
+          },
+          {
+            key: 'up',
+            title: '업체 단가 인상',
+            desc: `시세 상승기 견적 뒤 인상 요구 ${st.priceIncreaseCases ?? 0}건. 연초 단가 인상 합의 ${st.annualIncreases ?? 0}건${
+              st.annualIncreases ? `, 평균 ${(((st.annualIncreaseRateSum ?? 0) / st.annualIncreases) * 100).toFixed(1)}%` : ''
+            } (이후 견적에 계속 반영)`,
+            meta: `−${wonShort(st.priceIncreaseKRW ?? 0)}원`,
+          },
+          {
+            key: 'stockout',
+            title: '결품',
+            desc: '원료가 모자라 계획보다 덜 만든 날. 못 판 매출은 이익에서 그대로 빠집니다',
+            meta: `${st.stockoutDays}일`,
+          },
+        ]}
+      />
+
       <SectionHead eyebrow="Cases" title="구매 건별 절감 내역" desc={`완료 ${closed.length}건, 최근 것부터 보여 줍니다. 누르면 견적부터 정산까지의 기록이 열립니다.`} />
       <RowList
         empty="아직 완료된 구매 건이 없습니다. 근무일이 지나면 쌓입니다."

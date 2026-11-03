@@ -1,0 +1,77 @@
+import { describe, expect, it } from 'vitest';
+import { advanceDays } from '../src/sim/engine';
+import { createInitialState } from '../src/sim/seed';
+import type { GameState } from '../src/sim/types';
+
+// 한 번 돌린 1년치 결과를 여러 테스트가 같이 본다
+const runs: GameState[] = [20270104, 1, 2, 3].map((seed) => advanceDays(createInitialState(seed, '2026-11-03', 'manual'), 250));
+const sum = (f: (s: GameState) => number) => runs.reduce((a, s) => a + f(s), 0);
+
+describe('손해 보는 상황', () => {
+  it('불량 반품 처리비와 생산 중 불량 폐기가 영업이익에서 빠진다', () => {
+    for (const s of runs) {
+      const other = s.history.reduce((a, h) => a + (h.otherExpense ?? 0), 0);
+      expect(other).toBe(s.finance.otherExpenseCum);
+      expect(s.stats.defectHandlingKRW).toBeGreaterThan(0);
+    }
+    expect(sum((s) => s.stats.qualityIncidents ?? 0)).toBeGreaterThan(0);
+  });
+
+  it('긴급 현물 구매는 시세보다 비싸게 사고, 못 구하는 날도 있다', () => {
+    expect(sum((s) => s.stats.spotBuys ?? 0)).toBeGreaterThan(0);
+    expect(sum((s) => s.stats.spotPremiumKRW ?? 0)).toBeGreaterThan(0);
+    expect(sum((s) => s.stats.spotFailures ?? 0)).toBeGreaterThan(0);
+  });
+
+  it('업체가 단가 인상을 요구하고, 합의된 인상은 업체 단가 수준에 남는다', () => {
+    expect(sum((s) => (s.stats.priceIncreaseCases ?? 0) + (s.stats.annualIncreases ?? 0))).toBeGreaterThan(0);
+    const raised = runs.flatMap((s) => s.suppliers.filter((x) => !x.addedDay)).some((x) => x.priceFactor > 1.08);
+    expect(raised).toBe(true);
+  });
+
+  it('적자인 달이 생길 수 있다', () => {
+    const months = runs.flatMap((s) => {
+      const out: number[] = [];
+      for (let i = 0; i + 21 <= s.history.length; i += 21) out.push(s.history.slice(i, i + 21).reduce((a, h) => a + (h.opProfit ?? 0), 0));
+      return out;
+    });
+    expect(months.some((m) => m < 0)).toBe(true);
+  });
+});
+
+describe('공급업체 관리와 교육', () => {
+  it('신규 공급처는 탐색과 샘플 시험을 거쳐 등록되고 견적을 받는다', () => {
+    for (const s of runs) {
+      const added = s.suppliers.filter((x) => x.addedDay);
+      expect(added.length).toBeGreaterThan(0);
+      const quoted = s.cases.some((c) => c.createdDay > added[0].addedDay! && c.quotes.some((q) => q.supplierId === added[0].id));
+      expect(quoted).toBe(true);
+    }
+  });
+
+  it('분기 평가에서 기준 미달 업체는 개선 미팅을 하고, 계속 미달이면 거래를 중지한다', () => {
+    expect(sum((s) => s.stats.supplierMeetings ?? 0)).toBeGreaterThan(0);
+    for (const s of runs) {
+      for (const sup of s.suppliers.filter((x) => x.active === false)) {
+        // 중지된 업체에는 중지 뒤 견적 요청이 가지 않는다
+        const stopDay = s.events.find((e) => e.title === `${sup.name} 거래 중지`)!.day;
+        expect(s.cases.some((c) => c.createdDay > stopDay && c.rfqSupplierIds.includes(sup.id))).toBe(false);
+      }
+      // 원료마다 거래 업체가 하나 이상 남는다
+      for (const id of Object.keys(s.materials)) expect(s.suppliers.some((x) => x.active !== false && x.materialIds.includes(id as never))).toBe(true);
+    }
+  });
+
+  it('분기마다 교육을 받고 그만큼 숙련도가 오른다', () => {
+    for (const s of runs) {
+      expect(s.stats.trainingSessions).toBeGreaterThanOrEqual(4);
+      expect(s.schedule.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('같은 시드면 결과가 같다', () => {
+    const again = advanceDays(createInitialState(1, '2026-11-03', 'manual'), 250);
+    expect(again.finance.otherExpenseCum).toBe(runs[1].finance.otherExpenseCum);
+    expect(again.suppliers.map((x) => x.name)).toEqual(runs[1].suppliers.map((x) => x.name));
+  });
+});

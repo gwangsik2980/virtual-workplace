@@ -75,6 +75,10 @@ export function migrate(s: GameState): GameState {
   if (out.company && out.company.otherCostPerUnit === undefined) {
     out.company = { ...out.company, otherCostPerUnit: base.company.otherCostPerUnit, fixedCostPerDay: base.company.fixedCostPerDay };
   }
+  // 손실·공급업체 관리 기능 추가 전 저장 파일: 입고 대기·발굴 목록은 비어 있고, 기타 손실 누계는 0에서 시작한다
+  if (!s.inbound) out.inbound = [];
+  if (!s.sourcing) out.sourcing = { nextDay: Math.max(40, s.day + 20), candidates: [] };
+  if (out.finance && out.finance.otherExpenseCum === undefined) out.finance = { ...out.finance, otherExpenseCum: 0 };
   if (out.employee?.name === '서지우') out.employee = { ...out.employee, name: 'GWANG' };
   return out;
 }

@@ -1,10 +1,11 @@
 import { runComparison, skillTimeFactor } from './compare';
 import { gainExperience } from './employee';
 import { unlockConcept } from './learning';
+import { onDefectsReceived } from './losses';
 import { generateQuote } from './quotes';
 import { makeRng } from './rng';
 import type { GameState, MaterialId, PurchaseCase, SkillId, Stage } from './types';
-import { formatDay, logEvent, nextId, sendMessage, won } from './util';
+import { addStat, formatDay, logEvent, nextId, sendMessage, won } from './util';
 
 export const STAGE_LABELS: Record<Stage, string> = {
   request: '구매요청 접수',
@@ -49,6 +50,10 @@ const STAGE_WORK: Partial<Record<Stage, { minutes: number; skill: SkillId; label
   order: { minutes: 15, skill: 'docs', label: '발주서 작성·발송' },
   inspect: { minutes: 15, skill: 'docs', label: '입고·발주·청구 대조(정산)' },
 };
+
+/** 시세 상승기에 업체가 견적 후 인상을 요구할 확률과 요구 폭. 가정치 */
+export const PRICE_UP_CHANCE = 0.45;
+export const PRICE_UP_RANGE = [0.02, 0.05] as const;
 
 export function stageWorkInfo(stage: Stage) {
   return STAGE_WORK[stage];
@@ -161,7 +166,7 @@ export function completeStage(state: GameState, c: PurchaseCase): void {
     }
     case 'rfq': {
       unlockConcept(state, 'rfq');
-      const cands = state.suppliers.filter((s) => s.materialIds.includes(c.materialId));
+      const cands = state.suppliers.filter((s) => s.materialIds.includes(c.materialId) && s.active !== false);
       c.rfqSupplierIds = cands.map((s) => s.id);
       for (const s of cands) {
         sendMessage(state, {
@@ -209,8 +214,33 @@ export function completeStage(state: GameState, c: PurchaseCase): void {
       const leverage = Math.min(1, (c.quotes.length - 1) / 2);
       const aboveTarget = c.cost ? Math.max(0, q.truth.unitPriceKRW / c.cost.targetPrice - 1) : 0;
       const ratio = Math.min(1, 0.25 + 0.45 * skill + 0.15 * leverage + Math.min(0.15, aboveTarget * 2) + 0.15 * rng.next());
-      const discount = s.negotiationRoom * ratio * (c.urgent ? 0.6 : 1);
       const initial = q.truth.unitPriceKRW;
+      // 시세가 오르는 중이면 업체가 견적 뒤에 인상을 요구할 수 있다. 협상력(ratio)만큼 막아낸다
+      const upRng = makeRng(state.seed, 'nego-up', c.id, s.id);
+      const rising =
+        state.market.shocks.some((x) => x.materialId === c.materialId && x.drift > 0) ||
+        state.market.prices[c.materialId] > (c.marketPriceAtStart ?? Infinity) * 1.02;
+      const requested = rising && upRng.chance(PRICE_UP_CHANCE) ? upRng.range(PRICE_UP_RANGE[0], PRICE_UP_RANGE[1]) : 0;
+      if (requested > 0) {
+        const up = requested * (1 - ratio * 0.8);
+        const final = Math.round(initial * (1 + up));
+        c.negotiation = { initialPrice: initial, finalPrice: final, discountRate: -up };
+        c.priceIncrease = { requested, final: up };
+        addStat(state, 'priceIncreaseKRW', Math.round((final - initial) * c.qty));
+        addStat(state, 'priceIncreaseCases', 1);
+        unlockConcept(state, 'price-increase');
+        sendMessage(state, {
+          from: s.name,
+          to: state.employee.name,
+          subject: `RE: 단가 조정 요청 건 (${c.id}) - 원자재 상승으로 인상 요청`,
+          body: `원자재 가격이 올라 견적 단가 유지가 어렵습니다. ${(requested * 100).toFixed(1)}% 인상을 요청드렸는데, 말씀 주신 사정을 고려해 ${(up * 100).toFixed(1)}%만 반영하겠습니다.\n${won(initial)}/${m.unit} → ${won(final)}/${m.unit}`,
+          caseId: c.id,
+        });
+        logEvent(state, 'market', 'purchasing', `${s.name} ${m.name} 단가 인상 요구 (${c.id})`, `요구 ${(requested * 100).toFixed(1)}%, 협상 후 ${(up * 100).toFixed(1)}% 인상으로 합의.`, c.id);
+        enterStage(state, c, 'approve');
+        break;
+      }
+      const discount = s.negotiationRoom * ratio * (c.urgent ? 0.6 : 1);
       const final = Math.round(initial * (1 - discount));
       c.negotiation = { initialPrice: initial, finalPrice: final, discountRate: discount };
       sendMessage(state, {
@@ -388,6 +418,7 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
   state.stats.defectQty += defectQty;
   state.stats.receivedQtyByMaterial[c.materialId] = (state.stats.receivedQtyByMaterial[c.materialId] ?? 0) + po.qty;
   if (mismatch) state.stats.invoiceMismatches += 1;
+  onDefectsReceived(state, c, s, defectQty, accepted);
 
   unlockConcept(state, 'leadtime');
   unlockConcept(state, 'inspection');
@@ -405,7 +436,8 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
     state.backlog.push({
       id: nextId(state, 'BL'),
       kind: 'claim',
-      title: `${s.name} 불량 클레임 처리 (${c.id})`,
+      claimType: 'receiving',
+      title: `${s.name} 불량 클레임, 대체 납품 요청 (${c.id})`,
       createdDay: state.day,
       dueDay: state.day + 3,
       minutesLeft: 40,

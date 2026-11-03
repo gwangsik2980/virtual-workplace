@@ -59,7 +59,9 @@ describe('구매 업무 흐름', () => {
     for (const c of s.cases.filter((x) => x.savings)) {
       const sv = c.savings!;
       expect(sv.priceSavingKRW).toBe(Math.round((sv.baselinePrice - sv.finalPrice) * sv.qty));
-      expect(sv.baselinePrice).toBeGreaterThanOrEqual(sv.finalPrice);
+      // 업체가 인상을 요구한 건만 협상 후 단가가 최초 견적보다 높을 수 있다
+      if (!c.priceIncrease) expect(sv.baselinePrice).toBeGreaterThanOrEqual(sv.finalPrice);
+      else expect(sv.finalPrice).toBeGreaterThan(sv.baselinePrice);
     }
   });
 

@@ -35,17 +35,25 @@ const KIND_COLORS: Record<WorkKind, string> = {
   adhoc: 'var(--series-2)',
   expedite: 'var(--warn)',
   lunch: 'var(--subtle)',
+  spot: 'var(--danger)',
+  sourcing: 'var(--series-3)',
+  review: 'var(--series-5)',
+  training: 'var(--ok)',
 };
 
 const KIND_LABELS: Record<WorkKind, string> = {
   case: '구매 건',
   mail: '메일',
-  meeting: '회의',
+  meeting: '회의·미팅',
   report: '보고서',
   claim: '클레임',
   adhoc: '일상 업무',
   expedite: '납기 독촉',
   lunch: '점심',
+  spot: '긴급 구매',
+  sourcing: '공급처 발굴',
+  review: '업체 평가',
+  training: '교육',
 };
 
 const WAIT_STAGE_SET = new Set<Stage>(['awaitQuotes', 'approve', 'awaitDelivery']);

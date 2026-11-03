@@ -1,11 +1,13 @@
 import { LUNCH_MINUTES, LUNCH_START } from './calendar';
 import { detectDeliveryRisks, finishExpedite } from './deliveryRisk';
 import { annualReview, gainExperience } from './employee';
+import { checkLatentDefects, emergencySpotBuy, finishClaim, receiveInbound } from './losses';
+import { finishMeeting, finishReview, finishSourcing, finishTraining, scheduleSupplierWork } from './suppliers';
 import { updateMarket } from './market';
 import { checkReorders, generateAdhocWork, runFinance, runProduction, scheduleMonthlyWork } from './operations';
 import { runPayroll } from './payroll';
 import { completeStage, processWaits, stageWorkInfo, STAGE_LABELS } from './purchasing';
-import type { BacklogItem, DailySnapshot, GameState, PurchaseCase, TimeBlock } from './types';
+import type { BacklogItem, DailySnapshot, GameState, PurchaseCase, SkillId, TimeBlock } from './types';
 import { draftMonthlyReport } from '../tools/monthlyReport/draft';
 import { getToolVersion } from '../tools/registry';
 import { logEvent, nextId } from './util';
@@ -33,7 +35,9 @@ function collectTasks(state: GameState): Task[] {
   for (const b of state.backlog) {
     if (b.minutesLeft > 0) {
       // 클레임 > 구매 건(필요일 순) > 보고서·일상 업무(마감 순). 마감이 오늘이면 구매 건과 경쟁한다
-      const p = b.kind === 'expedite' ? 400 : b.kind === 'claim' ? 500 : 1000 + (b.dueDay - state.day) * 40;
+      // 교육(정해진 시간) > 긴급 현물 구매 > 독촉 > 클레임 > 구매 건(필요일 순) > 나머지(마감 순)
+      const fixed: Partial<Record<BacklogItem['kind'], number>> = { training: 300, spot: 350, expedite: 400, claim: 500 };
+      const p = fixed[b.kind] ?? 1000 + (b.dueDay - state.day) * 40;
       tasks.push({ kind: 'backlog', b, priority: p });
     }
   }
@@ -117,10 +121,17 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
       push({ minutes: work, label: b.title + (work < b.minutesLeft ? ' (계속)' : ''), kind: b.kind, caseId: b.caseId });
       b.minutesLeft -= work;
       if (b.minutesLeft <= 0) {
-        if (b.kind !== 'adhoc') gainExperience(state, b.kind === 'report' ? 'docs' : 'negotiation', b.minutesTotal);
-        else state.employee.xp += b.minutesTotal / 30;
+        const skillOf: Partial<Record<BacklogItem['kind'], SkillId>> = { report: 'docs', review: 'docs', sourcing: 'market', claim: 'negotiation', expedite: 'negotiation', meeting: 'negotiation', spot: 'negotiation' };
+        const sk = skillOf[b.kind];
+        if (sk) gainExperience(state, sk, b.minutesTotal);
+        else if (b.kind === 'adhoc') state.employee.xp += b.minutesTotal / 30;
         if (b.kind === 'report') finishReport(state, b);
         if (b.kind === 'expedite') finishExpedite(state, b);
+        if (b.kind === 'claim') finishClaim(state, b);
+        if (b.kind === 'sourcing') finishSourcing(state, b);
+        if (b.kind === 'review') finishReview(state);
+        if (b.kind === 'meeting') finishMeeting(state, b);
+        if (b.kind === 'training') finishTraining(state, b);
         if (b.kind !== 'adhoc') logEvent(state, 'system', 'purchasing', `${b.title} 완료`, `소요 ${b.minutesTotal}분`, b.caseId);
       }
     }
@@ -165,17 +176,23 @@ function inventoryValue(state: GameState): number {
 export function advanceDay(state: GameState): GameState {
   // 출근 전후(시장 변화, 입고, 생산)에 생긴 사건은 09:00로 기록한다
   state.nowMinute = 0;
+  const expenseBefore = state.finance.otherExpenseCum ?? 0;
   updateMarket(state);
   runFinance(state);
   annualReview(state);
   runPayroll(state);
   processWaits(state);
+  receiveInbound(state);
   detectDeliveryRisks(state);
+  checkLatentDefects(state);
   const prod = runProduction(state);
+  emergencySpotBuy(state);
   checkReorders(state);
   scheduleMonthlyWork(state);
+  scheduleSupplierWork(state);
   generateAdhocWork(state);
   const work = runWorkday(state);
+  const otherExpense = Math.round((state.finance.otherExpenseCum ?? 0) - expenseBefore);
 
   const snap: DailySnapshot = {
     day: state.day,
@@ -184,7 +201,8 @@ export function advanceDay(state: GameState): GameState {
     revenue: prod.produced * state.company.productPrice,
     produced: prod.produced,
     demand: prod.demand,
-    opProfit: Math.round(prod.revenue - prod.cogs - state.company.fixedCostPerDay),
+    opProfit: Math.round(prod.revenue - prod.cogs - state.company.fixedCostPerDay - otherExpense),
+    otherExpense,
     shortMaterial: prod.produced < Math.min(prod.demand, state.company.capacityPerDay) ? prod.shortMaterial : undefined,
     priceSavingCum: state.stats.priceSavingKRW,
     selectionLossCum: state.stats.selectionLossKRW,

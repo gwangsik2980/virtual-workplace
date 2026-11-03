@@ -101,3 +101,19 @@ export function clamp(v: number, min: number, max: number): number {
 export function round(v: number, step = 1): number {
   return Math.round(v / step) * step;
 }
+
+/**
+ * 매출원가 밖의 손실·비용을 기록한다 (반품 처리비, 폐기 손실, 클레임 회수액은 음수).
+ * cash=false면 이미 돈이 나간 재고를 장부에서 덜어내는 경우라 현금은 그대로 둔다.
+ */
+export function chargeExpense(state: GameState, amount: number, cash = true): void {
+  const a = Math.round(amount);
+  state.finance.otherExpenseCum = (state.finance.otherExpenseCum ?? 0) + a;
+  if (cash) state.finance.cash -= a;
+}
+
+/** 선택적 누계 통계를 더한다 (예전 저장 파일에는 필드가 없을 수 있다) */
+export function addStat(state: GameState, key: keyof GameState['stats'], amount: number): void {
+  const s = state.stats as unknown as Record<string, number>;
+  s[key] = (s[key] ?? 0) + amount;
+}

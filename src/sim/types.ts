@@ -49,6 +49,40 @@ export interface Supplier {
   /** 견적서 양식 (A: 국문 표준, B: 영문/USD, C: 포대 단위·VAT 포함, D: 스캔본 섞임) */
   quoteFormat: QuoteFormat;
   history: SupplierHistory;
+  /** false면 거래 중지 (견적 요청 대상에서 빠진다). 없으면 거래 중 */
+  active?: boolean;
+  /** 신규 발굴로 등록된 날 (처음부터 있던 업체는 없음) */
+  addedDay?: number;
+  /** 분기 평가에서 연속으로 기준 미달한 횟수 */
+  warnings?: number;
+  /** 지난 분기 평가 시점의 실적 (이번 분기 실적 = 지금 − 이 값) */
+  reviewBase?: SupplierHistory;
+  /** 가장 최근 분기 평가 결과 */
+  lastReview?: { day: number; onTimeRate: number; defectRate: number; orders: number; grade: 'good' | 'watch' | 'poor' };
+}
+
+/** 신규 공급처 후보. 숨은 조건은 샘플 시험과 거래를 해 봐야 드러난다 */
+export interface SupplierCandidate {
+  id: string;
+  name: string;
+  materialIds: MaterialId[];
+  profile: Omit<Supplier, 'id' | 'name' | 'materialIds' | 'history'>;
+  status: 'searching' | 'sampling' | 'registering' | 'approved' | 'rejected';
+  foundDay?: number;
+  sampleResultDay?: number;
+  sampleDefectRate?: number;
+}
+
+/** 구매 건과 따로 들어오는 입고 (대체 납품, 긴급 현물 구매) */
+export interface InboundLot {
+  id: string;
+  kind: 'replacement' | 'spot';
+  materialId: MaterialId;
+  qty: number;
+  unitPrice: number;
+  arriveDay: number;
+  supplierName: string;
+  caseId?: string;
 }
 
 export interface SupplierHistory {
@@ -214,6 +248,10 @@ export interface PurchaseCase {
   delayKnownBy?: 'tool' | 'manual';
   /** 독촉으로 앞당긴 일수 */
   expediteRecoveredDays?: number;
+  /** 업체가 단가 인상을 요구했던 건: 요구율과 방어 후 최종 인상률 */
+  priceIncrease?: { requested: number; final: number };
+  /** 검수를 통과했지만 생산 중에 드러날 불량 (발견일, 수량) */
+  latentDefect?: { day: number; qty: number; found?: boolean };
 }
 
 export type SkillId = 'market' | 'costing' | 'negotiation' | 'docs';
@@ -233,7 +271,7 @@ export interface Employee {
   milestones: { day: number; text: string }[];
 }
 
-export type WorkKind = 'case' | 'report' | 'mail' | 'claim' | 'meeting' | 'adhoc' | 'expedite' | 'lunch';
+export type WorkKind = 'case' | 'report' | 'mail' | 'claim' | 'meeting' | 'adhoc' | 'expedite' | 'lunch' | 'spot' | 'sourcing' | 'review' | 'training';
 
 export interface TimeBlock {
   day: number;
@@ -306,6 +344,8 @@ export interface Finance {
   payables: { day: number; amount: number; poId: string }[];
   revenueCum: number;
   cogsCum: number;
+  /** 매출원가 밖의 손실·비용 누계 (반품 처리비, 폐기 손실 − 클레임 회수액). 영업이익에서 뺀다 */
+  otherExpenseCum?: number;
   purchaseCum: number;
   fixedCostCum: number;
   monthlyBudget: number;
@@ -319,8 +359,10 @@ export interface DailySnapshot {
   revenue: number;
   produced: number;
   demand: number;
-  /** 하루 영업이익 = 매출 − 매출원가(추적 원료 + 기타 원재료) − 고정비 */
+  /** 하루 영업이익 = 매출 − 매출원가(추적 원료 + 기타 원재료) − 고정비 − 그날 생긴 기타 손실 */
   opProfit?: number;
+  /** 그날 생긴 기타 손실 (반품 처리비, 폐기 손실 − 클레임 회수액) */
+  otherExpense?: number;
   /** 원료 부족으로 생산이 줄었다면 그 원료 */
   shortMaterial?: MaterialId;
   priceSavingCum: number;
@@ -451,6 +493,10 @@ export interface GameState {
   clock?: { mode: 'realtime' | 'manual' };
   /** 담당자 급여와 통장 */
   payroll: Payroll;
+  /** 대체 납품·긴급 현물 구매처럼 구매 건 밖에서 들어오는 입고 */
+  inbound: InboundLot[];
+  /** 신규 공급처 발굴 */
+  sourcing: { nextDay: number; candidates: SupplierCandidate[] };
   /** 하루 계산 중 지금 몇 분째인지 (사건 시각 기록용, 계산이 끝나면 비움) */
   nowMinute?: number;
   stats: CumulativeStats;
@@ -458,8 +504,20 @@ export interface GameState {
 
 export interface BacklogItem {
   id: string;
-  kind: 'report' | 'claim' | 'adhoc' | 'expedite';
+  kind: 'report' | 'claim' | 'adhoc' | 'expedite' | 'spot' | 'sourcing' | 'review' | 'meeting' | 'training';
   title: string;
+  /** 클레임: 입고 검수 불량(대체 납품 요청)인지 생산 중 불량(손실 보상 요청)인지, 보상 청구 대상 금액 */
+  claimType?: 'receiving' | 'production';
+  claimAmount?: number;
+  /** 업체 관련 업무 (협력사 미팅, 연초 단가 인상 협상) */
+  supplierId?: string;
+  /** 연초 단가 인상 협상: 업체가 요구한 인상률 */
+  priceUpRequest?: number;
+  /** 신규 공급처 업무 */
+  candidateId?: string;
+  sourcingStep?: 'search' | 'register';
+  /** 교육으로 오를 숙련도 */
+  skill?: SkillId;
   from?: string;
   createdDay: number;
   dueDay: number;
@@ -507,6 +565,28 @@ export interface CumulativeStats {
   /** 약속일 대비 지연 일수 합 (입고 기준) */
   lateDaysSum: number;
   expediteRecoveredDays: number;
+  /** 반품 운송·재검사 비용 중 회사가 떠안은 몫 */
+  defectHandlingKRW?: number;
+  /** 생산 중 불량으로 폐기한 원료 금액 */
+  scrapKRW?: number;
+  /** 클레임으로 업체에서 돌려받은 금액 */
+  claimRecoveredKRW?: number;
+  /** 긴급 현물 구매에서 시세보다 더 낸 금액 */
+  spotPremiumKRW?: number;
+  spotBuys?: number;
+  /** 업체 인상 요구로 협상 전 견적보다 더 내게 된 금액 */
+  priceIncreaseKRW?: number;
+  priceIncreaseCases?: number;
+  qualityIncidents?: number;
+  /** 연초 단가 인상 통보 건수와 협상 후 평균 인상률 합 */
+  annualIncreases?: number;
+  annualIncreaseRateSum?: number;
+  /** 현물을 구하지 못한 날 */
+  spotFailures?: number;
+  suppliersAdded?: number;
+  suppliersSuspended?: number;
+  supplierMeetings?: number;
+  trainingSessions?: number;
 }
 
 export interface PayLine {

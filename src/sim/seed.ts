@@ -174,6 +174,18 @@ const emptyStats = (): CumulativeStats => ({
   reportsWritten: 0,
   lateDaysSum: 0,
   expediteRecoveredDays: 0,
+  defectHandlingKRW: 0,
+  scrapKRW: 0,
+  claimRecoveredKRW: 0,
+  spotPremiumKRW: 0,
+  spotBuys: 0,
+  priceIncreaseKRW: 0,
+  priceIncreaseCases: 0,
+  qualityIncidents: 0,
+  suppliersAdded: 0,
+  suppliersSuspended: 0,
+  supplierMeetings: 0,
+  trainingSessions: 0,
 });
 
 export function createInitialState(seed = 20270104, startDate: string = START_DATE, mode: 'realtime' | 'manual' = 'manual'): GameState {
@@ -209,6 +221,7 @@ export function createInitialState(seed = 20270104, startDate: string = START_DA
       payables: [],
       revenueCum: 0,
       cogsCum: 0,
+      otherExpenseCum: 0,
       purchaseCum: 0,
       fixedCostCum: 0,
       monthlyBudget: 60_000_000,
@@ -238,6 +251,9 @@ export function createInitialState(seed = 20270104, startDate: string = START_DA
     verifications: [],
     reports: [],
     payroll: emptyPayroll(seed, startDate),
+    inbound: [],
+    // 첫 신규 공급처 탐색은 두 달쯤 일한 뒤 (업체 실적이 쌓인 다음)
+    sourcing: { nextDay: 40, candidates: [] },
     counters: {},
     stats: emptyStats(),
   };
