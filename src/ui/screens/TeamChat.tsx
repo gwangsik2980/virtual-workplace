@@ -6,6 +6,7 @@ import { clock } from '../components/Common';
 import { HeroFacts, ScreenHero, SectionHead } from '../components/Editorial';
 import { Reveal } from '../motion';
 import { CHAT_THREADS, useChatUnread, useVisibleChats } from '../chatRead';
+import { Inbox } from '../components/Inbox';
 import { useStore } from '../store';
 import './chat.css';
 
@@ -56,17 +57,17 @@ export function TeamChat() {
   return (
     <>
       <ScreenHero
-        eyebrow="03 — Team Chat"
-        lines={[`${me} ${state.employee.rank}의`, '팀 채팅']}
-        watermark="CHAT"
-        lead="공식 요청은 메일로, 상사 지시와 다른 부서와의 짧은 협조는 메신저로 오갑니다. 구매 건과 이어진 말을 누르면 해당 기록이 열립니다."
+        eyebrow="03 — Communication"
+        lines={[`${me} ${state.employee.rank}의`, '소통 공간']}
+        watermark="TALK"
+        lead="거래처와의 공식 요청과 견적은 메일로, 팀장 지시와 다른 부서와의 짧은 협조는 메신저로 오갑니다. 구매 건과 이어진 메일이나 말을 누르면 해당 기록이 열립니다."
         aside={
           <HeroFacts
             items={[
               { label: '안 읽은 메시지', value: `${total}개`, note: `오늘 대화 ${todayCount}줄` },
               { label: '팀장 지시', value: `${leadOrders}건`, note: '보관 중인 대화 기준' },
               { label: '대화방', value: `${THREADS.length}개`, note: '상사 1, 다른 부서 5' },
-              { label: '보관', value: `${visible.length}줄`, note: '최근 1,500줄까지' },
+              { label: '메일', value: `${state.messages.length}건`, note: '받은메일·보낸메일' },
             ]}
           />
         }
@@ -138,6 +139,8 @@ export function TeamChat() {
           </div>
         </section>
       </Reveal>
+
+      <Inbox />
     </>
   );
 }

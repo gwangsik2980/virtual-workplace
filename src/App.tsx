@@ -38,7 +38,7 @@ import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme,
 const NAV: { id: ScreenId; label: string }[] = [
   { id: 'overview', label: '기업 현황' },
   { id: 'desk', label: '직원 업무' },
-  { id: 'chat', label: '팀 채팅' },
+  { id: 'chat', label: '소통 공간' },
   { id: 'process', label: '프로세스 맵' },
   { id: 'market', label: '시장·원가·업체' },
   { id: 'lab', label: 'AI Tool Lab' },
@@ -235,7 +235,7 @@ function Shell() {
   const [link, setLink] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
-  // 메뉴 버튼 숫자는 새 개념만. 안 읽은 팀 채팅은 메뉴를 열었을 때 '팀 채팅' 옆에만 보인다
+  // 메뉴 버튼 숫자는 새 개념만. 안 읽은 메신저는 메뉴를 열었을 때 '소통 공간' 옆에만 보인다
   const menuBadge = newConcepts;
   const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref);
   const [, bump] = useState(0);

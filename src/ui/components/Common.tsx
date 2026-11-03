@@ -37,7 +37,7 @@ export function Stat({ label, value, note, tone }: { label: string; value: React
 const EYEBROWS: Record<string, string> = {
   '기업 현황': '01 — Company',
   '직원 업무': '02 — The Desk',
-  '팀 채팅': '03 — Team Chat',
+  '소통 공간': '03 — Communication',
   '프로세스 맵': '04 — Process',
   '시장·원가·업체': '05 — Market',
   'AI Tool Lab': '06 — Tool Lab',

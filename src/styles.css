@@ -880,7 +880,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 }
 .screen-hero-main { display: flex; flex-direction: column; gap: 1.125rem; }
 .screen-hero-main h1 { font-size: 2.25rem; font-weight: 600; line-height: 1.02; letter-spacing: -0.03em; }
-/* 줄바꿈은 화면마다 lines로 정해 둔다. 폭 제한(14ch)을 두면 한 줄 제목이 강제로 꺾인다 */
+@media (min-width: 1024px) { .screen-hero-main h1 { max-width: 14ch; } }
 @media (min-width: 640px) { .screen-hero-main h1 { font-size: 3.5rem; } }
 .screen-hero-lead { max-width: 36rem; font-size: 0.9375rem; color: var(--text-2); }
 .screen-hero-aside { display: flex; flex-direction: column; gap: 1rem; }
