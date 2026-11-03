@@ -135,3 +135,13 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* 도구 카드: 검정 잉크 카드 */
+.tool-card-title { font-size: 1.5rem; font-weight: 500; letter-spacing: -0.015em; }
+@media (min-width: 640px) { .tool-card-title { font-size: 1.875rem; } }
+.tool-card-summary { margin: 0 0 1.25rem; max-width: 46rem; color: rgba(255, 255, 255, 0.62); font-size: 0.9375rem; }
+.tool-card .lab-version { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.1); }
+.tool-card .lab-version.active { background: rgba(207, 128, 71, 0.16); border-color: rgba(207, 128, 71, 0.45); }
+.tool-card select { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); color: #fff; }
+.tool-card select option { color: #111; }
+.tool-card h4 { color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem; font-weight: 500; }

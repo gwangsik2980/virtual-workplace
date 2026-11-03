@@ -2,13 +2,14 @@ import type { ReactNode } from 'react';
 import { STAGE_LABELS } from '../../sim/purchasing';
 import type { DeptId, EventType, PurchaseCase, Stage } from '../../sim/types';
 import { DEPT_NAMES } from '../../sim/util';
+import { LineReveal, Reveal } from '../motion';
 
 export function Card({ title, sub, actions, children, className, style }: { title?: ReactNode; sub?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
     <section className={`card ${className ?? ''}`} style={style}>
       {(title || actions) && (
         <div className="card-head">
-          <div className="row" style={{ gap: 8 }}>
+          <div className="row" style={{ gap: '0.5rem' }}>
             {typeof title === 'string' ? <h3>{title}</h3> : title}
             {sub && <span className="sub">{sub}</span>}
           </div>
@@ -33,14 +34,33 @@ export function Stat({ label, value, note, tone }: { label: string; value: React
   );
 }
 
-export function PageHead({ title, desc, actions }: { title: string; desc?: ReactNode; actions?: ReactNode }) {
+const EYEBROWS: Record<string, string> = {
+  '기업 현황': '01 — Company',
+  '직원 업무': '02 — The Desk',
+  '프로세스 맵': '03 — Process',
+  '시장·원가·업체': '04 — Market',
+  'AI Tool Lab': '05 — Tool Lab',
+  '성과·타임라인': '06 — Results',
+  '학습 노트': '07 — Learning',
+  '가정·설정': '08 — Assumptions',
+};
+
+/** 화면 제목. 번호와 구분 라벨을 눈썹 글씨로 두고 큰 제목이 줄 단위로 올라온다 */
+export function PageHead({ title, desc, actions, eyebrow }: { title: string; desc?: ReactNode; actions?: ReactNode; eyebrow?: string }) {
   return (
-    <div className="row between" style={{ alignItems: 'flex-end' }}>
-      <div className="page-head">
-        <h2>{title}</h2>
-        {desc && <p>{desc}</p>}
+    <div className="page-head">
+      <Reveal>
+        <span className="eyebrow">{eyebrow ?? EYEBROWS[title] ?? title}</span>
+      </Reveal>
+      <div className="page-head-row">
+        <LineReveal lines={[title]} delay={80} />
+        {actions && <div className="row">{actions}</div>}
       </div>
-      {actions && <div className="row">{actions}</div>}
+      {desc && (
+        <Reveal delay={180}>
+          <p>{desc}</p>
+        </Reveal>
+      )}
     </div>
   );
 }

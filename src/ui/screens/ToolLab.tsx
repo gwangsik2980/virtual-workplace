@@ -7,6 +7,7 @@ import { TOOL_REGISTRY } from '../../tools/registry';
 import type { ToolDefinition, ToolTarget } from '../../tools/types';
 import { BarList } from '../components/Chart';
 import { Card, PageHead, pct } from '../components/Common';
+import { Reveal } from '../motion';
 import { useStore } from '../store';
 import './lab.css';
 
@@ -117,12 +118,14 @@ function ToolCard({ tool }: { tool: ToolDefinition }) {
     });
 
   return (
+    <Reveal y={2.5}>
     <Card
-      title={tool.name}
+      className="ink card-lg tool-card"
+      title={<h3 className="tool-card-title">{tool.name}</h3>}
       sub={`연결 업무: ${targetLabel(tool.targetStage)}`}
-      actions={active ? <span className="badge badge-ok">v{active.version} 적용 중</span> : <span className="badge">미적용 (수작업)</span>}
+      actions={active ? <span className="badge badge-accent">v{active.version} 적용 중</span> : <span className="badge">미적용, 수작업</span>}
     >
-      <p style={{ marginTop: 0 }}>{tool.summary}</p>
+      <p className="tool-card-summary">{tool.summary}</p>
       <div className="lab-cols">
         <div>
           <h4>자동화하는 일</h4>
@@ -195,6 +198,7 @@ function ToolCard({ tool }: { tool: ToolDefinition }) {
         </div>
       )}
     </Card>
+    </Reveal>
   );
 }
 

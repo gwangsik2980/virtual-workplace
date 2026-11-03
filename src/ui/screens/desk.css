@@ -18,7 +18,7 @@
 .timeline {
   position: relative;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -74,10 +74,11 @@
 
 .block-list .list-item {
   display: grid;
-  grid-template-columns: 92px 1fr auto;
-  gap: 8px;
+  grid-template-columns: 7.25rem 1fr auto;
+  gap: 0.5rem;
   align-items: start;
-  font-size: 13px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
 }
 
 .block-list .list-item.clickable {
@@ -100,7 +101,7 @@
 
 .inbox {
   display: grid;
-  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -108,7 +109,7 @@
   max-height: 520px;
   overflow-y: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
 }
 
 .inbox-item {
@@ -154,7 +155,7 @@
 .seg {
   display: inline-flex;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   overflow: hidden;
 }
 
@@ -226,7 +227,7 @@
 .kcard {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 7px 9px;
   cursor: pointer;
   text-align: left;
@@ -259,7 +260,7 @@
 
 .dept-strip > div {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 8px 10px;
   font-size: 12.5px;
   background: var(--surface);

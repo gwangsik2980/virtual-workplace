@@ -1,46 +1,195 @@
-import { useMemo } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { activeTool } from '../../sim/compare';
 import { dailyUsage } from '../../sim/market';
 import { onOrderQty, reorderPoint } from '../../sim/operations';
 import type { DeptId, GameState, MaterialId } from '../../sim/types';
 import { DEPT_NAMES, formatDay, formatDayShort, wonShort } from '../../sim/util';
 import { LineChart } from '../components/Chart';
-import { Card, EventBadge, PageHead, pct, Stat } from '../components/Common';
+import { Card, EventBadge, pct, Stat } from '../components/Common';
+import { ArrowRight, DotIcon, LineReveal, Mark, Reveal, useIntroReady, useScrollCount } from '../motion';
 import { useStore } from '../store';
 
-function Intro() {
-  const { advance, setScreen } = useStore();
+function HeroCard() {
+  const { state, setScreen } = useStore();
+  const open = state.cases.filter((c) => c.stage !== 'done' && c.stage !== 'cancelled');
+  const urgent = open.filter((c) => c.urgent).length;
+  const tools = state.tools.filter((t) => t.removedDay === undefined).length;
+  const items = [
+    { cap: '관찰 대상', title: `구매팀 ${state.employee.name} ${state.employee.rank}`, go: 'desk' as const },
+    { cap: '진행 중 구매', title: open.length ? `${open.length}건${urgent ? `, 긴급 ${urgent}건` : ''}` : '아직 없음', go: 'process' as const },
+    { cap: '업무에 붙인 도구', title: tools ? `${tools}개 적용 중` : '아직 없음, 모두 수작업', go: 'lab' as const },
+  ];
+  const [i, setI] = useState(0);
+  const [dir, setDir] = useState(1);
+  const n = items.length;
+  const step = (d: number) => {
+    setDir(d);
+    setI((x) => (x + d + n) % n);
+  };
   return (
-    <Card title="처음 오셨나요?">
-      <div className="stack" style={{ gap: 10 }}>
-        <p style={{ margin: 0 }}>
-          가상의 식품 제조기업 <b>가온식품</b>이 매일 운영되고, 구매팀 <b>서지우 사원</b>이 실제 구매 업무를 처리합니다. 여러분은 그 과정을
-          어깨너머로 관찰하면서 구매 업무를 배우고, 비효율을 찾아 개선 도구를 업무에 붙여 봅니다.
-        </p>
-        <ol style={{ margin: 0, paddingLeft: 20 }} className="muted">
-          <li>
-            상단의 <b>하루 진행</b>을 누르면 하루가 지나갑니다. 시장가격이 움직이고 생산팀이 원료를 쓰고, 재고가 줄면 구매 요청이 옵니다.
-          </li>
-          <li>
-            <b>직원 업무</b>에서 담당자의 하루 일정, 메일, 견적서를 봅니다. <b>프로세스 맵</b>에서 구매 건이 어느 단계에 있는지 봅니다.
-          </li>
-          <li>
-            업무를 처음 관찰할 때마다 <b>학습 노트</b>에 개념 카드가 열립니다.
-          </li>
-          <li>
-            <b>AI Tool Lab</b>에서 견적 비교 도구를 업무에 적용하고, 도구가 없을 때와 비교해 효과를 검증합니다.
-          </li>
-        </ol>
-        <div className="row">
-          <button className="btn btn-primary" onClick={() => advance(1)}>
-            첫날 시작하기
+    <div className="hero-card">
+      <div className="hero-card-row">
+        <button className="hero-card-tile" onClick={() => setScreen(items[i].go)} aria-label={`${items[i].cap} 화면으로`}>
+          <Mark />
+        </button>
+        <div className="hero-card-panel">
+          <button className="hero-card-slot" onClick={() => step(1)} aria-label="다음 항목" style={{ textAlign: 'left' }}>
+            {items.map((it, k) => {
+              const off = k === i ? 0 : (k - i + n) % n === 1 ? dir * 0.875 : -dir * 0.875;
+              return (
+                <span
+                  key={it.cap}
+                  className="hero-card-item"
+                  aria-hidden={k !== i}
+                  style={{ opacity: k === i ? 1 : 0, transform: `translateY(${off}rem)` }}
+                >
+                  <span className="cap" style={{ display: 'block' }}>
+                    {it.cap}
+                  </span>
+                  <span className="ttl" style={{ display: 'block' }}>
+                    {it.title}
+                  </span>
+                </span>
+              );
+            })}
           </button>
-          <button className="btn" onClick={() => setScreen('desk')}>
-            담당자 소개 보기
-          </button>
+          <div className="hero-card-foot">
+            <div className="hero-dots">
+              {items.map((it, k) => (
+                <span key={it.cap} className={k === i ? 'on' : ''} />
+              ))}
+            </div>
+            <div className="row" style={{ gap: '0.25rem' }}>
+              <button className="round-btn" onClick={() => step(-1)} aria-label="이전">
+                <span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}>
+                  <ArrowRight />
+                </span>
+              </button>
+              <button className="round-btn" onClick={() => step(1)} aria-label="다음">
+                <ArrowRight />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
+  );
+}
+
+function Hero() {
+  const { state, advance, setScreen } = useStore();
+  const ready = useIntroReady();
+  return (
+    <section className="hero" aria-label="소개">
+      <div className="hero-watermark reveal-wm" style={{ opacity: ready ? 1 : 0, transform: ready ? 'none' : 'translateY(1.25rem)', transition: 'opacity 1.2s var(--spring) 300ms, transform 1.2s var(--spring) 300ms' }}>
+        WORKPLACE
+      </div>
+      <div className="hero-grid">
+        <div className="hero-left">
+          <Reveal gated delay={200} y={0.625}>
+            <span className="eyebrow">구매팀을 관찰하는 시뮬레이션</span>
+          </Reveal>
+          <LineReveal as="h1" gated delay={250} stagger={120} lines={['가상 직장에서', '구매를 배우고', '도구로 바꿉니다']} />
+          <Reveal gated delay={600} y={0.75}>
+            <p className="hero-lead">
+              {state.company.name}의 구매 담당자 {state.employee.name}가 매일 처리하는 일을 따라가며 업무를 배우고, 비효율을 찾아 도구를 붙인 뒤
+              효과를 검증합니다.
+            </p>
+          </Reveal>
+          <Reveal gated delay={750} y={0.75}>
+            <div className="row" style={{ gap: '0.75rem' }}>
+              <button className="pill pill-dark pill-arrow" onClick={() => advance(1)}>
+                {state.day === 1 ? '첫날 시작하기' : '하루 진행'}
+                <span className="arrow-badge">
+                  <ArrowRight />
+                </span>
+              </button>
+              <button className="pill" onClick={() => setScreen('desk')}>
+                담당자 업무 보기
+              </button>
+            </div>
+          </Reveal>
+        </div>
+        <div className="hero-right">
+          <Reveal gated delay={400} y={1} scale={0.96}>
+            <HeroCard />
+          </Reveal>
+          <Reveal gated delay={550} y={0.875} className="hero-partners">
+            <div className="lbl">거래 공급업체 {state.suppliers.length}곳</div>
+            <ul>
+              {state.suppliers.map((s) => (
+                <li key={s.id} title={s.name}>
+                  <span style={{ color: 'rgba(17,17,17,.4)', display: 'inline-flex', fontSize: '0.875rem' }}>
+                    <DotIcon />
+                  </span>
+                  {s.name}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+      </div>
+      <Reveal gated delay={900} y={0} className="hero-status">
+        <span>
+          {formatDay(state.startDate, state.day)} 근무 시작 전
+        </span>
+        <span className="mid">회사, 인물, 업체, 시세는 모두 가상</span>
+        <span>스크롤해서 보기 ↓</span>
+      </Reveal>
+    </section>
+  );
+}
+
+function LoopBand() {
+  const tiles: { cls: string; label: ReactNode; aria?: string }[] = [
+    { cls: 'light', label: '관찰' },
+    { cls: 'accent', label: '발견' },
+    { cls: 'dark', label: <ArrowRight />, aria: '다음으로' },
+    { cls: 'ghost', label: '개선' },
+  ];
+  return (
+    <ul className="loop-band" aria-label="관찰, 발견, 개선의 순환">
+      {tiles.map((t, i) => (
+        <Reveal as="li" key={i} delay={i * 120} y={1.75}>
+          <div className={`loop-tile ${t.cls}`} aria-label={t.aria}>
+            {t.label}
+          </div>
+        </Reveal>
+      ))}
+    </ul>
+  );
+}
+
+function CountStat({ value, suffix, label, delay }: { value: number; suffix?: string; label: string; delay: number }) {
+  const [ref, v] = useScrollCount(value);
+  return (
+    <Reveal as="li" delay={delay} y={1.25}>
+      <div ref={ref as React.RefObject<HTMLDivElement>} className="num-big">
+        {v.toLocaleString('ko-KR')}
+        {suffix && <small>{suffix}</small>}
+      </div>
+      <div className="num-label">{label}</div>
+    </Reveal>
+  );
+}
+
+function StatsPanel() {
+  const { state } = useStore();
+  const s = state.stats;
+  const deliveries = s.deliveriesOnTime + s.deliveriesLate;
+  return (
+    <Reveal y={2.5} scale={0.99}>
+      <section className="ink stats-panel">
+        <span className="eyebrow">By the numbers</span>
+        <LineReveal lines={['지금까지 이 회사의 구매팀이 해낸 일']} delay={120} />
+        <ul className="stats-grid" style={{ listStyle: 'none' }}>
+          <CountStat value={Math.round(s.priceSavingKRW / 10000)} suffix="만원" label="누적 가격 절감액, 협상 전 최초 견적 대비" delay={0} />
+          <CountStat value={s.closedCases} suffix="건" label="완료한 구매 건" delay={90} />
+          <CountStat value={deliveries ? Math.round((s.deliveriesOnTime / deliveries) * 100) : 0} suffix="%" label="납기 준수율" delay={180} />
+          <CountStat value={Object.keys(state.learning.unlocked).length} suffix="개" label="관찰로 열린 구매 개념" delay={270} />
+        </ul>
+      </section>
+    </Reveal>
   );
 }
 
@@ -188,14 +337,12 @@ export function Overview() {
 
   return (
     <>
-      <PageHead
-        title="기업 현황"
-        desc={`${state.company.industry} · 주력 제품 ${state.company.product} · 일 생산능력 ${state.company.capacityPerDay.toLocaleString('ko-KR')}세트`}
-      />
-      {state.day === 1 && <Intro />}
+      <Hero />
+      <LoopBand />
+      <StatsPanel />
 
       <div className="grid grid-6">
-        <Stat label="현금" value={`${wonShort(state.finance.cash)}원`} note="매출채권 회수·대금 지급 반영" />
+        <Stat label="현금" value={`${wonShort(state.finance.cash)}원`} note="매출채권 회수와 대금 지급 반영" />
         <Stat label="원료 재고자산" value={`${wonShort(last?.inventoryValue ?? 0)}원`} note="이동평균 단가 기준" />
         <Stat label="누적 가격 절감액" value={`${wonShort(s.priceSavingKRW)}원`} note="협상 전 최초 견적 대비" tone={s.priceSavingKRW > 0 ? 'ok' : undefined} />
         <Stat label="진행 중 구매" value={`${open}건`} note={`완료 ${s.closedCases}건`} />
