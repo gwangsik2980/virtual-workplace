@@ -92,6 +92,17 @@ export function Desk() {
   });
   const todayBlocks = (id: string) => state.schedule.filter((b) => b.day === rt.target && b.caseId === id).sort((a, b) => a.start - b.start);
   const lastDayMinutes = state.schedule.filter((b) => b.day === lastDay && b.kind !== 'lunch').reduce((a, b) => a + b.minutes, 0);
+  // 근무 칸: 근무 중이면 09:00부터 지금까지 일한 시간, 퇴근 뒤면 오늘 전체, 출근 전·휴일이면 지난 근무일 전체
+  const workedToday = rt.isRealtime && (rt.phase === 'working' || rt.phase === 'after');
+  const shownMinutes =
+    rt.phase === 'working' && rt.liveMinute !== null
+      ? state.schedule
+          .filter((b) => b.day === rt.target && b.kind !== 'lunch')
+          .reduce((a, b) => a + Math.max(0, Math.min(b.minutes, rt.liveMinute! - b.start)), 0)
+      : lastDayMinutes;
+  // 누적 통계에는 오늘 하루치 예정 시간이 이미 들어 있어서, 근무 중에는 아직 안 한 몫을 뺀다
+  const totalHours = Math.round((state.stats.employeeMinutes - (rt.phase === 'working' ? lastDayMinutes - shownMinutes : 0)) / 60);
+  const overtimeHours = state.stats.overtimeMinutes / 60;
 
   const heroLines = [`${e.name} ${e.rank}의`, '하루'];
 
@@ -140,9 +151,9 @@ export function Desk() {
                     : `${nextRank.name} 승진까지 ${Math.ceil(nextRank.xp - e.xp).toLocaleString('ko-KR')}`,
               },
               {
-                label: '어제 근무',
-                value: `${(lastDayMinutes / 60).toFixed(1)}시간`,
-                note: `${Math.floor(lastDayMinutes / 60)}시간 ${lastDayMinutes % 60}분${lastDayMinutes > state.params.workdayMinutes ? `, 연장 ${lastDayMinutes - state.params.workdayMinutes}분` : ''}`,
+                label: workedToday ? '오늘 근무' : '지난 근무일',
+                value: `${Math.floor(shownMinutes / 60)}시간 ${Math.round(shownMinutes % 60)}분`,
+                note: `누적 ${totalHours.toLocaleString('ko-KR')}시간${overtimeHours >= 0.05 ? `, 연장 ${overtimeHours.toFixed(1)}시간` : ''}`,
               },
               { label: '진행 중 업무', value: `${openCases.length + state.backlog.length}건`, note: `구매 건 ${openCases.length}, 기타 ${state.backlog.length}` },
             ]}
