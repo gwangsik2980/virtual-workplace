@@ -4,6 +4,7 @@ import { formatDay } from '../../sim/util';
 import { ALERT_LABELS, alertKind, useAlerts, type AlertKind } from '../alerts';
 import { currentBlock, useRealtime } from '../realtime';
 import { isIOS, isStandalone } from '../install';
+import { disablePush, enablePush, pushAvailable, usePushOn } from '../push';
 import { useStore } from '../store';
 
 /** 오늘이 며칠차인지 (실시간이면 현실 날짜 기준) */
@@ -194,9 +195,42 @@ export function AlertsBell() {
                 브라우저 알림 켜기
               </button>
             )}
+            <PushToggle />
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** 닫아 둔 동안에도 받기 (웹 푸시). 알림 서버가 설정돼 있고 브라우저가 지원할 때만 보인다 */
+function PushToggle() {
+  const on = usePushOn();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  if (!pushAvailable()) return null;
+  const toggle = async () => {
+    setBusy(true);
+    setErr('');
+    try {
+      if (on) await disablePush();
+      else await enablePush();
+    } catch (e) {
+      setErr(e instanceof Error && e.message.includes('권한') ? e.message : '연결하지 못했어요. 잠시 뒤 다시 눌러 주세요.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="bell-push">
+      <div>
+        <b>닫아 둔 동안에도 받기</b>
+        <span className="faint">{on ? '켜짐. 앞으로 6주치 알림을 서버에 맡겨 두었어요.' : '사이트를 닫아도 폰으로 알려 드려요.'}</span>
+        {err && <span className="faint">{err}</span>}
+      </div>
+      <button className={`pill pill-sm ${on ? '' : 'pill-dark'}`} disabled={busy} onClick={() => void toggle()}>
+        {busy ? '연결 중' : on ? '끄기' : '켜기'}
+      </button>
     </div>
   );
 }

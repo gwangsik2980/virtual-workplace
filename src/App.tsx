@@ -28,6 +28,7 @@ import { ToolLab } from './ui/screens/ToolLab';
 import { AlertsBell, AwayModal, ClockChip } from './ui/components/LiveWidgets';
 import { useInstall } from './ui/install';
 import { useChatUnread } from './ui/chatRead';
+import { PushSync } from './ui/push';
 import { RealtimeProvider } from './ui/realtime';
 import { StoreProvider, useStore, type ScreenId } from './ui/store';
 import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme, type ThemePref } from './ui/theme';
@@ -402,6 +403,7 @@ function Shell() {
       />
       {caseId && <CaseDrawer caseId={caseId} onClose={() => openCase(null)} />}
       <AwayModal />
+      <PushSync />
     </>
   );
 }

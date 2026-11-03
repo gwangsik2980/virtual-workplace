@@ -1098,6 +1098,9 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .bell-prefs { padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .bell-pref { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; }
 .bell-foot { padding: 0.75rem 1rem; border-top: 1px solid var(--line); }
+.bell-push { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.625rem; padding-top: 0.625rem; border-top: 1px solid var(--line); }
+.bell-push > div { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; font-size: 0.8125rem; }
+.bell-push .pill { flex-shrink: 0; }
 
 /* 자리를 비운 동안 */
 .away-modal {

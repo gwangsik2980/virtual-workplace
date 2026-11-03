@@ -1,0 +1,13 @@
+# 알림 서버 배포 설정. 배포는 .github/workflows/push-worker.yml이 한다.
+name = "vw-push"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+[[durable_objects.bindings]]
+name = "BOX"
+class_name = "PushBox"
+
+# 무료 요금제는 SQLite 저장소 Durable Object만 쓸 수 있다
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PushBox"]

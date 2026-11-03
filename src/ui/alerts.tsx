@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ALERT_LABELS, alertKind, type AlertKind } from '../sim/alertKinds';
 import type { EventLog, GameState } from '../sim/types';
 import { formatDay } from '../sim/util';
 import { clock } from './components/Common';
 import { useRealtime } from './realtime';
+import { isPushOn, notifyPushChange, PREF_KEY } from './push';
 import { useStore } from './store';
 
 /**
@@ -11,32 +13,10 @@ import { useStore } from './store';
  * 읽음·알림 보낸 위치와 설정은 이 브라우저에만 저장한다.
  */
 
-export type AlertKind = 'stockout' | 'urgent' | 'delay' | 'quality' | 'finance' | 'risk' | 'payroll';
-
-export const ALERT_LABELS: Record<AlertKind, string> = {
-  stockout: '결품',
-  urgent: '긴급 요청',
-  delay: '납기 지연',
-  quality: '품질',
-  finance: '정산 불일치',
-  risk: '납기 위험 알림',
-  payroll: '급여 입금',
-};
-
-export function alertKind(e: EventLog): AlertKind | null {
-  if (e.type === 'stockout') return 'stockout';
-  if (e.type === 'request' && e.title.startsWith('[긴급]')) return 'urgent';
-  if (e.type === 'delay' && !/만회|독촉 결과/.test(e.title)) return 'delay';
-  if (e.type === 'quality') return 'quality';
-  if (e.type === 'finance' && e.title.startsWith('정산 불일치')) return 'finance';
-  if (e.type === 'tool' && e.title.startsWith('납기 위험 알림')) return 'risk';
-  if (e.type === 'payroll') return 'payroll';
-  return null;
-}
+export { ALERT_LABELS, alertKind, type AlertKind } from '../sim/alertKinds';
 
 const num = (id: string) => Number(id.split('-')[1] ?? 0);
 const keyOf = (state: GameState, name: string) => `virtual-workplace/alerts/${name}/${state.seed}/${state.startDate}`;
-const PREF_KEY = 'virtual-workplace/alerts/prefs';
 
 function readNum(key: string): number {
   try {
@@ -97,6 +77,7 @@ export function useAlerts() {
     } catch {
       /* 무시 */
     }
+    notifyPushChange();
   };
 
   const items = useMemo<AlertItem[]>(() => {
@@ -146,6 +127,8 @@ export function useAlerts() {
     if (fresh.length === 0) return;
     const max = Math.max(...fresh.map((i) => num(i.e.id)));
     writeNum(key, max);
+    // 닫아 둔 동안 알림이 켜져 있으면 서버가 같은 알림을 보내므로 여기서는 보내지 않는다
+    if (isPushOn()) return;
     // 처음 켰거나 오래 비웠다면 하나로 묶어서 보낸다
     if (notified === 0 && fresh.length > 1) return;
     if (fresh.length > 3) {
