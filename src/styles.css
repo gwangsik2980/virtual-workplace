@@ -1042,3 +1042,11 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
   .day-controls .undo-btn { flex: 0 0 auto; }
   .undo-text { display: none; }
 }
+
+/* 터치 화면: 작은 버튼의 누르는 영역을 넓힌다 (보이는 크기는 그대로) */
+@media (pointer: coarse) {
+  .brand { min-height: 2.5rem; }
+  .round-btn { width: 2.25rem; height: 2.25rem; }
+  .learn-more, .navmenu-bottom button { min-height: 2.5rem; padding-block: 0.5rem; }
+  .theme-choice button { min-height: 2.25rem; }
+}
