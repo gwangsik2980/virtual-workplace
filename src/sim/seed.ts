@@ -212,7 +212,7 @@ export function createInitialState(seed = 20270104): GameState {
     },
     employee: {
       id: 'E01',
-      name: '서지우',
+      name: 'GWANG',
       dept: 'purchasing',
       rank: '사원',
       joinedDay: 1,

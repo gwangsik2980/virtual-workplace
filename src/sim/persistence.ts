@@ -64,5 +64,7 @@ export function migrate(s: GameState): GameState {
   out.learning = { ...base.learning, ...(s.learning ?? {}) };
   out.stats = { ...base.stats, ...(s.stats ?? {}) };
   out.counters = s.counters ?? {};
+  // 담당자 이름 변경 (서지우 → GWANG). 예전 저장 파일도 새 이름으로 보이게 한다
+  if (out.employee?.name === '서지우') out.employee = { ...out.employee, name: 'GWANG' };
   return out;
 }

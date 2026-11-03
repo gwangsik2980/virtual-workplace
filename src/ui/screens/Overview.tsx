@@ -92,7 +92,7 @@ function Hero() {
           <LineReveal as="h1" gated delay={250} stagger={120} lines={['가상 직장에서', '구매를 배우고', '도구로 바꿉니다']} />
           <Reveal gated delay={600} y={0.75}>
             <p className="hero-lead">
-              {state.company.name}의 구매 담당자 {state.employee.name}가 매일 처리하는 일을 따라가며 업무를 배우고, 비효율을 찾아 도구를 붙인 뒤
+              {state.company.name} 구매 담당자 {state.employee.name} {state.employee.rank}의 하루를 따라가며 업무를 배우고, 비효율을 찾아 도구를 붙인 뒤
               효과를 검증합니다.
             </p>
           </Reveal>
