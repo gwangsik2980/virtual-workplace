@@ -731,10 +731,13 @@ textarea { width: 100%; resize: vertical; min-height: 4.5rem; }
 }
 .loop-tile:hover .loop-arrow { transform: translateX(3px); }
 .loop-tile.light { background: var(--surface-light); color: var(--foreground); }
-.loop-tile.accent { background: linear-gradient(to bottom right, var(--accent-from), var(--accent-to)); color: #fff; }
+/* 02 발견: 주황 그라데이션은 혼자 튀어서, 옅은 주황 바탕에 번호만 주황으로 둔다 */
+.loop-tile.accent { background: var(--accent-soft); color: var(--foreground); }
+.loop-tile.accent .loop-no { color: var(--accent); opacity: 1; }
 .loop-tile.dark { background: var(--ink); color: #fff; }
 .loop-tile.ghost { background: #fff; color: var(--foreground); border: 1px solid var(--line); }
-.loop-tile.accent .loop-arrow, .loop-tile.dark .loop-arrow { background: rgba(255, 255, 255, 0.16); }
+.loop-tile.dark .loop-arrow { background: rgba(255, 255, 255, 0.16); }
+.loop-tile.accent .loop-arrow { background: rgba(var(--fg-rgb), 0.08); }
 
 .pill-white { background: #fff; border-color: #fff; color: var(--foreground); }
 
