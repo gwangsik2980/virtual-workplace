@@ -180,7 +180,7 @@ function NowPanel() {
 }
 
 function Hero() {
-  const { state, setScreen } = useStore();
+  const { state } = useStore();
   const ready = useIntroReady();
   const rt = useRealtime();
   const today = useTodayDay();
@@ -210,19 +210,6 @@ function Hero() {
           <LineReveal as="h1" gated delay={250} stagger={120} lines={titleLines} className="hero-clock" />
           <Reveal gated delay={500} y={0.75}>
             <NowPanel />
-          </Reveal>
-          <Reveal gated delay={700} y={0.75}>
-            <div className="row" style={{ gap: '0.75rem' }}>
-              <button className="pill pill-dark pill-arrow" onClick={() => setScreen('desk')}>
-                담당자 업무 보기
-                <span className="arrow-badge">
-                  <ArrowRight />
-                </span>
-              </button>
-              <button className="pill pill-white" onClick={() => setScreen('process')}>
-                프로세스 맵
-              </button>
-            </div>
           </Reveal>
         </div>
         <div className="hero-right">
