@@ -102,7 +102,7 @@ export function Performance() {
   return (
     <>
       <ScreenHero
-        eyebrow="06 — Results"
+        eyebrow="07 — Results"
         lines={['숫자로 보는', '구매 성과']}
         watermark="RESULTS"
         lead="절감액은 선정 업체가 협상 전에 처음 낸 견적을 기준으로 계산합니다. 시장가격이 움직인 몫은 따로 떼어 기록해 구매 활동의 성과와 섞이지 않게 했습니다."

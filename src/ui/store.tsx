@@ -10,7 +10,7 @@ const newCompany = (seed?: number) => createInitialState(seed, nextBusinessDayIS
 const asRealtime = (s: GameState): GameState => (s.clock?.mode === 'realtime' ? s : { ...s, clock: { mode: 'realtime' } });
 import type { GameState } from '../sim/types';
 
-export type ScreenId = 'overview' | 'desk' | 'process' | 'market' | 'lab' | 'performance' | 'learning' | 'assumptions';
+export type ScreenId = 'overview' | 'desk' | 'chat' | 'process' | 'market' | 'lab' | 'performance' | 'learning' | 'assumptions';
 
 interface Store {
   state: GameState;

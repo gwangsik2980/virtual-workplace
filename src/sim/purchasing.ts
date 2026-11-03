@@ -1,11 +1,12 @@
 import { runComparison, skillTimeFactor } from './compare';
 import { gainExperience } from './employee';
 import { unlockConcept } from './learning';
+import { chat } from './chat';
 import { onDefectsReceived } from './losses';
 import { generateQuote } from './quotes';
 import { makeRng } from './rng';
 import type { GameState, MaterialId, PurchaseCase, SkillId, Stage } from './types';
-import { addStat, formatDay, logEvent, nextId, sendMessage, won } from './util';
+import { addStat, formatDay, formatDayShort, logEvent, nextId, sendMessage, won } from './util';
 
 export const STAGE_LABELS: Record<Stage, string> = {
   request: '구매요청 접수',
@@ -100,6 +101,22 @@ export function createCase(
     body: `안녕하세요, 생산팀입니다.\n${reason}\n\n- 품목: ${m.name}\n- 수량: ${qty.toLocaleString('ko-KR')}${m.unit}\n- 필요일: ${formatDay(state.startDate, neededByDay)}\n\n확인 부탁드립니다.`,
     caseId: c.id,
   });
+  const need = formatDayShort(state.startDate, neededByDay);
+  if (urgent) {
+    chat(state, 'prod', [
+      ['them', `GWANG님 ${m.name} 재고가 거의 바닥이에요. 방금 긴급으로 요청 올렸습니다. ${need}까지는 꼭 들어와야 해요.`],
+      ['me', '네 확인했습니다. 오늘 바로 견적 돌려서 제일 빨리 되는 곳으로 잡아볼게요.'],
+    ], c.id);
+    chat(state, 'lead', [
+      ['them', `${m.name} 긴급 건 봤어요. 단가보다 납기 우선으로 보고, 진행 상황 수시로 공유해 줘요.`],
+      ['me', '네 팀장님, 견적 받는 대로 보고드리겠습니다.'],
+    ], c.id);
+  } else {
+    chat(state, 'prod', [
+      ['them', `${m.name} 구매요청 올렸어요. 필요일은 ${need}입니다.`],
+      ['me', '확인했습니다. 견적 받아보고 일정 말씀드릴게요.'],
+    ], c.id);
+  }
   return c;
 }
 
@@ -236,6 +253,10 @@ export function completeStage(state: GameState, c: PurchaseCase): void {
           body: `원자재 가격이 올라 견적 단가 유지가 어렵습니다. ${(requested * 100).toFixed(1)}% 인상을 요청드렸는데, 말씀 주신 사정을 고려해 ${(up * 100).toFixed(1)}%만 반영하겠습니다.\n${won(initial)}/${m.unit} → ${won(final)}/${m.unit}`,
           caseId: c.id,
         });
+        chat(state, 'lead', [
+          ['me', `팀장님, ${s.name}에서 ${m.name} 단가를 ${(requested * 100).toFixed(1)}% 올려 달라고 합니다. 협상해서 ${(up * 100).toFixed(1)}%까지 낮췄습니다.`],
+          ['them', '원자재 오른 건 맞으니 어느 정도는 어쩔 수 없죠. 다음 견적 때는 다른 업체도 꼭 같이 받아 봐요.'],
+        ], c.id);
         logEvent(state, 'market', 'purchasing', `${s.name} ${m.name} 단가 인상 요구 (${c.id})`, `요구 ${(requested * 100).toFixed(1)}%, 협상 후 ${(up * 100).toFixed(1)}% 인상으로 합의.`, c.id);
         enterStage(state, c, 'approve');
         break;
@@ -370,6 +391,13 @@ export function processWaits(state: GameState): void {
       }
       enterStage(state, c, 'compare');
     } else if (c.stage === 'approve' && c.waitUntilDay !== undefined && state.day >= c.waitUntilDay) {
+      // 금액이 큰 품의만 팀장이 메신저로 따로 말한다 (매번 오면 대화방이 승인 알림으로 도배된다)
+      if (c.negotiation && c.negotiation.finalPrice * c.qty > 30_000_000) {
+        chat(state, 'lead', [
+          ['them', `${c.id} ${state.materials[c.materialId].name} 품의 승인했어요. 금액이 커서 재무팀에도 공유해 뒀으니 발주 진행하세요.`],
+          ['me', '감사합니다. 바로 발주서 보내겠습니다.'],
+        ], c.id);
+      }
       sendMessage(state, {
         from: '구매팀 이팀장',
         to: state.employee.name,
@@ -432,7 +460,17 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
     `${s.name} ${po.qty.toLocaleString('ko-KR')}${m.unit} 입고, 불량 ${defectQty.toLocaleString('ko-KR')}${m.unit} (${(defectRate * 100).toFixed(1)}%)`,
     c.id,
   );
+  if (late) {
+    chat(state, 'logi', [
+      ['them', `${m.name} 이제 들어왔어요. 약속일보다 ${state.day - po.promisedDay}일 늦었네요.`],
+      ['me', '고생 많으셨어요. 업체에 재발 방지 요청해 둘게요.'],
+    ], c.id);
+  }
   if (defectRate > 0.02) {
+    chat(state, 'qa', [
+      ['them', `${m.name} 입고분 검사했는데 불량률 ${(defectRate * 100).toFixed(1)}% 나왔어요. 불량분은 격리해 뒀습니다. 클레임 부탁드려요.`],
+      ['me', `네, ${s.name}에 대체 납품 요청하겠습니다. 사진 몇 장만 보내 주세요.`],
+    ], c.id);
     state.backlog.push({
       id: nextId(state, 'BL'),
       kind: 'claim',
@@ -454,6 +492,10 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
     });
   }
   if (mismatch) {
+    chat(state, 'fin', [
+      ['them', `${po.id} 발주서 단가랑 업체 청구 단가가 달라요. 어느 쪽이 맞는 거예요?`],
+      ['me', '확인해 보니 제가 비교표에 잘못 옮긴 것 같아요. 수정 발주 올리겠습니다. 죄송합니다.'],
+    ], c.id);
     logEvent(
       state,
       'finance',

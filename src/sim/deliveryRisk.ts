@@ -1,3 +1,4 @@
+import { chat } from './chat';
 import { getToolVersion } from '../tools/registry';
 import { dailyUsage } from './market';
 import { makeRng } from './rng';
@@ -71,6 +72,12 @@ export function detectDeliveryRisks(state: GameState): void {
         : `약속일인데 입고되지 않았습니다. 업체에 확인이 필요합니다. 현재 재고 ${coverDays.toFixed(1)}일분.${risky ? ' 결품 위험이 있습니다.' : ''}`,
       c.id,
     );
+    if (!viaTool) {
+      chat(state, 'logi', [
+        ['them', `${m.name} 오늘 입고 예정이었는데 아직 차가 안 들어왔어요.`],
+        ['me', '업체에 바로 확인해 볼게요. 알려 주셔서 감사해요.'],
+      ], c.id);
+    }
     sendMessage(state, {
       from: viaTool ? '납기 위험 알림 도구' : '물류팀 오사원',
       to: state.employee.name,

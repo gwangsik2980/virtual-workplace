@@ -1,3 +1,4 @@
+import { chat, chatOncePerDay } from './chat';
 import { unlockConcept } from './learning';
 import { makeRng } from './rng';
 import { monthPeriod } from '../tools/monthlyReport/draft';
@@ -94,6 +95,15 @@ export function runProduction(state: GameState): ProductionResult {
       `${state.materials[shortMaterial].name} 부족으로 생산 차질`,
       `계획 ${target.toLocaleString('ko-KR')}세트 중 ${produced.toLocaleString('ko-KR')}세트만 생산. 매출 손실 약 ${won(lost)}.`,
     );
+    const mn = state.materials[shortMaterial].name;
+    chat(state, 'prod', [
+      ['them', `GWANG님, ${mn}이 모자라서 오늘 라인 일부 세웠어요. 언제 들어와요?`],
+      ['me', '죄송합니다. 업체랑 통화해서 입고 일정 바로 말씀드릴게요.'],
+    ]);
+    chatOncePerDay(state, 'lead', 'stockout', [
+      ['them', `${mn} 때문에 생산 차질 났다고 들었어요. 원인이랑 재발 방지책 정리해서 오늘 중으로 공유해 줘요.`],
+      ['me', '네 팀장님, 정리해서 보고드리겠습니다.'],
+    ]);
   }
   return { demand, produced, shortMaterial, revenue, cogs };
 }
@@ -147,6 +157,10 @@ export function scheduleMonthlyWork(state: GameState): void {
       subject: '[요청] 월간 구매 실적 보고',
       body: '이번 달 구매 실적(구매액, 절감액, 납기·품질 이슈) 정리해서 이틀 안에 공유 부탁해요.',
     });
+    chat(state, 'lead', [
+      ['them', '월말이네요. 실적 보고 메일 보냈으니까 모레까지 부탁해요. 절감액은 시장 변동분이랑 꼭 나눠서 써 줘요.'],
+      ['me', '네, 이번 달 건 정리해서 드리겠습니다.'],
+    ]);
   }
 }
 

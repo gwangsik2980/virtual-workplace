@@ -596,6 +596,9 @@ textarea { width: 100%; resize: vertical; min-height: 4.5rem; }
 .navmenu-bottom .actions { display: flex; flex-wrap: wrap; gap: 1.25rem; }
 .navmenu-bottom button { color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.75rem; }
 .navmenu-bottom button:hover { color: #fff; text-decoration: underline; }
+/* 처음부터 다시 시작 오른쪽: 가정·설정은 번호 메뉴에서 빼고 회색 글씨로 */
+.navmenu-bottom button.navmenu-settings { color: rgba(255, 255, 255, 0.45); }
+.navmenu-bottom button.navmenu-settings[aria-current='page'] { color: rgba(255, 255, 255, 0.75); }
 
 /* ---------- 홈 히어로 ---------- */
 .hero {

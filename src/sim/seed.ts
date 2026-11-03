@@ -252,6 +252,7 @@ export function createInitialState(seed = 20270104, startDate: string = START_DA
     reports: [],
     payroll: emptyPayroll(seed, startDate),
     inbound: [],
+    chats: [],
     // 첫 신규 공급처 탐색은 두 달쯤 일한 뒤 (업체 실적이 쌓인 다음)
     sourcing: { nextDay: 40, candidates: [] },
     counters: {},

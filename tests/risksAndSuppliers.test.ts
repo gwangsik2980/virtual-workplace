@@ -92,3 +92,20 @@ describe('업체 선정 기준 v2', () => {
     expect(outV2).toBeLessThan(outV1);
   });
 });
+
+describe('팀 채팅', () => {
+  it('상사 지시와 다른 부서 협조 대화가 사건에 맞춰 쌓이고, 부하 직원 방은 없다', () => {
+    const s = runs[0];
+    const threads = new Set(s.chats.map((c) => c.thread));
+    expect(threads.has('lead')).toBe(true);
+    expect(threads.has('prod')).toBe(true);
+    expect([...threads].every((t) => ['lead', 'prod', 'qa', 'logi', 'fin', 'sales'].includes(t))).toBe(true);
+    // 구매 요청마다 생산팀 대화가 남는다 (보관 한도 안에서)
+    const firstDay = s.chats[0].day;
+    const requested = s.cases.filter((c) => c.createdDay >= firstDay).length;
+    const prodAsks = s.chats.filter((c) => c.thread === 'prod' && c.from === 'them' && c.text.includes('요청 올렸')).length;
+    expect(prodAsks).toBe(requested);
+    // 시각은 근무 시간 안
+    expect(s.chats.every((c) => c.minute >= 0 && c.minute < 9 * 60 + 60)).toBe(true);
+  });
+});

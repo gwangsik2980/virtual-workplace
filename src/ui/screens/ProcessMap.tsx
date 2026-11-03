@@ -106,7 +106,7 @@ export function ProcessMap() {
   return (
     <>
       <ScreenHero
-        eyebrow="03 — Process"
+        eyebrow="04 — Process"
         lines={['구매요청부터', '정산까지 12단계']}
         watermark="FLOW"
         lead="구매 건 하나가 생산팀의 요청에서 시작해 입고와 정산으로 끝나기까지 어느 단계에 머물러 있는지 보여줍니다. 카드를 누르면 단계별 기록이 열립니다."

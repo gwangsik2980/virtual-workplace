@@ -167,7 +167,7 @@ export function Assumptions() {
   return (
     <>
       <ScreenHero
-        eyebrow="08 — Assumptions"
+        eyebrow="Settings — Assumptions"
         lines={['모든 숫자의', '근거를 밝힙니다']}
         watermark="ASSUME"
         lead="업무 시간과 오류율은 실제 회사에서 잰 값이 아니라 계산을 위해 정해 둔 가정치예요. 값을 바꿔 보면 도구 효과가 얼마나 민감하게 움직이는지 확인할 수 있어요."

@@ -1,3 +1,4 @@
+import { chat, chatOncePerDay } from './chat';
 import { unlockConcept } from './learning';
 import { makeRng } from './rng';
 import type { BacklogItem, GameState, MaterialId, SkillId, Supplier, SupplierCandidate, SupplierHistory } from './types';
@@ -65,6 +66,10 @@ export function scheduleSupplierWork(state: GameState): void {
         const req = Math.round(rng.range(ANNUAL_UP_RANGE[0], ANNUAL_UP_RANGE[1]) * 1000) / 1000;
         unlockConcept(state, 'price-increase');
         state.backlog.push({ ...item(state, 'meeting', `연간 단가 인상 협상: ${s.name} (요구 +${(req * 100).toFixed(1)}%)`, MEETING_MINUTES, 8), supplierId: s.id, priceUpRequest: req });
+        chatOncePerDay(state, 'lead', 'annual-up', [
+          ['them', '연초라 업체들 단가 인상 공문 들어오죠? 업체별로 요구율이랑 근거 정리해서 협상 일정 잡아요. 그대로 받아 주면 안 돼요.'],
+          ['me', '네 팀장님, 공문 오는 대로 정리하겠습니다.'],
+        ]);
         sendMessage(state, {
           from: s.name,
           to: state.employee.name,
@@ -78,6 +83,10 @@ export function scheduleSupplierWork(state: GameState): void {
       const skills = state.employee.skills;
       const skill = (Object.keys(skills) as SkillId[]).reduce((a, b) => (skills[b] < skills[a] ? b : a));
       state.backlog.push({ ...item(state, 'training', `사내 교육: ${SKILL_TOPIC[skill]}`, TRAINING_MINUTES, 0), skill });
+      chat(state, 'lead', [
+        ['them', `오늘 ${SKILL_TOPIC[skill]} 교육 하루 종일이죠? 급한 건 제가 볼 테니 교육에 집중해요.`],
+        ['me', '감사합니다 팀장님. 끝나고 밀린 건 바로 처리하겠습니다.'],
+      ]);
     }
   }
   runSourcing(state);
@@ -99,6 +108,10 @@ function runSourcing(state: GameState): void {
     const pass = cand.sampleDefectRate < SAMPLE_PASS_DEFECT;
     const pct = (cand.sampleDefectRate * 100).toFixed(1);
     logEvent(state, 'quality', 'quality', `${cand.name} 샘플 시험 ${pass ? '합격' : '불합격'}`, `샘플 불량률 ${pct}% (기준 ${SAMPLE_PASS_DEFECT * 100}% 미만).`);
+    chat(state, 'qa', [
+      ['them', `${cand.name} 샘플 시험 ${pass ? '합격' : '불합격'}이에요. 불량률 ${pct}% 나왔습니다.`],
+      ['me', pass ? '감사합니다! 등록 진행할게요.' : '아쉽네요. 다른 후보 찾아보겠습니다. 감사합니다.'],
+    ]);
     sendMessage(state, {
       from: '품질팀 정주임',
       to: state.employee.name,
@@ -218,6 +231,10 @@ export function finishReview(state: GameState): void {
       s.active = false;
       addStat(state, 'suppliersSuspended', 1);
       state.sourcing.nextDay = Math.min(state.sourcing.nextDay, state.day + 1);
+      chat(state, 'lead', [
+        ['them', `${s.name}은 두 분기 연속 미달이네요. 거래 중지하고 대체 업체 찾아봅시다.`],
+        ['me', '네, 통보 메일 보내고 신규 업체 탐색 시작하겠습니다.'],
+      ]);
       logEvent(state, 'system', 'purchasing', `${s.name} 거래 중지`, `두 분기 연속 평가 기준 미달 (${summary}). 견적 요청 대상에서 뺐습니다.`);
       sendMessage(state, {
         from: state.employee.name,
@@ -227,6 +244,10 @@ export function finishReview(state: GameState): void {
       });
     } else {
       state.backlog.push({ ...item(state, 'meeting', `협력사 개선 미팅: ${s.name} (납기·품질 개선 요청)`, MEETING_MINUTES, 10), supplierId: s.id });
+      chat(state, 'lead', [
+        ['them', `${s.name} 이번 분기 평가 기준 미달이네요. 미팅 잡아서 개선 계획 받아 와요.`],
+        ['me', '네, 이번 주 안으로 미팅 잡겠습니다.'],
+      ]);
     }
   }
   logEvent(state, 'system', 'purchasing', '분기 공급업체 평가 완료', lines.length ? lines.join('\n') : '평가할 만큼 실적이 쌓인 업체가 없습니다.');

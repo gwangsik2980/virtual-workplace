@@ -45,7 +45,7 @@ export function Learning() {
   return (
     <>
       <ScreenHero
-        eyebrow="07 — Learning"
+        eyebrow="08 — Learning"
         lines={['관찰하면', '개념이 열립니다']}
         watermark="LEARN"
         lead="가상 직원이 어떤 업무를 처음 하면 그 업무의 구매 개념 카드가 열립니다. 카드마다 있는 질문에 내 말로 답을 적어 보며 정리하세요."

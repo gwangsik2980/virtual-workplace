@@ -37,12 +37,13 @@ export function Stat({ label, value, note, tone }: { label: string; value: React
 const EYEBROWS: Record<string, string> = {
   '기업 현황': '01 — Company',
   '직원 업무': '02 — The Desk',
-  '프로세스 맵': '03 — Process',
-  '시장·원가·업체': '04 — Market',
-  'AI Tool Lab': '05 — Tool Lab',
-  '성과·타임라인': '06 — Results',
-  '학습 노트': '07 — Learning',
-  '가정·설정': '08 — Assumptions',
+  '팀 채팅': '03 — Team Chat',
+  '프로세스 맵': '04 — Process',
+  '시장·원가·업체': '05 — Market',
+  'AI Tool Lab': '06 — Tool Lab',
+  '성과·타임라인': '07 — Results',
+  '학습 노트': '08 — Learning',
+  '가정·설정': 'Settings — Assumptions',
 };
 
 /** 화면 제목. 번호와 구분 라벨을 눈썹 글씨로 두고 큰 제목이 줄 단위로 올라온다 */

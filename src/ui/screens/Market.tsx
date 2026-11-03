@@ -95,7 +95,7 @@ export function Market() {
   return (
     <>
       <ScreenHero
-        eyebrow="04 — Market"
+        eyebrow="05 — Market"
         lines={['시세와 원가,', '업체 실적']}
         watermark="MARKET"
         lead="담당자가 구매를 판단할 때 근거로 삼는 시세, 원가, 공급업체 실적입니다. 원료를 고르면 오른쪽 숫자가 바뀝니다."

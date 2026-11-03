@@ -312,6 +312,20 @@ export type EventType =
   | 'payroll'
   | 'system';
 
+export type ChatThread = 'lead' | 'prod' | 'qa' | 'logi' | 'fin' | 'sales';
+
+/** 사내 메신저 한 줄. from이 me면 GWANG이 보낸 것 */
+export interface ChatMessage {
+  id: string;
+  day: number;
+  /** 09:00부터 지난 분 */
+  minute: number;
+  thread: ChatThread;
+  from: 'me' | 'them';
+  text: string;
+  caseId?: string;
+}
+
 export interface EventLog {
   id: string;
   day: number;
@@ -495,6 +509,8 @@ export interface GameState {
   clock?: { mode: 'realtime' | 'manual' };
   /** 담당자 급여와 통장 */
   payroll: Payroll;
+  /** 사내 메신저 (상사 지시, 다른 부서 협조) */
+  chats: ChatMessage[];
   /** 대체 납품·긴급 현물 구매처럼 구매 건 밖에서 들어오는 입고 */
   inbound: InboundLot[];
   /** 신규 공급처 발굴 */

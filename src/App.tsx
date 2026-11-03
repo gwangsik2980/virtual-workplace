@@ -21,6 +21,7 @@ import { Desk } from './ui/screens/Desk';
 import { Learning } from './ui/screens/Learning';
 import { Market } from './ui/screens/Market';
 import { Overview } from './ui/screens/Overview';
+import { TeamChat } from './ui/screens/TeamChat';
 import { Performance } from './ui/screens/Performance';
 import { ProcessMap } from './ui/screens/ProcessMap';
 import { ToolLab } from './ui/screens/ToolLab';
@@ -33,17 +34,18 @@ import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme,
 const NAV: { id: ScreenId; label: string }[] = [
   { id: 'overview', label: '기업 현황' },
   { id: 'desk', label: '직원 업무' },
+  { id: 'chat', label: '팀 채팅' },
   { id: 'process', label: '프로세스 맵' },
   { id: 'market', label: '시장·원가·업체' },
   { id: 'lab', label: 'AI Tool Lab' },
   { id: 'performance', label: '성과·타임라인' },
   { id: 'learning', label: '학습 노트' },
-  { id: 'assumptions', label: '가정·설정' },
 ];
 
 const SCREENS = {
   overview: Overview,
   desk: Desk,
+  chat: TeamChat,
   process: ProcessMap,
   market: Market,
   lab: ToolLab,
@@ -196,6 +198,17 @@ function NavMenu({ open, onClose, onExport, onImport, onReset, themePref, onThem
           </button>
           <button tabIndex={open ? 0 : -1} onClick={onReset} style={{ color: '#e3a173' }}>
             처음부터 다시 시작
+          </button>
+          <button
+            tabIndex={open ? 0 : -1}
+            className="navmenu-settings"
+            aria-current={screen === 'assumptions' ? 'page' : undefined}
+            onClick={() => {
+              onClose();
+              setScreen('assumptions');
+            }}
+          >
+            가정·설정
           </button>
         </div>
       </div>

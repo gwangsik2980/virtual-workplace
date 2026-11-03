@@ -77,6 +77,7 @@ export function migrate(s: GameState): GameState {
   }
   // 손실·공급업체 관리 기능 추가 전 저장 파일: 입고 대기·발굴 목록은 비어 있고, 기타 손실 누계는 0에서 시작한다
   if (!s.inbound) out.inbound = [];
+  if (!s.chats) out.chats = [];
   if (!s.sourcing) out.sourcing = { nextDay: Math.max(40, s.day + 20), candidates: [] };
   if (out.finance && out.finance.otherExpenseCum === undefined) out.finance = { ...out.finance, otherExpenseCum: 0 };
   // 실제 기업명과 겹치지 않게 업체명 변경 (대한제분유통 → 제분대한유통)
