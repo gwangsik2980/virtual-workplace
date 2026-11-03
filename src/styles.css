@@ -1112,3 +1112,29 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .header { padding-top: env(safe-area-inset-top); }
 .navmenu { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 .install-hint { font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); text-transform: none; letter-spacing: 0; }
+
+/* 첫 화면: 오늘 날짜·시각과 지금 하는 일 */
+.hero-left h1.hero-clock { max-width: none; font-variant-numeric: tabular-nums; }
+.hero-left h1.hero-clock .line-mask:nth-child(2) { font-size: 1.5em; line-height: 1.12; letter-spacing: -0.04em; padding-bottom: 0.06em; }
+.now-panel {
+  display: grid; grid-template-columns: 1fr; gap: 0.75rem; max-width: 40rem;
+  padding: 0.75rem; border-radius: var(--radius-card-sm);
+  background: rgba(255, 255, 255, 0.62); box-shadow: 0 0 0 1px rgba(230, 229, 226, 0.7); backdrop-filter: blur(12px);
+}
+:root[data-theme='dark'] .now-panel { background: rgba(22, 22, 22, 0.75); box-shadow: 0 0 0 1px #2a2a2a; }
+@media (min-width: 768px) { .now-panel { grid-template-columns: 1.15fr 1fr; } }
+.now-main, .now-cases { display: flex; flex-direction: column; gap: 0.375rem; padding: 0.75rem 0.875rem; border-radius: var(--radius-control); background: var(--surface-2); min-width: 0; }
+:root:not([data-theme='dark']) .now-main, :root:not([data-theme='dark']) .now-cases { background: rgba(241, 240, 238, 0.85); }
+.now-label { font-size: 0.6875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
+.now-title { font-size: 1rem; font-weight: 600; line-height: 1.35; }
+.now-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
+.now-progress { margin-top: 0.125rem; }
+.now-next { font-size: 0.75rem; color: var(--text-2); }
+.now-cases ul { list-style: none; display: flex; flex-direction: column; }
+.now-cases li button {
+  width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.5rem; text-align: left;
+  padding: 0.375rem 0.25rem; border-radius: 0.5rem; font-size: 0.8125rem; transition: background 0.2s;
+}
+.now-cases li button:hover { background: rgba(var(--fg-rgb), 0.05); }
+.now-stage { font-size: 0.6875rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent-text); background: var(--accent-soft); border-radius: 99px; padding: 0.0625rem 0.4375rem; }
+.now-case-name { display: inline-flex; align-items: center; gap: 0.375rem; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -242,6 +242,8 @@ export interface TimeBlock {
   kind: WorkKind;
   caseId?: string;
   toolId?: string;
+  /** 구매 건 업무라면 그때의 구매 단계 (실시간 화면에서 '지금' 단계를 거꾸로 찾는 데 쓴다) */
+  stage?: Stage;
 }
 
 export interface Message {

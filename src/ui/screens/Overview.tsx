@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react';
 import { activeTool } from '../../sim/compare';
 import { dailyUsage } from '../../sim/market';
 import { onOrderQty, reorderPoint } from '../../sim/operations';
-import type { DeptId, GameState, MaterialId } from '../../sim/types';
-import { DEPT_NAMES, formatDay, formatDayShort, wonShort } from '../../sim/util';
+import { STAGE_LABELS, STAGE_ORDER } from '../../sim/purchasing';
+import type { DeptId, GameState, MaterialId, Stage } from '../../sim/types';
+import { dayToDate, DEPT_NAMES, formatDay, formatDayShort, wonShort } from '../../sim/util';
 import { LineChart } from '../components/Chart';
-import { Card, EventBadge, pct, Stat } from '../components/Common';
-import { useLiveStatus } from '../components/LiveWidgets';
+import { Card, clock, EventBadge, pct, Stat } from '../components/Common';
+import { useLiveStatus, useTodayDay } from '../components/LiveWidgets';
+import { currentBlock, stageAtNow, useRealtime } from '../realtime';
 import { ArrowRight, DotIcon, LineReveal, Mark, Reveal, useIntroReady, useScrollCount } from '../motion';
 import { useStore, type ScreenId } from '../store';
 
@@ -77,10 +79,106 @@ function HeroCard() {
   );
 }
 
+const PHASE_LABEL: Record<string, string> = { before: '출근 전', working: '근무 중', after: '퇴근', holiday: '휴일', manual: '', ahead: '' };
+const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** 지금 하는 일, 구매 단계, 다음 일정, 진행 중인 구매 */
+function NowPanel() {
+  const { state, openCase, setScreen } = useStore();
+  const rt = useRealtime();
+  const status = useLiveStatus();
+  const block = currentBlock(state, rt);
+  // 지금 시각 기준 단계 (오늘 저녁에 끝날 일을 미리 보여 주지 않는다)
+  const at = (c: (typeof state.cases)[number]) => stageAtNow(state, c, rt);
+  const open = state.cases
+    .filter((c) => (c.stage !== 'done' && c.stage !== 'cancelled') || (rt.liveMinute !== null && c.closedDay === rt.target))
+    .map((c) => ({ c, st: at(c) }))
+    .filter((x) => x.st !== 'done' && x.st !== 'cancelled');
+  const stageNo = (st: Stage) => STAGE_ORDER.indexOf(st) + 1;
+  const blockCase = block?.caseId ? state.cases.find((c) => c.id === block.caseId) : undefined;
+  const next =
+    rt.liveMinute !== null
+      ? state.schedule.filter((b) => b.day === rt.target && b.start > rt.liveMinute!).sort((a, b) => a.start - b.start)[0]
+      : undefined;
+  const progress = block && rt.liveMinute !== null ? Math.min(1, (rt.liveMinute - block.start) / block.minutes) : null;
+  const clean = (l: string) => l.replace(/ \(계속\)$/, '');
+
+  return (
+    <div className="now-panel">
+      <div className="now-main">
+        <span className="now-label">지금</span>
+        {block ? (
+          <>
+            <strong className="now-title">{clean(block.label)}</strong>
+            <div className="now-meta">
+              {blockCase && block.stage && (
+                <span className="badge badge-accent">
+                  구매 단계 {pad2(stageNo(block.stage))}/12 {STAGE_LABELS[block.stage]}
+                </span>
+              )}
+              <span className="faint">
+                {clock(block.start)}~{clock(block.start + block.minutes)}
+              </span>
+            </div>
+            {progress !== null && (
+              <div className="progress now-progress" aria-label={`진행 ${Math.round(progress * 100)}%`}>
+                <div style={{ width: `${progress * 100}%` }} />
+              </div>
+            )}
+            {next && (
+              <span className="now-next">
+                다음 {clock(next.start)} {clean(next.label)}
+              </span>
+            )}
+          </>
+        ) : (
+          <strong className="now-title">{status}</strong>
+        )}
+      </div>
+      <div className="now-cases">
+        <span className="now-label">진행 중인 구매 {open.length}건</span>
+        {open.length === 0 ? (
+          <span className="faint">지금 진행 중인 구매가 없어요. 재고가 줄면 생산팀이 요청을 보냅니다.</span>
+        ) : (
+          <ul>
+            {open.slice(0, 4).map(({ c, st }) => (
+              <li key={c.id}>
+                <button onClick={() => openCase(c.id)}>
+                  <span className="now-stage">{pad2(stageNo(st))}</span>
+                  <span className="now-case-name">
+                    {state.materials[c.materialId].name}
+                    {c.urgent && <span className="badge badge-danger">긴급</span>}
+                  </span>
+                  <span className="faint">{STAGE_LABELS[st]}</span>
+                </button>
+              </li>
+            ))}
+            {open.length > 4 && (
+              <li>
+                <button className="faint" onClick={() => setScreen('process')}>
+                  외 {open.length - 4}건 더 보기
+                </button>
+              </li>
+            )}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Hero() {
   const { state, advance, setScreen } = useStore();
   const ready = useIntroReady();
+  const rt = useRealtime();
+  const today = useTodayDay();
   const liveStatus = useLiveStatus();
+  const d = rt.isRealtime && rt.phase !== 'ahead' ? rt.now : dayToDate(state.startDate, today);
+  const titleLines = [
+    `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`,
+    rt.isRealtime && rt.phase !== 'ahead' ? `${pad2(rt.now.getHours())}:${pad2(rt.now.getMinutes())}` : `${today}일차`,
+  ];
   return (
     <section className="hero" aria-label="소개">
       <div className="hero-watermark reveal-wm" style={{ opacity: ready ? 1 : 0, transform: ready ? 'none' : 'translateY(1.25rem)', transition: 'opacity 1.2s var(--spring) 300ms, transform 1.2s var(--spring) 300ms' }}>
@@ -89,26 +187,41 @@ function Hero() {
       <div className="hero-grid">
         <div className="hero-left">
           <Reveal gated delay={200} y={0.625}>
-            <span className="eyebrow">구매팀을 관찰하는 시뮬레이션</span>
+            <span className="eyebrow">
+              {WEEK[d.getDay()]}요일 · {rt.isRealtime ? (rt.phase === 'ahead' ? `현실보다 ${rt.aheadDays}영업일 앞서 진행 중` : `실시간, ${PHASE_LABEL[rt.phase]}`) : '수동 진행'} · {today}일차
+            </span>
           </Reveal>
-          <LineReveal as="h1" gated delay={250} stagger={120} lines={['가상 직장에서', '구매를 배우고', '도구로 바꿉니다']} />
-          <Reveal gated delay={600} y={0.75}>
-            <p className="hero-lead">
-              {state.company.name} 구매 담당자 {state.employee.name} {state.employee.rank}의 하루를 따라가며 업무를 배우고, 비효율을 찾아 도구를 붙인 뒤
-              효과를 검증합니다.
-            </p>
+          <LineReveal as="h1" gated delay={250} stagger={120} lines={titleLines} className="hero-clock" />
+          <Reveal gated delay={500} y={0.75}>
+            <NowPanel />
           </Reveal>
-          <Reveal gated delay={750} y={0.75}>
+          <Reveal gated delay={700} y={0.75}>
             <div className="row" style={{ gap: '0.75rem' }}>
-              <button className="pill pill-dark pill-arrow" onClick={() => advance(1)}>
-                {state.day === 1 ? '첫날 시작하기' : '하루 진행'}
-                <span className="arrow-badge">
-                  <ArrowRight />
-                </span>
-              </button>
-              <button className="pill pill-white" onClick={() => setScreen('desk')}>
-                담당자 업무 보기
-              </button>
+              {rt.isRealtime ? (
+                <>
+                  <button className="pill pill-dark pill-arrow" onClick={() => setScreen('desk')}>
+                    담당자 업무 보기
+                    <span className="arrow-badge">
+                      <ArrowRight />
+                    </span>
+                  </button>
+                  <button className="pill pill-white" onClick={() => setScreen('process')}>
+                    프로세스 맵
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="pill pill-dark pill-arrow" onClick={() => advance(1)}>
+                    {state.day === 1 ? '첫날 시작하기' : '하루 진행'}
+                    <span className="arrow-badge">
+                      <ArrowRight />
+                    </span>
+                  </button>
+                  <button className="pill pill-white" onClick={() => setScreen('desk')}>
+                    담당자 업무 보기
+                  </button>
+                </>
+              )}
             </div>
           </Reveal>
         </div>

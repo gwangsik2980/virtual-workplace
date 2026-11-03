@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { isBusinessDay, minutesIntoWorkday, realtimeTargetDay, WORK_END_MIN, WORK_START_MIN } from '../sim/calendar';
-import type { EventLog, GameState } from '../sim/types';
+import type { EventLog, GameState, PurchaseCase, Stage } from '../sim/types';
 import { useStore } from './store';
 
 /**
@@ -106,4 +106,22 @@ export function useRealtime(): RealtimeInfo {
 export function currentBlock(state: GameState, rt: RealtimeInfo) {
   if (rt.liveMinute === null) return null;
   return state.schedule.find((b) => b.day === rt.target && b.start <= rt.liveMinute! && rt.liveMinute! < b.start + b.minutes) ?? null;
+}
+
+/**
+ * 실시간 근무 중 '지금 시각' 기준의 구매 단계.
+ * 하루치 업무는 09:00에 한꺼번에 계산되어 구매 건 상태는 그날 저녁 기준이므로,
+ * 오늘 일정 블록에 남긴 단계로 지금 시점의 단계를 거꾸로 찾는다.
+ */
+export function stageAtNow(state: GameState, c: PurchaseCase, rt: { target: number; liveMinute: number | null }): Stage {
+  if (rt.liveMinute === null) return c.stage;
+  const now = rt.liveMinute;
+  const today = state.schedule.filter((b) => b.day === rt.target && b.caseId === c.id && b.stage).sort((a, b) => a.start - b.start);
+  if (today.length === 0) return c.stage;
+  const started = today.filter((b) => b.start <= now);
+  if (started.length === 0) return today[0].stage!;
+  const last = started[started.length - 1];
+  if (now < last.start + last.minutes) return last.stage!;
+  const upcoming = today.find((b) => b.start > now);
+  return upcoming ? upcoming.stage! : c.stage;
 }

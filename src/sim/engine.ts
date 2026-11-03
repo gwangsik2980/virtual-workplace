@@ -102,6 +102,7 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
         label: `${c.id} ${m.name} · ${info.label}${tool ? ' [도구 사용]' : ''}${partial}`,
         kind: 'case',
         caseId: c.id,
+        stage: c.stage,
         toolId: tool,
       });
       c.stageMinutesLeft -= work;

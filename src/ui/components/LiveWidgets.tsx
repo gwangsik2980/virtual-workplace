@@ -23,7 +23,7 @@ const PHASE_TEXT: Record<string, string> = {
 
 const two = (n: number) => String(n).padStart(2, '0');
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
-const realDate = (d: Date) => `${d.getFullYear()}.${two(d.getMonth() + 1)}.${two(d.getDate())}(${WD[d.getDay()]})`;
+const realDate = (d: Date) => `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}(${WD[d.getDay()]})`;
 
 /** 헤더 날짜 칩 */
 export function ClockChip({ title }: { title: string }) {

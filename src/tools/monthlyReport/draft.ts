@@ -104,7 +104,7 @@ export function collectFacts(state: GameState, p: ReportPeriod): ReportFacts {
 
 export function draftMonthlyReport(state: GameState, p: ReportPeriod): string {
   const f = collectFacts(state, p);
-  const title = `${formatDay(state.startDate, p.toDay).slice(0, 7).replace('.', '년 ')}월 구매 실적 보고`;
+  const title = `${formatDay(state.startDate, p.toDay).slice(0, 7).replace('-', '년 ')}월 구매 실적 보고`;
   const lines: string[] = [];
   lines.push(`# ${title}`);
   lines.push(`기간: ${formatDay(state.startDate, p.fromDay)} ~ ${formatDay(state.startDate, p.toDay)} / 작성: 구매팀 ${state.employee.name}`);

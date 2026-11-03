@@ -15,7 +15,7 @@ describe('영업일 달력', () => {
 
   it('일차를 날짜로 바꿀 때 공휴일을 건너뛴다', () => {
     // 2026-12-24(목) 다음 영업일은 12-28(월)
-    expect(formatDay('2026-12-24', 2)).toBe('2026.12.28(월)');
+    expect(formatDay('2026-12-24', 2)).toBe('2026-12-28(월)');
   });
 
   it('휴일에 시작하면 다음 영업일이 1일차', () => {
@@ -36,5 +36,23 @@ describe('실시간 목표 일차', () => {
     expect(minutesIntoWorkday(at(start, '09:30'))).toBe(30);
     expect(minutesIntoWorkday(at(start, '18:30'))).toBeNull();
     expect(minutesIntoWorkday(at('2026-11-07', '10:00'))).toBeNull();
+  });
+});
+
+import { advanceDays } from '../src/sim/engine';
+import { createInitialState } from '../src/sim/seed';
+import { stageAtNow } from '../src/ui/realtime';
+
+describe('지금 시각 기준 구매 단계', () => {
+  it('업무 블록 도중이면 그 블록의 단계를, 하루가 끝나면 최종 단계를 돌려준다', () => {
+    const s = advanceDays(createInitialState(), 15);
+    const day = s.day - 1;
+    const blocks = s.schedule.filter((b) => b.day === day && b.caseId && b.stage);
+    expect(blocks.length).toBeGreaterThan(0);
+    for (const b of blocks) {
+      const c = s.cases.find((x) => x.id === b.caseId)!;
+      expect(stageAtNow(s, c, { target: day, liveMinute: b.start + Math.floor(b.minutes / 2) })).toBe(b.stage);
+      expect(stageAtNow(s, c, { target: day, liveMinute: null })).toBe(c.stage);
+    }
   });
 });

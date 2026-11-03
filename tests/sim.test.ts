@@ -124,8 +124,8 @@ describe('도구 효과 검증 (반사실 비교)', () => {
 
 describe('날짜', () => {
   it('영업일만 센다', () => {
-    expect(formatDay('2027-01-04', 1)).toBe('2027.01.04(월)');
-    expect(formatDay('2027-01-04', 6)).toBe('2027.01.11(월)');
+    expect(formatDay('2027-01-04', 1)).toBe('2027-01-04(월)');
+    expect(formatDay('2027-01-04', 6)).toBe('2027-01-11(월)');
     expect(dayToDate('2027-01-04', 5).getDay()).toBe(5);
   });
 });
