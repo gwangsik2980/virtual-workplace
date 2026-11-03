@@ -226,8 +226,8 @@ function Shell() {
   const [about, setAbout] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
-  // 메뉴 버튼 숫자 = 새 개념 + 안 읽은 팀 채팅
-  const menuBadge = newConcepts + useChatUnread().total;
+  // 메뉴 버튼 숫자는 새 개념만. 안 읽은 팀 채팅은 메뉴를 열었을 때 '팀 채팅' 옆에만 보인다
+  const menuBadge = newConcepts;
   const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref);
   const [, bump] = useState(0);
   const resolved = resolveTheme(themePref);
