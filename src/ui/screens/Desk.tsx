@@ -104,7 +104,7 @@ export function Desk() {
   const totalHours = Math.round((state.stats.employeeMinutes - (rt.phase === 'working' ? lastDayMinutes - shownMinutes : 0)) / 60);
   const overtimeHours = state.stats.overtimeMinutes / 60;
 
-  const heroLines = [`${e.name} ${e.rank}의`, '하루'];
+  const heroLines = [`${e.name} ${e.rank}의 하루`];
 
   if (state.day === 1 && state.schedule.length === 0) {
     return (
