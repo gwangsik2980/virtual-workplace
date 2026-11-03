@@ -234,7 +234,7 @@ function Hero() {
             <div className="lbl">거래 공급업체 {state.suppliers.length}곳</div>
             <ul>
               {state.suppliers.map((s) => (
-                <li key={s.id} title={s.name} className={nameWidth(s.name) > 7 ? 'wide' : undefined}>
+                <li key={s.id} title={s.name}>
                   <span style={{ color: 'var(--text-3)', display: 'inline-flex', fontSize: '0.875rem' }}>
                     <DotIcon />
                   </span>
@@ -447,8 +447,6 @@ function deptStatus(state: GameState): Record<DeptId, { text: string; tone?: 'wa
   };
 }
 
-/** 이름이 차지하는 대략의 폭 (한글 1, 영문·숫자·공백 0.55). 넓으면 공급업체 목록에서 두 칸을 쓴다 */
-const nameWidth = (name: string) => [...name].reduce((w, c) => w + (/[\u3131-\uD79D]/.test(c) ? 1 : 0.55), 0);
 
 export function Overview() {
   const { state, openCase } = useStore();
