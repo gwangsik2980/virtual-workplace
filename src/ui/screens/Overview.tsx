@@ -184,7 +184,6 @@ function Hero() {
   const ready = useIntroReady();
   const rt = useRealtime();
   const today = useTodayDay();
-  const liveStatus = useLiveStatus();
   const light = useLight();
   const showClock = rt.isRealtime && rt.phase !== 'ahead';
   const sec = useSecondClock(showClock);
@@ -245,10 +244,8 @@ function Hero() {
         </div>
       </div>
       <Reveal gated delay={900} y={0} className="hero-status">
-        <span>
-          {liveStatus}
-        </span>
-        <span>스크롤해서 보기 ↓</span>
+        {/* 출근 예정 같은 지금 상태는 위 '지금' 패널에 있어서 여기서는 뺐다 */}
+        <span style={{ marginLeft: 'auto' }}>스크롤해서 보기 ↓</span>
       </Reveal>
     </section>
   );

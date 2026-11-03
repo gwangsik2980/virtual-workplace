@@ -702,8 +702,6 @@ textarea { width: 100%; resize: vertical; min-height: 4.5rem; }
   letter-spacing: 0.025em; color: rgba(var(--fg-rgb), 0.6);
 }
 @media (min-width: 1024px) { .hero-status { padding-inline: 3rem; } }
-.hero-status .mid { display: none; }
-@media (min-width: 640px) { .hero-status .mid { display: inline; } }
 .stars { color: var(--accent); display: inline-flex; gap: 0.125rem; font-size: 1rem; }
 
 /* 순환 밴드: 네 단계로 바로 가는 버튼 */
