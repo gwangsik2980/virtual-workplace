@@ -22,6 +22,19 @@
 5. **가정은 드러낸다**: 새 수치를 넣으면 `docs/ASSUMPTIONS.md`에 근거 수준을 적는다.
 6. 회사·인물·업체는 모두 가상. 실제 기업명을 쓰지 않는다.
 
+## UI 규칙
+
+- 화면 구성은 `src/ui/components/Editorial.tsx`의 공통 부품(ScreenHero, HeroFacts, SectionHead, InkStats, RowList)을 쓴다. 기업 현황 히어로와 같은 문법을 유지하기 위해서다.
+- 새 CSS는 rem 단위로 쓴다. 루트 글자 크기가 화면 폭에 따라 바뀌어서 px로 쓰면 비율이 깨진다.
+- 색은 `styles.css`의 변수로만 쓴다. 다크 모드는 `:root[data-theme='dark']`에서 변수를 바꾸는 방식이라, 색을 직접 쓰면 다크에서 안 바뀐다. 검정 카드는 `.ink` 클래스 안에서 변수가 밝은 값으로 바뀐다.
+- `main.tsx`에서 `styles.css`를 App보다 먼저 불러온다. 화면별 CSS가 같은 우선순위의 전역 규칙을 이기게 하기 위해서다.
+- 자체 스크롤이 있는 영역은 `data-lenis-prevent`를 붙인다.
+- 화면을 바꾸면 Playwright로 1440px과 390px, 라이트와 다크를 찍어 확인한다. 과하게 큰 요소를 사용자가 싫어한다.
+
+## 배포
+
+`main`에 푸시하면 바로 사이트에 배포된다. 작업 중인 코드는 main에 올리지 않는다.
+
 ## 저장 형식 변경 시
 
 `GameState`에 필드를 추가하면 기존 저장 파일이 깨질 수 있다. `src/sim/persistence.ts`에서 누락 필드를 기본값으로 채우는 마이그레이션을 추가할 것.
