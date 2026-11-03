@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { formatDay } from '../../sim/util';
 import { ALERT_LABELS, alertKind, useAlerts, type AlertKind } from '../alerts';
 import { currentBlock, useRealtime } from '../realtime';
+import { isIOS, isStandalone } from '../install';
 import { useStore } from '../store';
 
 /** 오늘이 며칠차인지 (실시간이면 현실 날짜 기준) */
@@ -148,7 +149,11 @@ export function AlertsBell() {
           )}
           <div className="bell-foot">
             {a.permission === 'unsupported' ? (
-              <span className="faint">이 브라우저는 알림 팝업을 지원하지 않아요.</span>
+              <span className="faint">
+                {isIOS() && !isStandalone()
+                  ? '아이폰은 홈 화면에 추가해서 앱으로 열어야 알림을 켤 수 있어요. 공유 버튼 → 홈 화면에 추가.'
+                  : '이 브라우저는 알림 팝업을 지원하지 않아요.'}
+              </span>
             ) : a.permission === 'granted' ? (
               <span className="faint">브라우저 알림 켜짐. 사이트를 열어 둔 동안 팝업으로 알려 드려요.</span>
             ) : a.permission === 'denied' ? (

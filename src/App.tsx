@@ -26,6 +26,7 @@ import { Performance } from './ui/screens/Performance';
 import { ProcessMap } from './ui/screens/ProcessMap';
 import { ToolLab } from './ui/screens/ToolLab';
 import { AlertsBell, AwayModal, ClockChip } from './ui/components/LiveWidgets';
+import { useInstall } from './ui/install';
 import { RealtimeProvider, useRealtime } from './ui/realtime';
 import { StoreProvider, useStore, type ScreenId } from './ui/store';
 import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme, type ThemePref } from './ui/theme';
@@ -111,6 +112,20 @@ function PageLoader() {
   );
 }
 
+/** 메뉴 하단: 홈 화면 앱 설치 */
+function InstallAction({ open }: { open: boolean }) {
+  const inst = useInstall();
+  if (inst.installed) return null;
+  if (inst.canPrompt)
+    return (
+      <button tabIndex={open ? 0 : -1} onClick={() => void inst.install()} style={{ color: '#e3a173' }}>
+        앱으로 설치
+      </button>
+    );
+  if (inst.ios) return <span className="install-hint">아이폰: 공유 버튼 → 홈 화면에 추가</span>;
+  return null;
+}
+
 /** 메뉴 하단: 시간 흐름 방식 (실시간 / 수동) */
 function TimeModeChoice({ open }: { open: boolean }) {
   const { state, update } = useStore();
@@ -189,6 +204,7 @@ function NavMenu({ open, onClose, onExport, onImport, onReset, themePref, onThem
           {formatDay(state.startDate, state.day)} — {state.day}일차
         </span>
         <div className="actions">
+          <InstallAction open={open} />
           <TimeModeChoice open={open} />
           <span className="theme-choice" role="group" aria-label="화면 테마">
             {(['system', 'light', 'dark'] as ThemePref[]).map((p) => (

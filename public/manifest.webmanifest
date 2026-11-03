@@ -1,0 +1,17 @@
+{
+  "name": "Virtual Workplace",
+  "short_name": "Workplace",
+  "description": "가상 기업 구매팀을 관찰하고 도구로 개선하는 시뮬레이션",
+  "lang": "ko",
+  "start_url": "/virtual-workplace/",
+  "scope": "/virtual-workplace/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
