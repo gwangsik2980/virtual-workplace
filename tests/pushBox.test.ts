@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMember, getState, putState, runDue, saveSchedule, validSub, vapidKeys, type Store } from '../worker/src/box';
+import { addMember, claimOwner, getState, isOwner, ownerClaimed, putState, runDue, saveSchedule, validSub, vapidKeys, type Store } from '../worker/src/box';
 
 function fakeStore() {
   const data = new Map<string, unknown>();
@@ -73,5 +73,20 @@ describe('서버: 알림', () => {
   it('푸시 서비스 주소가 아니면 받지 않는다', () => {
     expect(validSub(phone)).toBe(true);
     expect(validSub({ endpoint: 'https://evil.example.com/x', keys: { p256dh: 'a', auth: 'b' } })).toBe(false);
+  });
+});
+
+describe('서버: 관리자 키', () => {
+  it('처음 한 번만 만들고, 서버에는 키 대신 해시만 남는다', async () => {
+    const { store, data } = fakeStore();
+    expect(await ownerClaimed(store)).toEqual({ claimed: false });
+    const { key } = await claimOwner(store);
+    expect(key).toMatch(/^[0-9A-HJKMNP-TV-Z]{20}$/);
+    expect(JSON.stringify([...data.values()])).not.toContain(key);
+    expect(await ownerClaimed(store)).toEqual({ claimed: true });
+    await expect(claimOwner(store)).rejects.toThrow();
+    expect(await isOwner(store, key)).toBe(true);
+    expect(await isOwner(store, key.slice(1) + 'A')).toBe(false);
+    expect(await isOwner(store, '')).toBe(false);
   });
 });

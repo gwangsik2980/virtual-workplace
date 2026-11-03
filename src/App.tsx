@@ -30,7 +30,7 @@ import { useInstall } from './ui/install';
 import { useChatUnread } from './ui/chatRead';
 import { PushSync } from './ui/push';
 import { DeviceSync, syncAvailable } from './ui/sync';
-import { DeviceLinkDialog } from './ui/components/DeviceLink';
+import { OwnerKeyDialog } from './ui/components/OwnerKey';
 import { RealtimeProvider } from './ui/realtime';
 import { StoreProvider, useStore, type ScreenId } from './ui/store';
 import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme, type ThemePref } from './ui/theme';
@@ -134,7 +134,7 @@ function InstallAction({ open }: { open: boolean }) {
 /* ------------------------------------------------------------------
    전체 화면 메뉴
    ------------------------------------------------------------------ */
-function NavMenu({ open, onClose, onExport, onImport, onReset, onDeviceLink, themePref, onTheme }: { open: boolean; onClose: () => void; onExport: () => void; onImport: () => void; onReset: () => void; onDeviceLink: () => void; themePref: ThemePref; onTheme: (p: ThemePref) => void }) {
+function NavMenu({ open, onClose, onExport, onImport, onReset, onOwnerKey, themePref, onTheme }: { open: boolean; onClose: () => void; onExport: () => void; onImport: () => void; onReset: () => void; onOwnerKey: () => void; themePref: ThemePref; onTheme: (p: ThemePref) => void }) {
   const { state, screen, setScreen } = useStore();
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
   const chatUnread = useChatUnread().total;
@@ -206,8 +206,8 @@ function NavMenu({ open, onClose, onExport, onImport, onReset, onDeviceLink, the
             처음부터 다시 시작
           </button>
           {syncAvailable() && (
-            <button tabIndex={open ? 0 : -1} className="navmenu-settings" onClick={onDeviceLink}>
-              기기 연결
+            <button tabIndex={open ? 0 : -1} className="navmenu-settings" onClick={onOwnerKey}>
+              관리자 키
             </button>
           )}
           <button
@@ -395,7 +395,7 @@ function Shell() {
         onExport={doExport}
         onImport={() => fileRef.current?.click()}
         onReset={doReset}
-        onDeviceLink={() => {
+        onOwnerKey={() => {
           setMenu(false);
           setLink(true);
         }}
@@ -415,7 +415,7 @@ function Shell() {
       />
       {caseId && <CaseDrawer caseId={caseId} onClose={() => openCase(null)} />}
       <AwayModal />
-      {link && <DeviceLinkDialog onClose={() => setLink(false)} />}
+      {link && <OwnerKeyDialog onClose={() => setLink(false)} />}
       <DeviceSync />
       <PushSync />
     </>

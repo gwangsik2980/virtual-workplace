@@ -1,7 +1,8 @@
 /**
- * 기기 그룹 하나(연결 코드 하나)의 저장소.
- * - 회사 저장본: 어느 기기에서든 사용자가 바꾸면 올리고, 다른 기기는 열 때 받아 간다.
- * - 알림 예정표: 사이트가 열려 있을 때 계산해 올린다. 시각이 되면 그룹의 모든 구독(폰)으로 보낸다.
+ * 서버 저장소 (회사 하나).
+ * - 회사 저장본: 누구나 받아 갈 수 있다(보기). 올리기는 관리자 키가 있는 기기만.
+ * - 알림 예정표와 구독: 관리자 키가 있는 기기만. 시각이 되면 구독한 기기(폰)로 보낸다.
+ * - 관리자 키: 처음 한 번 서버가 만들어 돌려주고, 서버에는 해시만 남긴다.
  * Durable Object 저장소를 직접 쓰지 않고 아래 Store 인터페이스만 써서, 테스트에서는 가짜 저장소로 돌린다.
  */
 import { generateVapidKeys, sendPush, type PushSubscriptionJSON, type SendResult, type VapidKeys } from './webpush';
@@ -61,6 +62,34 @@ export async function vapidKeys(store: Store): Promise<VapidKeys> {
   const keys = await generateVapidKeys();
   await store.put('vapid', keys);
   return keys;
+}
+
+// ── 관리자 키 ─────────────────────────────────────
+
+/** 헷갈리는 글자(I, L, O, U)를 뺀 32글자. 사이트(src/ui/sync.ts)와 같다 */
+export const KEY_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+export const KEY_LENGTH = 20;
+
+async function sha256(text: string): Promise<string> {
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)));
+  return Array.from(d, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function ownerClaimed(store: Store) {
+  return { claimed: !!(await store.get<string>('ownerHash')) };
+}
+
+/** 관리자 키를 처음 한 번만 만든다. 이미 있으면 거절 */
+export async function claimOwner(store: Store) {
+  if (await store.get<string>('ownerHash')) throw new Error('already claimed');
+  const key = Array.from(crypto.getRandomValues(new Uint8Array(KEY_LENGTH)), (b) => KEY_ALPHABET[b & 31]).join('');
+  await store.put('ownerHash', await sha256(key));
+  return { key };
+}
+
+export async function isOwner(store: Store, key: string | null | undefined) {
+  const h = await store.get<string>('ownerHash');
+  return !!h && !!key && h === (await sha256(key));
 }
 
 // ── 회사 저장본 ─────────────────────────────────────

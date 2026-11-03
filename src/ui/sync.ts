@@ -1,45 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { isValidState, migrate } from '../sim/persistence';
 import type { GameState } from '../sim/types';
-import { getJson, postJson, SERVER } from './server';
+import { getJson, postJson, SERVER, ServerError } from './server';
 import { useStore } from './store';
 
 /**
- * 기기 연결: 연결 코드가 같은 기기들(PC 브라우저, 폰 홈 화면 앱)이 회사 저장본 하나를 함께 쓴다.
- * - 사용자가 직접 바꾸면(store.userRev) 저장본을 올린다. 마지막에 올린 쪽이 이긴다.
- * - 열 때, 1분마다, 화면으로 돌아올 때 새 번호(rev)가 있으면 받아서 바꾼다. 받은 뒤 따라잡기는 각 기기가 스스로 한다.
- * - 따라잡기 결과는 올리지 않는다. 재현성 원칙 덕분에 어느 기기에서 따라잡아도 같은 회사가 된다.
- * 연결 코드는 이 브라우저의 localStorage에만 둔다 (GameState에 넣지 않는다).
+ * 회사 저장본 공유. 서버에는 회사가 하나만 있다.
+ * - 누구나 열 때, 1분마다, 화면으로 돌아올 때 서버의 새 저장본(rev)을 받아 그 회사를 본다.
+ * - 관리자 키가 있는 기기(PC, 폰)만 바꾼 내용을 올린다(store.userRev). 마지막에 올린 쪽이 이긴다.
+ *   키가 없는 방문자가 누른 것은 그 브라우저에만 남고 서버 회사는 바뀌지 않는다.
+ * - 받은 뒤 따라잡기는 각 기기가 스스로 하고, 올리지 않는다. 재현성 원칙 덕분에 어디서 따라잡아도 같은 회사다.
+ * 관리자 키는 이 브라우저의 localStorage에만 둔다 (GameState에 넣지 않는다).
  */
 
-const CODE_KEY = 'virtual-workplace/sync/code';
+const OWNER_KEY = 'virtual-workplace/owner-key';
 const REV_KEY = 'virtual-workplace/sync/rev';
 const AT_KEY = 'virtual-workplace/sync/at';
 export const SYNC_CHANGE = 'vw-sync-change';
 const POLL_MS = 60_000;
 const UPLOAD_DELAY_MS = 1500;
 
-/** 헷갈리는 글자(I, L, O, U)를 뺀 32글자. 서버(worker/src/index.ts)의 GROUP 정규식과 같다 */
-export const CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-export const CODE_LENGTH = 12;
+/** 헷갈리는 글자(I, L, O, U)를 뺀 32글자. 서버(worker/src/box.ts)와 같다 */
+export const KEY_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+export const KEY_LENGTH = 20;
 
-export function makeCode(random: (n: number) => Uint8Array = (n) => crypto.getRandomValues(new Uint8Array(n))): string {
-  return Array.from(random(CODE_LENGTH), (b) => CODE_ALPHABET[b & 31]).join('');
-}
-
-/** 사람이 입력한 코드를 정리한다. 띄어쓰기·하이픈은 빼고, 헷갈리는 글자는 비슷한 숫자로 바꾼다. 맞지 않으면 null */
-export function normalizeCode(input: string): string | null {
+/** 사람이 입력한 키를 정리한다. 띄어쓰기·하이픈은 빼고, 헷갈리는 글자는 비슷한 숫자로 바꾼다. 맞지 않으면 null */
+export function normalizeKey(input: string): string | null {
   const s = input
     .toUpperCase()
     .replace(/[\s-]/g, '')
     .replace(/O/g, '0')
     .replace(/[IL]/g, '1');
-  if (s.length !== CODE_LENGTH) return null;
-  return [...s].every((c) => CODE_ALPHABET.includes(c)) ? s : null;
+  if (s.length !== KEY_LENGTH) return null;
+  return [...s].every((c) => KEY_ALPHABET.includes(c)) ? s : null;
 }
 
 /** 읽기 쉽게 4자리씩 끊는다 */
-export const formatCode = (code: string) => code.replace(/(.{4})(?=.)/g, '$1-');
+export const formatKey = (key: string) => key.replace(/(.{4})(?=.)/g, '$1-');
 
 // ── 저장본 압축 ─────────────────────────────────────
 
@@ -84,7 +81,7 @@ function set(key: string, v: string | null) {
 }
 
 export const syncAvailable = () => !!SERVER && typeof CompressionStream !== 'undefined';
-export const getSyncCode = (): string | null => (SERVER ? get(CODE_KEY) : null);
+export const getOwnerKey = (): string | null => (SERVER ? get(OWNER_KEY) : null);
 const getRev = () => Number(get(REV_KEY) ?? 0) || 0;
 const notify = () => window.dispatchEvent(new Event(SYNC_CHANGE));
 
@@ -96,47 +93,55 @@ function saved(rev: number) {
 
 /** 이번에 연 뒤 서버와 한 번이라도 맞췄는지. 맞추기 전에는 알림 예정표를 올리지 않는다 (오래된 회사로 덮어쓰지 않게) */
 let ready = false;
-export const isSyncReady = () => !getSyncCode() || ready;
+export const isSyncReady = () => ready;
 
-async function upload(code: string, state: GameState) {
-  const { rev } = await postJson<{ rev: number }>(`/g/${code}/state`, { state: await encodeState(state) });
+async function upload(key: string, state: GameState) {
+  const { rev } = await postJson<{ rev: number }>('/state', { state: await encodeState(state) }, key);
   saved(rev);
 }
 
-/** 이 기기의 회사로 새 연결 코드를 만든다 */
-export async function createGroup(state: GameState): Promise<string> {
-  const code = makeCode();
-  await upload(code, state);
-  set(CODE_KEY, code);
-  ready = true;
-  notify();
-  return code;
+export async function ownerClaimed(): Promise<boolean> {
+  return (await getJson<{ claimed: boolean }>('/owner')).claimed;
 }
 
-/** 다른 기기의 코드로 연결한다. 그 기기의 회사를 돌려준다 (이 기기 회사는 그것으로 바뀐다) */
-export async function joinGroup(input: string): Promise<GameState> {
-  const code = normalizeCode(input);
-  if (!code) throw new Error('코드는 12자리예요.');
-  const r = await getJson<{ rev: number; state?: string }>(`/g/${code}/state?since=0`);
-  if (!r.state) throw new Error('이 코드로 연결된 회사가 없어요. 코드를 다시 확인해 주세요.');
-  const state = await decodeState(r.state);
-  set(CODE_KEY, code);
+/** 처음 한 번: 관리자 키를 만들고 이 기기의 회사를 서버 회사로 올린다 */
+export async function claimOwner(state: GameState): Promise<string> {
+  const { key } = await postJson<{ key: string }>('/claim', {});
+  set(OWNER_KEY, key);
+  await upload(key, state);
+  ready = true;
+  return key;
+}
+
+/** 다른 기기에서 받은 관리자 키를 넣는다. 서버 회사를 돌려준다 (없으면 이 기기 회사를 올리고 null) */
+export async function enterOwnerKey(input: string, local: GameState): Promise<GameState | null> {
+  const key = normalizeKey(input);
+  if (!key) throw new Error(`키는 ${KEY_LENGTH}자리예요.`);
+  try {
+    await postJson('/check', {}, key);
+  } catch (e) {
+    if (e instanceof ServerError && e.status === 403) throw new Error('키가 맞지 않아요. 다시 확인해 주세요.');
+    throw e;
+  }
+  set(OWNER_KEY, key);
+  const r = await getJson<{ rev: number; state?: string }>('/state?since=0');
+  ready = true;
+  if (!r.state) {
+    await upload(key, local);
+    return null;
+  }
   saved(r.rev);
-  ready = true;
-  return state;
+  return decodeState(r.state);
 }
 
-/** 연결만 끊는다. 이 기기의 회사는 그대로 남는다 */
-export function leaveGroup() {
-  set(CODE_KEY, null);
-  set(REV_KEY, null);
-  set(AT_KEY, null);
-  ready = false;
+/** 이 기기에서 키만 지운다. 회사는 계속 보이고, 바꾼 것은 더 이상 올라가지 않는다 */
+export function forgetOwnerKey() {
+  set(OWNER_KEY, null);
   notify();
 }
 
-export function useSyncInfo(): { code: string | null; at: number | null } {
-  const read = () => ({ code: getSyncCode(), at: Number(get(AT_KEY)) || null });
+export function useSyncInfo(): { key: string | null; at: number | null } {
+  const read = () => ({ key: getOwnerKey(), at: Number(get(AT_KEY)) || null });
   const [info, setInfo] = useState(read);
   useEffect(() => {
     const f = () => setInfo(read());
@@ -146,45 +151,45 @@ export function useSyncInfo(): { code: string | null; at: number | null } {
   return info;
 }
 
-/** 저장본 올리기·받기. App에 하나만 둔다 */
+/** 저장본 받기(모두)와 올리기(관리자 기기). App에 하나만 둔다 */
 export function DeviceSync() {
   const { state, userRev, replace } = useStore();
-  const { code } = useSyncInfo();
+  const { key } = useSyncInfo();
   const stateRef = useRef(state);
   stateRef.current = state;
   // 올릴 것이 남아 있는 동안에는 받은 저장본으로 덮지 않는다
   const pending = useRef(false);
   const lastRev = useRef(userRev);
 
-  // 사용자가 바꾸면 잠시 모아서 올린다
+  // 관리자 기기에서 바꾸면 잠시 모아서 올린다
   useEffect(() => {
     if (userRev === lastRev.current) return;
     lastRev.current = userRev;
-    if (!code) return;
+    if (!key) return;
     pending.current = true;
     const id = window.setTimeout(() => {
-      upload(code, stateRef.current)
+      upload(key, stateRef.current)
         .catch(() => undefined)
         .finally(() => (pending.current = false));
     }, UPLOAD_DELAY_MS);
     return () => window.clearTimeout(id);
-  }, [userRev, code]);
+  }, [userRev, key]);
 
-  // 다른 기기가 올린 것 받기
+  // 서버 회사 받기
   useEffect(() => {
-    if (!code) return;
+    if (!syncAvailable()) return;
     let stop = false;
     const pull = async () => {
       if (pending.current || document.hidden) return;
       try {
-        const r = await getJson<{ rev: number; state?: string }>(`/g/${code}/state?since=${getRev()}`);
+        const r = await getJson<{ rev: number; state?: string }>(`/state?since=${getRev()}`);
         if (stop || pending.current) return;
         if (r.state) {
           replace(await decodeState(r.state), { remote: true });
           saved(r.rev);
-        } else if (r.rev < getRev()) {
-          // 서버가 비었다 (새로 배포 등). 이 기기 것을 다시 올린다
-          await upload(code, stateRef.current);
+        } else if (r.rev < getRev() && key) {
+          // 서버가 비었다. 관리자 기기면 이 기기 것을 다시 올린다
+          await upload(key, stateRef.current);
         } else {
           set(AT_KEY, String(Date.now()));
           notify();
@@ -203,7 +208,7 @@ export function DeviceSync() {
       window.clearInterval(id);
       document.removeEventListener('visibilitychange', onVis);
     };
-  }, [code, replace]);
+  }, [key, replace]);
 
   return null;
 }

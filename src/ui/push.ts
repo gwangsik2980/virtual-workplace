@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
 import type { AlertKind } from '../sim/alertKinds';
 import { buildPushSchedule } from '../sim/pushSchedule';
-import type { GameState } from '../sim/types';
 import { useRealtime } from './realtime';
 import { getJson, postJson, SERVER } from './server';
 import { useStore } from './store';
-import { createGroup, getSyncCode, isSyncReady, SYNC_CHANGE, useSyncInfo } from './sync';
+import { getOwnerKey, isSyncReady, SYNC_CHANGE, useSyncInfo } from './sync';
 
 /**
  * 닫아 둔 동안 오는 알림 (웹 푸시).
- * 사이트가 열려 있을 때 앞으로 6주치 알림을 계산해 서버(worker/)의 기기 그룹(연결 코드)에 맡긴다.
- * 서버는 시각이 되면 그룹의 구독 기기마다, 그 기기에서 켠 종류만 보낸다.
+ * 관리자 키가 있는 기기에서, 사이트가 열려 있을 때 앞으로 6주치 알림을 계산해 서버(worker/)에 맡긴다.
+ * 서버는 시각이 되면 구독한 기기마다, 그 기기에서 켠 종류만 보낸다.
  * 켜져 있으면 열어 둔 동안의 팝업도 서버가 보내므로, 화면 쪽 팝업은 보내지 않는다(같은 알림 두 번 방지).
  */
 
@@ -49,8 +48,8 @@ function set(key: string, v: string | null) {
   }
 }
 
-/** 켜져 있다 = 이 기기가 지금 연결 코드의 그룹에 구독돼 있다 */
-export const isPushOn = () => !!PUSH_SERVER && !!getSyncCode() && get(ON_KEY) === getSyncCode();
+/** 켜져 있다 = 관리자 키가 있고 이 기기가 서버에 구독돼 있다 */
+export const isPushOn = () => !!PUSH_SERVER && !!getOwnerKey() && get(ON_KEY) === '1';
 /** 알림 설정이나 켜짐 상태가 바뀌었다고 알린다 */
 export const notifyPushChange = () => window.dispatchEvent(new Event(CHANGE));
 
@@ -69,41 +68,39 @@ async function currentSubscription(): Promise<PushSubscription | null> {
   return reg.pushManager.getSubscription();
 }
 
-/** 이 기기의 구독과 받을 알림 종류를 그룹에 등록한다 (종류를 바꿀 때도 다시 보낸다) */
-async function subscribe(code: string, sub: PushSubscription) {
+/** 이 기기의 구독과 받을 알림 종류를 등록한다 (종류를 바꿀 때도 다시 보낸다) */
+async function subscribe(key: string, sub: PushSubscription) {
   const prefs = readAlertPrefs();
-  await postJson(`/g/${code}/subscribe`, { subscription: sub.toJSON(), prefs });
+  await postJson('/subscribe', { subscription: sub.toJSON(), prefs }, key);
   set(PREFS_SENT_KEY, JSON.stringify(prefs));
 }
 
-/**
- * 닫아 둔 동안 알림 켜기. 연결 코드가 없으면 이 기기의 회사로 새로 만든다.
- * (알림은 그룹 단위로 보내서, 폰 하나만 써도 그룹이 필요하다)
- */
-export async function enablePush(state: GameState): Promise<void> {
+/** 닫아 둔 동안 알림 켜기. 관리자 키가 있는 기기에서만 */
+export async function enablePush(): Promise<void> {
+  const key = getOwnerKey();
+  if (!key) throw new Error('관리자 키를 먼저 넣어 주세요.');
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') throw new Error('알림 권한을 허용해야 켤 수 있어요.');
   const reg = await navigator.serviceWorker.ready;
   const { publicKey } = await getJson<{ publicKey: string }>('/key');
   let sub = await reg.pushManager.getSubscription();
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) });
-  const code = getSyncCode() ?? (await createGroup(state));
-  await subscribe(code, sub);
-  await postJson(`/g/${code}/test`, { subscription: sub.toJSON() });
-  set(ON_KEY, code);
+  await subscribe(key, sub);
+  await postJson('/test', { subscription: sub.toJSON() }, key);
+  set(ON_KEY, '1');
   set(SENT_KEY, null);
   notifyPushChange();
 }
 
 export async function disablePush(): Promise<void> {
-  const code = get(ON_KEY);
+  const key = getOwnerKey();
   set(ON_KEY, null);
   set(SENT_KEY, null);
   set(PREFS_SENT_KEY, null);
   notifyPushChange();
   const sub = await currentSubscription().catch(() => null);
   if (!sub) return;
-  if (code) await postJson(`/g/${code}/unsubscribe`, { endpoint: sub.endpoint }).catch(() => undefined);
+  if (key) await postJson('/unsubscribe', { endpoint: sub.endpoint }, key).catch(() => undefined);
   await sub.unsubscribe().catch(() => undefined);
 }
 
@@ -125,15 +122,15 @@ export function usePushOn(): boolean {
 const RESEND_MS = 24 * 3600_000;
 
 /**
- * 회사 상태가 바뀌면 예정표를 다시 계산해서 그룹에 맡긴다.
- * 이 기기에서 알림을 안 켰어도 연결 코드가 있으면 올린다 (PC에서 도구를 적용해도 폰 예정표가 바뀌도록).
+ * 회사 상태가 바뀌면 예정표를 다시 계산해서 서버에 맡긴다.
+ * 이 기기에서 알림을 안 켰어도 관리자 키가 있으면 올린다 (PC에서 도구를 적용해도 폰 예정표가 바뀌도록).
  * 알림 종류를 바꾸면 이 기기의 구독을 다시 보낸다.
  */
 export function PushSync() {
   const { state } = useStore();
   const rt = useRealtime();
   const on = usePushOn();
-  const { code, at } = useSyncInfo();
+  const { key: code, at } = useSyncInfo();
   const [prefsTick, setPrefsTick] = useState(0);
   useEffect(() => {
     const f = () => setPrefsTick((t) => t + 1);
@@ -162,7 +159,7 @@ export function PushSync() {
         const prev = JSON.parse(get(SENT_KEY) ?? 'null') as { sig: string; t: number; code: string } | null;
         if (prev && prev.sig === sig && prev.code === code && Date.now() - prev.t < RESEND_MS) return;
         if (cancelled) return;
-        await postJson(`/g/${code}/schedule`, { items });
+        await postJson('/schedule', { items }, code);
         set(SENT_KEY, JSON.stringify({ sig, t: Date.now(), code }));
       } catch {
         /* 다음 변경 때 다시 시도한다 */

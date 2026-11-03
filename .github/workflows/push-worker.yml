@@ -2,8 +2,10 @@ name: Deploy push server (Cloudflare Worker)
 
 # 닫아 둔 동안 알림을 보내는 서버(worker/)를 Cloudflare에 배포한다.
 # 저장소 Settings → Secrets and variables → Actions에 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID가 있어야 한다.
+# 사이트와 같이 main에 올릴 때만 배포한다 (작업 브랜치는 배포하지 않음)
 on:
   push:
+    branches: [main]
     paths: ['worker/**', '.github/workflows/push-worker.yml']
   workflow_dispatch:
 
