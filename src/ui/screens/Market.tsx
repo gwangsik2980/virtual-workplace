@@ -3,15 +3,18 @@ import { dailyUsage } from '../../sim/market';
 import { onOrderQty, reorderPoint } from '../../sim/operations';
 import type { MaterialId, QuoteFormat } from '../../sim/types';
 import { formatDay, formatDayShort, num, won, wonShort } from '../../sim/util';
-import { BarList, LineChart } from '../components/Chart';
-import { Card, CaseStatus, PageHead, Stat, pct } from '../components/Common';
+import { LineChart } from '../components/Chart';
+import { Card, CaseStatus, pct } from '../components/Common';
+import { HeroFacts, RowList, ScreenHero, SectionHead } from '../components/Editorial';
+import { Reveal } from '../motion';
 import { useStore } from '../store';
+import './perf.css';
 
 const FORMAT_LABELS: Record<QuoteFormat, string> = {
   A: '국문 표준',
-  B: '영문·USD',
-  C: '포장단위·VAT 포함',
-  D: '불규칙·스캔본',
+  B: '영문, USD',
+  C: '포장단위, VAT 포함',
+  D: '불규칙, 스캔본',
 };
 
 export function Market() {
@@ -25,7 +28,7 @@ export function Market() {
     () => [{ name: `${m.name} 시세`, color: 'var(--series-1)', values: state.history.map((h) => h.prices[sel]) }],
     [state.history, sel, m.name],
   );
-  const fxSeries = useMemo(() => [{ name: 'USD/KRW', color: 'var(--series-3)', values: state.history.map((h) => h.fx) }], [state.history]);
+  const fxSeries = useMemo(() => [{ name: 'USD/KRW', color: 'var(--series-2)', values: state.history.map((h) => h.fx) }], [state.history]);
 
   const usage = dailyUsage(state, sel);
   const rop = reorderPoint(state, sel);
@@ -60,180 +63,188 @@ export function Market() {
     [state.suppliers],
   );
 
+  const coverRows = ids.map((id) => {
+    const mm = state.materials[id];
+    const u = Math.max(1, dailyUsage(state, id));
+    return { id, name: mm.name, days: mm.stock / u, ropDays: reorderPoint(state, id) / u };
+  });
+  const coverMax = Math.max(20, ...coverRows.map((r) => Math.max(r.days, r.ropDays)));
+
+  const callouts: { title: string; sub: string }[] = [];
+  if (state.market.demandBoost > 1) {
+    callouts.push({
+      title: `판촉으로 수요 +${Math.round((state.market.demandBoost - 1) * 100)}%`,
+      sub: `${formatDay(state.startDate, state.market.demandBoostUntil)}까지 원료 사용량이 늘어납니다`,
+    });
+  }
+  for (const s of state.market.shocks) {
+    callouts.push({
+      title: `${state.materials[s.materialId].name} 시세 ${s.drift > 0 ? '상승세' : '하락세'}`,
+      sub: `하루 ${s.drift > 0 ? '+' : ''}${pct(s.drift, 2)}, ${formatDay(state.startDate, s.until)}까지 (가상 시황)`,
+    });
+  }
+
   return (
     <>
-      <PageHead title="시장·원가·업체" desc="담당자가 구매 판단의 근거로 보는 시세, 원가, 공급업체 실적입니다." />
-      <div className="notice">이 화면의 시세와 환율은 모두 시뮬레이션이 만든 가상 값입니다. 실제 시장 데이터가 아닙니다.</div>
+      <ScreenHero
+        eyebrow="04 — Market"
+        lines={['시세와 원가,', '업체 실적']}
+        watermark="MARKET"
+        lead="담당자가 구매를 판단할 때 근거로 삼는 시세, 원가, 공급업체 실적입니다. 원료를 고르면 오른쪽 숫자가 바뀝니다."
+        aside={
+          <>
+            <div className="chip-row hero-chips" role="group" aria-label="원료 선택">
+              {ids.map((id) => (
+                <button key={id} className={`chip-toggle ${id === sel ? 'on' : ''}`} aria-pressed={id === sel} onClick={() => setSel(id)}>
+                  {state.materials[id].name}
+                </button>
+              ))}
+            </div>
+            <HeroFacts
+              items={[
+                { label: '오늘 시세', value: `${won(market)}`, note: `${m.unit}당, 시작 대비 ${change >= 0 ? '+' : ''}${pct(change)}` },
+                { label: '재고 일수', value: `${cover.toFixed(1)}일`, note: `${num(m.stock)}${m.unit} 보유` },
+                { label: '재주문점', value: `${num(rop)}`, note: `${m.unit}, 하루 ${num(usage)}${m.unit} 사용` },
+                { label: '발주 진행량', value: `${num(onOrder)}`, note: `${m.unit}, ${m.imported ? '수입 원료라 환율 영향' : '국내 조달'}` },
+              ]}
+            />
+          </>
+        }
+        footer={
+          <>
+            <span>시세와 환율은 모두 가상 값입니다</span>
+            <span>원/{m.unit}, VAT 별도</span>
+          </>
+        }
+      />
 
-      <div className="row">
-        {ids.map((id) => (
-          <button key={id} className={`btn btn-sm ${id === sel ? 'btn-primary' : ''}`} onClick={() => setSel(id)}>
-            {state.materials[id].name}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-4">
-        <Stat
-          label="오늘 시세"
-          value={`${won(market)}/${m.unit}`}
-          note={`시작 대비 ${change >= 0 ? '+' : ''}${pct(change)}`}
-          tone={change > 0.05 ? 'warn' : undefined}
-        />
-        <Stat
-          label="현재 재고"
-          value={`${num(m.stock)}${m.unit}`}
-          note={`약 ${cover.toFixed(1)}일분`}
-          tone={cover < 3 ? 'danger' : cover < 6 ? 'warn' : undefined}
-        />
-        <Stat label="재주문점" value={`${num(rop)}${m.unit}`} note={`일평균 사용량 ${num(usage)}${m.unit}`} />
-        <Stat label="발주 진행 중" value={`${num(onOrder)}${m.unit}`} note={m.imported ? '수입 원료 · 환율 영향' : '국내 조달'} />
-      </div>
-
-      <div className="grid grid-2">
-        <Card title={`${m.name} 시세 추이`} sub={`원/${m.unit}, VAT 별도`}>
-          <LineChart series={priceSeries} labels={labels} format={(v) => num(v)} />
-        </Card>
-        <Card title="환율 추이" sub="원/USD · 대두유·정백당 시세에 반영">
-          <LineChart series={fxSeries} labels={labels} format={(v) => num(v)} />
-        </Card>
-      </div>
-
-      <div className="grid grid-2">
-        <Card title="재고 여유" sub="재고 ÷ 일평균 사용량">
-          <BarList
-            items={ids.map((id) => {
-              const mm = state.materials[id];
-              const u = Math.max(1, dailyUsage(state, id));
-              const d = mm.stock / u;
-              return {
-                label: mm.name,
-                value: d,
-                color: d < 3 ? 'var(--danger)' : d < 6 ? 'var(--warn)' : 'var(--accent)',
-                note: `· 재주문점 ${(reorderPoint(state, id) / u).toFixed(1)}일분`,
-              };
-            })}
-            format={(v) => `${v.toFixed(1)}일`}
-          />
-        </Card>
-        <Card title="시장 상황">
-          <div className="list">
-            {state.market.demandBoost > 1 && (
-              <div className="list-item row between">
-                <span>판촉으로 수요 증가</span>
-                <span className="badge badge-info">
-                  +{Math.round((state.market.demandBoost - 1) * 100)}% · {formatDay(state.startDate, state.market.demandBoostUntil)}까지
-                </span>
+      {callouts.length > 0 && (
+        <div className="callouts">
+          {callouts.map((c, i) => (
+            <Reveal key={c.title} delay={i * 80}>
+              <div className="ink callout">
+                <span className="callout-dot" />
+                <div>
+                  <b>{c.title}</b>
+                  <span>{c.sub}</span>
+                </div>
               </div>
-            )}
-            {state.market.shocks.map((s) => (
-              <div key={s.materialId + s.until} className="list-item row between">
-                <span>
-                  {state.materials[s.materialId].name} 시세 {s.drift > 0 ? '상승세' : '하락세'}
-                </span>
-                <span className={`badge ${s.drift > 0 ? 'badge-warn' : 'badge-ok'}`}>
-                  하루 {s.drift > 0 ? '+' : ''}
-                  {pct(s.drift, 2)} · {formatDay(state.startDate, s.until)}까지
-                </span>
-              </div>
-            ))}
-            {state.market.demandBoost <= 1 && state.market.shocks.length === 0 && <div className="empty">지금은 특별한 시장 이슈가 없습니다.</div>}
-          </div>
-        </Card>
-      </div>
+            </Reveal>
+          ))}
+        </div>
+      )}
 
-      <Card title={`${m.name} 원가분석 기록`} sub="목표가 = (시장가 + 물류비) × (1 + 표준마진)">
-        {recent.length === 0 ? (
-          <div className="empty">아직 이 원료의 원가분석 기록이 없습니다.</div>
-        ) : (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>구매 건</th>
-                  <th>상태</th>
-                  <th className="r">시장가</th>
-                  <th className="r">물류비</th>
-                  <th className="r">표준마진</th>
-                  <th className="r">목표가</th>
-                  <th className="r">최종 단가</th>
-                  <th className="r">목표가 대비</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((c) => {
-                  const cost = c.cost!;
-                  const final = c.negotiation?.finalPrice;
-                  const diff = final !== undefined ? final / cost.targetPrice - 1 : null;
+      <SectionHead eyebrow="Prices" title={`${m.name} 시세 흐름`} />
+      <div className="chart-grid">
+        <Reveal>
+          <Card className="card-lg" title={`${m.name} 시세`} sub={`원/${m.unit}, VAT 별도`}>
+            <LineChart series={priceSeries} labels={labels} format={(v) => num(v)} height={200} />
+          </Card>
+        </Reveal>
+        <div className="stack" style={{ gap: '1rem' }}>
+          <Reveal delay={90}>
+            <Card title="환율" sub="원/USD. 대두유와 정백당 시세에 반영">
+              <LineChart series={fxSeries} labels={labels} format={(v) => num(v)} height={130} />
+            </Card>
+          </Reveal>
+          <Reveal delay={160}>
+            <Card title="재고 여유" sub="막대 = 남은 일수, 세로선 = 재주문점">
+              <ul className="cover-list">
+                {coverRows.map((r) => {
+                  const color = r.days < 3 ? 'var(--danger)' : r.days < r.ropDays ? 'var(--accent)' : 'var(--foreground)';
                   return (
-                    <tr key={c.id} className="clickable" onClick={() => openCase(c.id)}>
-                      <td className="mono">{c.id}</td>
-                      <td>
-                        <CaseStatus c={c} />
-                      </td>
-                      <td className="r">{num(cost.marketPrice)}</td>
-                      <td className="r">{num(cost.logisticsPerUnit)}</td>
-                      <td className="r">{pct(cost.standardMargin, 0)}</td>
-                      <td className="r">{num(cost.targetPrice)}</td>
-                      <td className="r">{final !== undefined ? num(final) : '-'}</td>
-                      <td className="r" style={{ color: diff === null ? undefined : diff > 0 ? 'var(--danger)' : 'var(--ok)' }}>
-                        {diff === null ? '-' : `${diff > 0 ? '+' : ''}${pct(diff)}`}
-                      </td>
-                    </tr>
+                    <li key={r.id} className={`cover-item ${r.id === sel ? 'sel' : ''}`}>
+                      <span className="cover-name">{r.name}</span>
+                      <span className="cover-track">
+                        <span className="cover-fill" style={{ width: `${Math.min(100, (r.days / coverMax) * 100)}%`, background: color }} />
+                        <span className="cover-rop" style={{ left: `${Math.min(100, (r.ropDays / coverMax) * 100)}%` }} />
+                      </span>
+                      <span className="cover-val" style={{ color }}>
+                        {r.days.toFixed(1)}일
+                      </span>
+                    </li>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-
-      <Card title="공급업체 평가" sub="거래가 쌓일수록 실적 값이 채워집니다">
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>업체</th>
-                <th>취급 품목</th>
-                <th>견적서 양식</th>
-                <th className="r">발주</th>
-                <th className="r">납기 준수율</th>
-                <th className="r">실적 불량률</th>
-                <th className="r">등록 불량률</th>
-                <th className="r">결제조건</th>
-                <th className="r">평균 리드타임</th>
-                <th className="r">누적 구매액</th>
-              </tr>
-            </thead>
-            <tbody>
-              {supplierRows.map(({ s, onTime, defect }) => (
-                <tr key={s.id}>
-                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{s.name}</td>
-                  <td>{s.materialIds.map((id) => state.materials[id].name).join(', ')}</td>
-                  <td>
-                    <span className="badge">{FORMAT_LABELS[s.quoteFormat]}</span>
-                  </td>
-                  <td className="r">{s.history.orders}</td>
-                  <td className="r" style={{ color: onTime !== null && onTime < 0.85 ? 'var(--warn)' : undefined }}>
-                    {onTime === null ? '-' : pct(onTime, 0)}
-                  </td>
-                  <td className="r" style={{ color: defect !== null && defect > 0.02 ? 'var(--warn)' : undefined }}>
-                    {defect === null ? '-' : pct(defect)}
-                  </td>
-                  <td className="r">{pct(s.defectRate)}</td>
-                  <td className="r">{s.paymentTermsDays}일</td>
-                  <td className="r">{s.leadTimeDays}일</td>
-                  <td className="r">{s.history.spend > 0 ? wonShort(s.history.spend) : '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </ul>
+            </Card>
+          </Reveal>
         </div>
-        <p className="faint" style={{ marginBottom: 0 }}>
-          견적 비교에서 쓰는 업체 평가 점수(원/기준단위, 낮을수록 유리) = 단가 − 결제유예 금융효과(연 5%, 30일 기준) + 품질위험(단가 × 불량률 × 1.5) +
-          납기위험(필요일을 넘기는 하루마다 단가의 3%) + 신뢰도위험(단가 × (1 − 납기 신뢰도) × 5%). 불량률은 거래 실적이 있으면 실적값을, 없으면 등록값을 씁니다.
+      </div>
+
+      <SectionHead eyebrow="Costing" title="원가분석 기록" desc="목표가 = (시장가 + 물류비) × (1 + 표준마진). 최종 단가가 목표가보다 낮으면 잘 산 것입니다." />
+      <RowList
+        empty="아직 이 원료의 원가분석 기록이 없습니다."
+        items={recent.map((c) => {
+          const cost = c.cost!;
+          const final = c.negotiation?.finalPrice;
+          const diff = final !== undefined ? final / cost.targetPrice - 1 : null;
+          return {
+            key: c.id,
+            index: String(Number(c.id.replace('PR-', ''))),
+            title: (
+              <>
+                목표가 {num(cost.targetPrice)}원
+                <span className="row-sub">{final !== undefined ? `최종 단가 ${num(final)}원` : '협상 전'}</span>
+              </>
+            ),
+            desc: `시장가 ${num(cost.marketPrice)}원, 물류비 ${num(cost.logisticsPerUnit)}원, 표준마진 ${pct(cost.standardMargin, 0)}`,
+            meta: (
+              <>
+                <span className={diff === null ? '' : diff > 0 ? 'saving-neg' : 'saving-pos'}>{diff === null ? '-' : `${diff > 0 ? '+' : ''}${pct(diff)}`}</span>
+                <CaseStatus c={c} />
+              </>
+            ),
+            onClick: () => openCase(c.id),
+          };
+        })}
+      />
+
+      <SectionHead eyebrow="Suppliers" title="공급업체 평가" desc="거래가 쌓일수록 실적 값이 채워집니다. 큰 숫자는 납기 준수율입니다." />
+      <ul className="supplier-grid">
+        {supplierRows.map(({ s, onTime, defect }, i) => (
+          <Reveal as="li" key={s.id} delay={Math.min(i, 6) * 70} y={2}>
+            <article className="ink supplier-card">
+              <div className="supplier-top">
+                <div>
+                  <h3>{s.name}</h3>
+                  <p>{s.materialIds.map((id) => state.materials[id].name).join(', ')}</p>
+                </div>
+                <span className="tag-chip">{FORMAT_LABELS[s.quoteFormat]}</span>
+              </div>
+              <div className="supplier-big">
+                <strong>{onTime === null ? '-' : Math.round(onTime * 100)}</strong>
+                <span>{onTime === null ? '거래 실적 없음' : `% 납기 준수, 발주 ${s.history.orders}건`}</span>
+              </div>
+              <dl className="supplier-stats">
+                <div>
+                  <dt>실적 불량률</dt>
+                  <dd className={defect !== null && defect > 0.02 ? 'warn' : ''}>{defect === null ? '-' : pct(defect)}</dd>
+                </div>
+                <div>
+                  <dt>등록 불량률</dt>
+                  <dd>{pct(s.defectRate)}</dd>
+                </div>
+                <div>
+                  <dt>결제 / 리드타임</dt>
+                  <dd>
+                    {s.paymentTermsDays}일 / {s.leadTimeDays}일
+                  </dd>
+                </div>
+                <div>
+                  <dt>누적 구매액</dt>
+                  <dd>{s.history.spend > 0 ? `${wonShort(s.history.spend)}원` : '-'}</dd>
+                </div>
+              </dl>
+            </article>
+          </Reveal>
+        ))}
+      </ul>
+      <Reveal>
+        <p className="formula">
+          <b>업체 평가 점수</b> (원/기준단위, 낮을수록 유리) = 단가 − 결제 유예 금융효과(연 5%, 30일 기준) + 품질 위험(단가 × 불량률 × 1.5) + 납기 위험(필요일을 넘기는
+          하루마다 단가의 3%) + 신뢰도 위험(단가 × (1 − 납기 신뢰도) × 5%). 불량률은 거래 실적이 있으면 실적값을, 없으면 등록값을 씁니다. 가중치는 가정치입니다.
         </p>
-      </Card>
+      </Reveal>
     </>
   );
 }

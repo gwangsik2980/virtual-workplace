@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export interface Series {
   name: string;
@@ -21,10 +21,22 @@ interface LineChartProps {
 }
 
 /**
- * 의존성 없는 SVG 선 그래프. viewBox로 그려 컨테이너 폭에 맞춰 늘어난다.
+ * 의존성 없는 SVG 선 그래프. 컨테이너의 실제 폭을 재서 그리므로 축 글자 크기가 화면 폭과 무관하게 일정하다.
  */
 export function LineChart({ series, labels, height = 180, format = (v) => v.toLocaleString('ko-KR'), zeroBased, markers }: LineChartProps) {
-  const W = 640;
+  // 빈 상태와 그래프 상태가 다른 요소라서 콜백 ref로 받아 바뀔 때마다 다시 잰다
+  const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const el = wrapEl;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = Math.round(entries[0].contentRect.width);
+      if (w > 0) setW(Math.max(240, w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [wrapEl]);
   const H = height;
   const pad = { l: 56, r: 12, t: 10, b: 22 };
   const [hover, setHover] = useState<number | null>(null);
@@ -59,11 +71,15 @@ export function LineChart({ series, labels, height = 180, format = (v) => v.toLo
   };
 
   if (n === 0 || series.every((s) => s.values.length === 0)) {
-    return <div className="empty">아직 데이터가 없습니다. 하루를 진행해 보세요.</div>;
+    return (
+      <div ref={setWrapEl} className="empty">
+        아직 데이터가 없습니다. 하루를 진행해 보세요.
+      </div>
+    );
   }
 
   return (
-    <div>
+    <div ref={setWrapEl}>
       <svg ref={ref} className="chart" viewBox={`0 0 ${W} ${H}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} role="img">
         {yTicks.map((v, i) => (
           <g key={i}>

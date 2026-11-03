@@ -860,7 +860,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
     radial-gradient(26rem 18rem at 5% 100%, rgba(207, 128, 71, 0.14), transparent 60%);
 }
 .screen-hero-wm {
-  position: absolute; right: -0.04em; bottom: -0.16em; z-index: 1; pointer-events: none; user-select: none;
+  position: absolute; right: -0.04em; bottom: 2.4rem; z-index: 1; pointer-events: none; user-select: none;
   font-weight: 700; line-height: 1; letter-spacing: -0.05em; white-space: nowrap;
   font-size: min(10rem, 16vw); color: rgba(255, 255, 255, 0.5);
 }
@@ -916,7 +916,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 }
 .row-item:disabled { cursor: default; opacity: 1; }
 .row-item.clickable:hover { background: var(--surface-light); padding-left: 1.75rem; padding-right: 1rem; }
-.row-index { width: 2rem; flex-shrink: 0; font-size: 0.8125rem; font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.row-index { min-width: 2rem; white-space: nowrap; flex-shrink: 0; font-size: 0.8125rem; font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .row-title { flex: 1; min-width: 0; font-size: 1.25rem; font-weight: 500; letter-spacing: -0.015em; line-height: 1.25; }
 @media (min-width: 640px) { .row-title { font-size: 1.5rem; } }
 .row-desc { display: none; max-width: 22rem; font-size: 0.8125rem; color: var(--text-2); }

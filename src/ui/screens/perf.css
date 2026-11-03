@@ -1,0 +1,131 @@
+/* 성과·타임라인, 시장·원가·업체 화면 */
+
+/* 알약 토글 칩 */
+.chip-row { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+.chip-toggle {
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  padding: 0.375rem 0.875rem; border-radius: 99px;
+  border: 1px solid var(--line); background: transparent; color: var(--text-2);
+  font-size: 0.8125rem; font-weight: 500; white-space: nowrap;
+  transition: background 0.25s, color 0.25s, border-color 0.25s, transform 0.35s var(--spring-snap);
+}
+.chip-toggle:hover { color: var(--text); transform: translateY(-1px); }
+.chip-toggle.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+:root[data-theme='dark'] .chip-toggle.on { background: #ededed; border-color: #ededed; color: #0a0a0a; }
+.hero-chips { margin-bottom: 0.25rem; }
+:root:not([data-theme='dark']) .hero-chips .chip-toggle:not(.on) { background: rgba(255, 255, 255, 0.55); }
+
+/* 검정 패널 안 차트 */
+.ink-chart { margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.ink-chart-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; }
+.ink-chart-head h3 { font-size: 1rem; font-weight: 500; color: #fff; }
+.ink-chart-head span { font-size: 0.75rem; color: rgba(255, 255, 255, 0.45); }
+.ink-chart-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 2rem; align-items: start; }
+@media (max-width: 1024px) { .ink-chart-grid { grid-template-columns: 1fr; gap: 1rem; } }
+.ink-chart-side { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem; }
+@media (max-width: 1024px) { .ink-chart-side { padding-top: 0; } }
+.ink-chart-side > p:first-child { font-size: 0.8125rem; line-height: 1.6; color: rgba(255, 255, 255, 0.55); }
+.ink-note {
+  margin-top: 0; padding: 0.875rem 1rem; border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.06); font-size: 0.8125rem; line-height: 1.6; color: rgba(255, 255, 255, 0.7);
+}
+.ink-note b { color: #fff; font-weight: 600; }
+
+/* 줄 목록 안 작은 정보 */
+.row-sub { display: block; margin-top: 0.25rem; font-size: 0.8125rem; font-weight: 400; color: var(--text-3); letter-spacing: 0; }
+.saving-pos { color: var(--ok); font-weight: 600; }
+.saving-neg { color: var(--danger); font-weight: 600; }
+.more-row { display: flex; justify-content: center; margin-top: 1rem; }
+
+/* 두 칸 */
+.perf-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+@media (max-width: 860px) { .perf-cols { grid-template-columns: 1fr; } }
+
+/* 세로 타임라인 */
+.timeline-list { list-style: none; position: relative; }
+.tl-item {
+  position: relative; display: grid; grid-template-columns: 6.75rem 1fr; gap: 1rem;
+  padding: 0.875rem 0.75rem; border-radius: var(--radius-control);
+  transition: background 0.25s;
+}
+.tl-item.clickable { cursor: pointer; }
+.tl-item.clickable:hover { background: var(--surface-2); }
+.tl-date { font-size: 0.75rem; color: var(--text-3); font-variant-numeric: tabular-nums; padding-top: 0.125rem; }
+.tl-body { position: relative; padding-left: 1.25rem; min-width: 0; }
+.tl-body::before {
+  content: ''; position: absolute; left: 0; top: 0.4rem; width: 0.5rem; height: 0.5rem; border-radius: 99px;
+  background: var(--tl-dot, var(--subtle));
+}
+.tl-body::after {
+  content: ''; position: absolute; left: 0.22rem; top: 1.15rem; bottom: -1.3rem; width: 1px; background: var(--line);
+}
+.tl-item:last-child .tl-body::after { display: none; }
+.tl-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
+.tl-title { font-size: 0.875rem; font-weight: 600; }
+.tl-case { font-family: var(--mono); font-size: 0.72rem; color: var(--text-3); }
+.tl-detail { margin-top: 0.25rem; font-size: 0.8125rem; color: var(--text-2); line-height: 1.5; }
+@media (max-width: 640px) {
+  .tl-item { grid-template-columns: 1fr; gap: 0.25rem; padding-inline: 0.5rem; }
+  .tl-date { padding-left: 1.25rem; }
+  .tl-body::after { display: none; }
+}
+
+/* 이정표 목록 */
+.milestones { list-style: none; margin-top: 1rem; }
+.milestones li { display: grid; grid-template-columns: 6.25rem 1fr; gap: 0.75rem; padding: 0.625rem 0; border-top: 1px solid var(--line); font-size: 0.8125rem; }
+.milestones li span:first-child { color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+.tool-hist { list-style: none; }
+.tool-hist li { padding: 0.875rem 0; border-top: 1px solid var(--line); }
+.tool-hist li:first-child { border-top: 0; padding-top: 0; }
+
+/* 시장: 콜아웃 */
+.callouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; }
+.callout {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  border-radius: var(--radius-card-sm); padding: 1rem 1.125rem;
+}
+.callout-dot { flex-shrink: 0; width: 0.5rem; height: 0.5rem; border-radius: 99px; margin-top: 0.45rem; background: var(--accent-from); }
+.callout b { display: block; font-size: 0.9375rem; font-weight: 600; color: #fff; }
+.callout span { display: block; margin-top: 0.125rem; font-size: 0.75rem; color: rgba(255, 255, 255, 0.55); }
+
+.chart-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 1rem; }
+@media (max-width: 1024px) { .chart-grid { grid-template-columns: 1fr; } }
+
+/* 시장: 재고 여유 줄 */
+.cover-list { list-style: none; display: grid; gap: 0.75rem; }
+.cover-item { display: grid; grid-template-columns: 7rem 1fr 4rem; align-items: center; gap: 0.75rem; font-size: 0.8125rem; }
+.cover-item.sel .cover-name { font-weight: 600; color: var(--text); }
+.cover-name { color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cover-track { position: relative; height: 0.375rem; border-radius: 99px; background: var(--surface-2); }
+.cover-fill { position: absolute; inset: 0 auto 0 0; border-radius: 99px; transition: width 0.6s var(--spring); }
+.cover-rop { position: absolute; top: -0.25rem; bottom: -0.25rem; width: 2px; border-radius: 1px; background: var(--text-3); }
+.cover-val { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* 시장: 업체 잉크 카드 */
+.supplier-grid { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1rem; }
+.supplier-card {
+  position: relative; height: 100%; display: flex; flex-direction: column; gap: 1rem;
+  border-radius: var(--radius-card); padding: 1.5rem;
+  transition: transform 0.45s var(--spring);
+}
+.supplier-card:hover { transform: translateY(-4px); }
+.supplier-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.supplier-top h3 { font-size: 1.125rem; font-weight: 500; letter-spacing: -0.01em; color: #fff; }
+.supplier-top p { margin-top: 0.25rem; font-size: 0.75rem; color: rgba(255, 255, 255, 0.45); }
+.supplier-big { display: flex; align-items: baseline; gap: 0.375rem; }
+.supplier-big strong { font-size: 2.5rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
+.supplier-big span { font-size: 0.75rem; color: rgba(255, 255, 255, 0.5); }
+.supplier-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1rem; margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.supplier-stats div { display: flex; flex-direction: column; gap: 0.0625rem; }
+.supplier-stats dt { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.4); }
+.supplier-stats dd { font-size: 0.875rem; font-weight: 500; color: #fff; font-variant-numeric: tabular-nums; }
+.supplier-stats dd.warn { color: #e3a173; }
+.tag-chip { display: inline-flex; border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; border-radius: 99px; padding: 0.25rem 0.625rem; font-size: 0.6875rem; white-space: nowrap; }
+
+.formula {
+  margin-top: 1rem; padding: 1rem 1.25rem; border-radius: var(--radius-card-sm);
+  background: var(--surface-light); font-size: 0.8125rem; line-height: 1.7; color: var(--text-2);
+}
+.formula b { color: var(--text); font-weight: 600; }
+.small-note { font-size: 0.75rem; color: var(--text-3); }
