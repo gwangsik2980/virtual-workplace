@@ -11,6 +11,8 @@ import {
   markIntroDone,
   Mark,
   MenuIcon,
+  MoonIcon,
+  SunIcon,
   scrollToTop,
   unlockScroll,
 } from './ui/motion';
@@ -23,6 +25,7 @@ import { Performance } from './ui/screens/Performance';
 import { ProcessMap } from './ui/screens/ProcessMap';
 import { ToolLab } from './ui/screens/ToolLab';
 import { StoreProvider, useStore, type ScreenId } from './ui/store';
+import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme, type ThemePref } from './ui/theme';
 
 const NAV: { id: ScreenId; label: string }[] = [
   { id: 'overview', label: '기업 현황' },
@@ -108,7 +111,7 @@ function PageLoader() {
 /* ------------------------------------------------------------------
    전체 화면 메뉴
    ------------------------------------------------------------------ */
-function NavMenu({ open, onClose, onExport, onImport, onReset }: { open: boolean; onClose: () => void; onExport: () => void; onImport: () => void; onReset: () => void }) {
+function NavMenu({ open, onClose, onExport, onImport, onReset, themePref, onTheme }: { open: boolean; onClose: () => void; onExport: () => void; onImport: () => void; onReset: () => void; themePref: ThemePref; onTheme: (p: ThemePref) => void }) {
   const { state, screen, setScreen } = useStore();
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
 
@@ -160,6 +163,13 @@ function NavMenu({ open, onClose, onExport, onImport, onReset }: { open: boolean
           {formatDay(state.startDate, state.day)} — {state.day}일차
         </span>
         <div className="actions">
+          <span className="theme-choice" role="group" aria-label="화면 테마">
+            {(['system', 'light', 'dark'] as ThemePref[]).map((p) => (
+              <button key={p} tabIndex={open ? 0 : -1} aria-pressed={themePref === p} className={themePref === p ? 'on' : ''} onClick={() => onTheme(p)}>
+                {p === 'system' ? '기기 설정' : p === 'light' ? '라이트' : '다크'}
+              </button>
+            ))}
+          </span>
           <button tabIndex={open ? 0 : -1} onClick={onExport}>
             저장 파일 내보내기
           </button>
@@ -180,6 +190,24 @@ function Shell() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [menu, setMenu] = useState(false);
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
+  const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref);
+  const [, bump] = useState(0);
+  const resolved = resolveTheme(themePref);
+  const toggleTheme = () => {
+    // 지금 보이는 테마의 반대로 고정한다
+    const next: ThemePref = resolved === 'dark' ? 'light' : 'dark';
+    setThemePref(next);
+    setThemePrefState(next);
+  };
+  const chooseTheme = (p: ThemePref) => {
+    setThemePref(p);
+    setThemePrefState(p);
+  };
+
+  useEffect(() => {
+    applyTheme(getThemePref());
+    return watchSystemTheme(() => bump((x) => x + 1));
+  }, []);
 
   useEffect(() => {
     initSmoothScroll();
@@ -254,6 +282,14 @@ function Shell() {
               <span className="sep">•</span>
               <span className="val">{state.day}일차</span>
             </span>
+            <button
+              className="theme-btn"
+              onClick={toggleTheme}
+              aria-label={resolved === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              title={resolved === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            >
+              {resolved === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
             <button className="menu-btn" onClick={() => setMenu(true)} aria-label="메뉴 열기">
               <MenuIcon />
               <span>Menu</span>
@@ -291,6 +327,8 @@ function Shell() {
         onExport={doExport}
         onImport={() => fileRef.current?.click()}
         onReset={doReset}
+        themePref={themePref}
+        onTheme={chooseTheme}
       />
       <input
         ref={fileRef}

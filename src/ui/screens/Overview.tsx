@@ -119,7 +119,7 @@ function Hero() {
             <ul>
               {state.suppliers.map((s) => (
                 <li key={s.id} title={s.name}>
-                  <span style={{ color: 'rgba(17,17,17,.4)', display: 'inline-flex', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-3)', display: 'inline-flex', fontSize: '0.875rem' }}>
                     <DotIcon />
                   </span>
                   {s.name}
