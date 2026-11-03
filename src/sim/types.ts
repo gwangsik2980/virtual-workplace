@@ -312,6 +312,8 @@ export interface DailySnapshot {
   revenue: number;
   produced: number;
   demand: number;
+  /** 하루 영업이익 = 매출 − 매출원가(추적 원료 + 기타 원재료) − 고정비 */
+  opProfit?: number;
   /** 원료 부족으로 생산이 줄었다면 그 원료 */
   shortMaterial?: MaterialId;
   priceSavingCum: number;
@@ -332,7 +334,10 @@ export interface Company {
   productUnitCost: number;
   capacityPerDay: number;
   baseDemand: number;
+  /** 인건비, 제조 경비, 판관비 등 하루 고정비 */
   fixedCostPerDay: number;
+  /** 구매팀이 다루지 않는 기타 원재료·부자재 (떡, 어묵, 소스 원료 등) 세트당 원가 */
+  otherCostPerUnit: number;
 }
 
 export interface AppliedTool {

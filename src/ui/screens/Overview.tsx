@@ -340,6 +340,9 @@ export function Overview() {
   const tool = activeTool(state, 'quote-compare');
   const deliveries = s.deliveriesOnTime + s.deliveriesLate;
   const open = state.cases.filter((c) => c.stage !== 'done' && c.stage !== 'cancelled').length;
+  const last20 = state.history.slice(-20);
+  const rev20 = last20.reduce((a, h) => a + h.revenue, 0);
+  const opm = rev20 > 0 ? last20.reduce((a, h) => a + (h.opProfit ?? 0), 0) / rev20 : null;
 
   return (
     <>
@@ -350,7 +353,12 @@ export function Overview() {
       <div className="grid grid-6">
         <Stat label="현금" value={`${wonShort(state.finance.cash)}원`} note="매출채권 회수와 대금 지급 반영" />
         <Stat label="원료 재고자산" value={`${wonShort(last?.inventoryValue ?? 0)}원`} note="이동평균 단가 기준" />
-        <Stat label="누적 가격 절감액" value={`${wonShort(s.priceSavingKRW)}원`} note="협상 전 최초 견적 대비" tone={s.priceSavingKRW > 0 ? 'ok' : undefined} />
+        <Stat
+          label="영업이익률"
+          value={opm === null ? '-' : `${(opm * 100).toFixed(1)}%`}
+          note="최근 20영업일, 식품 상장사 평균 4.5~6.3%"
+          tone={opm !== null && opm < 0 ? 'danger' : undefined}
+        />
         <Stat label="진행 중 구매" value={`${open}건`} note={`완료 ${s.closedCases}건`} />
         <Stat label="납기 준수율" value={deliveries ? pct(s.deliveriesOnTime / deliveries, 0) : '-'} note={`입고 ${deliveries}건`} />
         <Stat label="결품 발생일" value={`${s.stockoutDays}일`} tone={s.stockoutDays > 0 ? 'danger' : undefined} note="원료 부족으로 생산 차질" />

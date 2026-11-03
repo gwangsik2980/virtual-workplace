@@ -50,6 +50,8 @@ export function runFinance(state: GameState): void {
 export interface ProductionResult {
   demand: number;
   produced: number;
+  revenue: number;
+  cogs: number;
   shortMaterial?: MaterialId;
 }
 
@@ -73,6 +75,10 @@ export function runProduction(state: GameState): ProductionResult {
     cogs += used * m.avgCost;
   }
   const revenue = produced * state.company.productPrice;
+  // 기타 원재료·부자재는 구매팀 관찰 범위 밖이라 쓴 만큼 바로 비용·현금 유출로 처리한다 (단순화)
+  const otherCost = produced * (state.company.otherCostPerUnit ?? 0);
+  cogs += otherCost;
+  state.finance.cash -= otherCost;
   state.finance.revenueCum += revenue;
   state.finance.cogsCum += cogs;
   state.finance.receivables.push({ day: state.day + 22, amount: revenue });
@@ -89,7 +95,7 @@ export function runProduction(state: GameState): ProductionResult {
       `계획 ${target.toLocaleString('ko-KR')}세트 중 ${produced.toLocaleString('ko-KR')}세트만 생산. 매출 손실 약 ${won(lost)}.`,
     );
   }
-  return { demand, produced, shortMaterial };
+  return { demand, produced, shortMaterial, revenue, cogs };
 }
 
 /** 생산팀의 구매 요청: 재고 + 발주 진행분이 재주문점 아래면 요청한다 */

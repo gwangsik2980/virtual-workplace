@@ -155,6 +155,7 @@ export function advanceDay(state: GameState): GameState {
     revenue: prod.produced * state.company.productPrice,
     produced: prod.produced,
     demand: prod.demand,
+    opProfit: Math.round(prod.revenue - prod.cogs - state.company.fixedCostPerDay),
     shortMaterial: prod.produced < Math.min(prod.demand, state.company.capacityPerDay) ? prod.shortMaterial : undefined,
     priceSavingCum: state.stats.priceSavingKRW,
     selectionLossCum: state.stats.selectionLossKRW,

@@ -117,3 +117,16 @@ describe('날짜', () => {
     expect(dayToDate('2027-01-04', 5).getDay()).toBe(5);
   });
 });
+
+describe('손익 구조', () => {
+  it('1년 영업이익률이 식품 제조업 수준(대략 2~9%) 안에 든다', () => {
+    for (const seed of [20270104, 1, 2]) {
+      const s = advanceDays(createInitialState(seed), 250);
+      const rev = s.history.reduce((a, h) => a + h.revenue, 0);
+      const op = s.history.reduce((a, h) => a + (h.opProfit ?? 0), 0);
+      const opm = op / rev;
+      expect(opm).toBeGreaterThan(0.02);
+      expect(opm).toBeLessThan(0.09);
+    }
+  });
+});

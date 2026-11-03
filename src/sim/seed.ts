@@ -193,7 +193,9 @@ export function createInitialState(seed = 20270104): GameState {
       productUnitCost: 0,
       capacityPerDay: 5200,
       baseDemand: BASE_DEMAND,
-      fixedCostPerDay: 12_500_000,
+      // 영업이익률이 식품 제조업 수준(약 5%)에 오도록 맞춘 가정치. docs/ASSUMPTIONS.md 참고
+      fixedCostPerDay: 8_100_000,
+      otherCostPerUnit: 1660,
     },
     materials,
     suppliers: makeSuppliers(),

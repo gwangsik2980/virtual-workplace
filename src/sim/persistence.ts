@@ -65,6 +65,10 @@ export function migrate(s: GameState): GameState {
   out.stats = { ...base.stats, ...(s.stats ?? {}) };
   out.counters = s.counters ?? {};
   // 담당자 이름 변경 (서지우 → GWANG). 예전 저장 파일도 새 이름으로 보이게 한다
+  // 비용 구조 변경 (기타 원재료 추가, 고정비 조정). 예전 저장 파일은 새 비용 구조로 바꾼다
+  if (out.company && out.company.otherCostPerUnit === undefined) {
+    out.company = { ...out.company, otherCostPerUnit: base.company.otherCostPerUnit, fixedCostPerDay: base.company.fixedCostPerDay };
+  }
   if (out.employee?.name === '서지우') out.employee = { ...out.employee, name: 'GWANG' };
   return out;
 }
