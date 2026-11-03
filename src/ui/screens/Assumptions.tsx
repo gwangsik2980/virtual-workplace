@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { DEFAULT_PARAMS } from '../../sim/seed';
 import type { CostModelParams } from '../../sim/types';
 import { logEvent } from '../../sim/util';
-import { Card, PageHead } from '../components/Common';
+import { HeroFacts, ScreenHero, SectionHead } from '../components/Editorial';
+import { Reveal } from '../motion';
 import { useStore } from '../store';
-import './lab.css';
+import './learn.css';
 
 type Key = keyof CostModelParams;
 
@@ -154,30 +155,76 @@ export function Assumptions() {
     }
   };
 
+  const evidenceOf = (k: Key): { label: string; tone: 'muted' | 'ok' | 'base' } => {
+    if (k === 'baseErrorRate') return { label: '공개 연구 범위 안', tone: 'ok' };
+    if (k === 'workdayMinutes') return { label: '일반적인 8시간 근무', tone: 'base' };
+    if (k === 'entryMinutesPerField') return { label: '가정치, 직접 근거 없음', tone: 'muted' };
+    return { label: '가정치', tone: 'muted' };
+  };
+  const nonDefault = META.filter((m) => Math.abs(params[m.key] - DEFAULT_PARAMS[m.key]) > 1e-9).length;
+  const docs = state.employee.skills.docs;
+
   return (
     <>
-      <PageHead title="가정·설정" desc="시뮬레이션의 시간·오류 계산에 쓰는 가정값과 시드를 관리합니다." />
-      <div className="notice notice-warn">
-        <b>이 값들은 가정치입니다. 실측 자료가 없습니다.</b> 실제 회사에서 측정한 업무 시간이나 오류율이 아니라, 결과를 계산하려면 숫자가 있어야
-        해서 그럴듯한 수준으로 정해 둔 값입니다. 도구 효과를 미리 정해 두지 않고 "필드 입력 시간 × 필드 수", "필드마다 일정 확률로 오입력" 같은
-        업무 단위 모델로 계산하기 위해 필요합니다. 그래서 효과 검증 결과는 이 값에 따라 달라지고, 값을 바꿔 보면서 결과가 얼마나 민감하게 움직이는지
-        확인할 수 있습니다.
-      </div>
+      <ScreenHero
+        eyebrow="08 — Assumptions"
+        lines={['모든 숫자의', '근거를 밝힙니다']}
+        watermark="ASSUME"
+        lead="업무 시간과 오류율은 실제 회사에서 잰 값이 아니라 계산을 위해 정해 둔 가정치예요. 값을 바꿔 보면 도구 효과가 얼마나 민감하게 움직이는지 확인할 수 있어요."
+        aside={
+          <HeroFacts
+            items={[
+              { label: '가정값', value: `${META.length}개`, note: '업무 비용 모델' },
+              { label: '기본값과 다른 값', value: `${nonDefault}개`, note: nonDefault ? '변경 기록은 이벤트에 남음' : '모두 기본값' },
+              { label: '시드', value: <span className="num as-seed-fact">{state.seed}</span>, note: '같으면 같은 사건' },
+              { label: '근거 확인', value: '0개', note: '공개 연구 범위 안 1개' },
+            ]}
+          />
+        }
+      />
 
-      <Card title="비용 모델" sub="변경 내용은 이벤트 기록에 남아 나중에 재현할 수 있습니다">
-        <div>
-          {parsed.map(({ m, ok }) => (
-            <div key={m.key} className="param-row">
-              <div>
-                <strong style={{ fontSize: 13.5 }}>{m.label}</strong>
-                <div className="faint">
-                  기본값 {fmtVal(m, DEFAULT_PARAMS[m.key])}
-                  {m.unit} · 범위 {m.min}~{m.max}
-                  {m.unit}
+      <Reveal>
+        <div className="notice notice-warn">
+          <b>이 값들은 가정치이고 실측 자료가 없어요.</b> 도구 효과를 미리 정해 두지 않고 "필드 입력 시간 × 필드 수", "필드마다 일정 확률로 오입력" 같은
+          업무 단위 모델로 계산하려면 숫자가 필요해서 그럴듯한 수준으로 정해 두었어요. 효과 검증 결과는 이 값에 따라 달라져요.
+        </div>
+      </Reveal>
+
+      <SectionHead
+        eyebrow="Cost model"
+        title="업무 비용 모델"
+        desc="바꾼 값은 저장한 다음 업무부터 적용되고, 변경 내용은 이벤트 기록에 남아 나중에 재현할 수 있어요."
+        actions={
+          <>
+            <button className="pill" onClick={restore}>
+              기본값으로 되돌리기
+            </button>
+            <button className="pill pill-dark" onClick={save} disabled={!allOk || changed.length === 0}>
+              저장{changed.length ? ` (${changed.length})` : ''}
+            </button>
+          </>
+        }
+      />
+      {msg && <div className="faint as-msg">{msg}</div>}
+
+      <ul className="as-list">
+        {parsed.map(({ m, ok, value }, i) => {
+          const ev = evidenceOf(m.key);
+          const dirty = ok && Math.abs(value - params[m.key]) > 1e-9;
+          const custom = Math.abs(params[m.key] - DEFAULT_PARAMS[m.key]) > 1e-9;
+          return (
+            <Reveal as="li" key={m.key} delay={Math.min(i, 8) * 50} y={0.75} className={`as-row ${dirty ? 'dirty' : ''}`}>
+              <span className="as-index">{String(i + 1).padStart(2, '0')}</span>
+              <div className="as-main">
+                <div className="as-name">
+                  {m.label}
+                  <span className={`as-ev ${ev.tone}`}>{ev.label}</span>
+                  {custom && <span className="as-ev changed">변경됨</span>}
                 </div>
+                <p className="as-use">{m.usedIn}</p>
               </div>
-              <div>
-                <div className="row" style={{ flexWrap: 'nowrap', gap: 6 }}>
+              <div className="as-input">
+                <div className="as-field">
                   <input
                     type="number"
                     step={m.step}
@@ -185,101 +232,83 @@ export function Assumptions() {
                     max={m.max}
                     value={draft[m.key]}
                     onChange={(e) => setDraft((d) => ({ ...d, [m.key]: e.target.value }))}
-                    style={{ borderColor: ok ? undefined : 'var(--danger)' }}
+                    className={ok ? '' : 'bad'}
                     aria-label={m.label}
                   />
-                  <span className="faint">{m.unit}</span>
+                  <span>{m.unit}</span>
                 </div>
-                {!ok && <div style={{ color: 'var(--danger)', fontSize: 12 }}>범위를 확인하세요</div>}
+                <span className="as-default">
+                  {ok ? `기본값 ${fmtVal(m, DEFAULT_PARAMS[m.key])}${m.unit}` : `범위 ${m.min}~${m.max}${m.unit}`}
+                </span>
               </div>
-              <div className="muted" style={{ fontSize: 13 }}>
-                <span className="faint">이 값이 쓰이는 곳 · </span>
-                {m.usedIn}
+            </Reveal>
+          );
+        })}
+      </ul>
+
+      <SectionHead eyebrow="Models" title="보정과 오입력 규칙" />
+      <div className="as-models">
+        <Reveal y={1.5}>
+          <section className="ink as-model">
+            <span className="eyebrow">숙련도 보정</span>
+            <p className="as-model-lead">숙련도(0~100)는 일할수록 오르고, 높을수록 같은 일을 빠르고 정확하게 해요.</p>
+            <div className="as-formula">
+              <div>
+                <span>작업 시간</span>
+                <code>1.4 − 0.6 × 숙련도/100</code>
+                <em>1.4배 → 0.8배</em>
+              </div>
+              <div>
+                <span>오입력 확률</span>
+                <code>1.5 − 숙련도/100</code>
+                <em>1.5배 → 0.5배</em>
               </div>
             </div>
-          ))}
-        </div>
-        <div className="row" style={{ marginTop: 14 }}>
-          <button className="btn btn-primary" onClick={save} disabled={!allOk || changed.length === 0}>
-            저장
-          </button>
-          <button className="btn" onClick={restore}>
-            기본값으로 되돌리기
-          </button>
-          {msg && <span className="faint">{msg}</span>}
-        </div>
-      </Card>
-
-      <div className="grid grid-2">
-        <Card title="숙련도 보정">
-          <p className="muted" style={{ marginTop: 0 }}>
-            가상 직원의 숙련도(0~100)는 업무를 할수록 오르고, 숙련도가 높을수록 같은 일을 빠르고 정확하게 합니다.
-          </p>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>보정</th>
-                  <th>계산식</th>
-                  <th className="r">숙련도 0</th>
-                  <th className="r">숙련도 100</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>작업 시간</td>
-                  <td className="mono">1.4 − 0.6 × 숙련도/100</td>
-                  <td className="r">1.4배</td>
-                  <td className="r">0.8배</td>
-                </tr>
-                <tr>
-                  <td>오입력 확률</td>
-                  <td className="mono">1.5 − 숙련도/100</td>
-                  <td className="r">1.5배</td>
-                  <td className="r">0.5배</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="faint" style={{ marginBottom: 0 }}>
-            현재 {state.employee.name}의 문서·데이터 처리 숙련도는 {state.employee.skills.docs.toFixed(1)}이라 입력 시간은{' '}
-            {(1.4 - 0.6 * (state.employee.skills.docs / 100)).toFixed(2)}배, 오입력 확률은 {(1.5 - state.employee.skills.docs / 100).toFixed(2)}배입니다.
-          </p>
-        </Card>
-        <Card title="수작업 오입력 모델">
-          <ul className="lab-ul">
-            <li>
-              <b>일반 오입력</b> (오입력 확률 × 숙련도 보정): 단가 ±9~10%, 납기 ±2~3일, 결제조건 30일↔60일
-            </li>
-            <li>
-              <b>영문(USD) 견적의 환율 착오</b> (환산 오류 확률): 지난 환율을 쓰는 식으로 단가가 ±3~6% 틀림
-            </li>
-            <li>
-              <b>포대 단위·VAT 포함 견적</b> (환산 오류 확률): 절반은 VAT 포함가를 그대로 입력(+10%), 절반은 포장 단위를 잘못 나눔(20kg을 25kg으로
-              착각해 −20%)
-            </li>
-            <li>
-              <b>스캔본</b>: 입력 시간 1.3배, 오입력 확률 1.5배
-            </li>
-          </ul>
-          <p className="faint" style={{ marginBottom: 0 }}>
-            담당자는 틀린 줄 모르고 입력값으로 업체를 고르고 발주서를 씁니다. 비용은 실제 값으로 계산하므로, 오입력의 영향은 정해 둔 개선율이 아니라
-            계산 과정에서 나옵니다.
-          </p>
-        </Card>
+            <p className="as-model-note">
+              지금 {state.employee.name}의 문서·데이터 처리 숙련도는 {docs.toFixed(1)}이라 입력 시간 {(1.4 - 0.6 * (docs / 100)).toFixed(2)}배, 오입력 확률{' '}
+              {(1.5 - docs / 100).toFixed(2)}배예요.
+            </p>
+          </section>
+        </Reveal>
+        <Reveal y={1.5} delay={90}>
+          <section className="ink as-model">
+            <span className="eyebrow">수작업 오입력 모델</span>
+            <ul className="as-rules">
+              <li>
+                <b>일반 오입력</b>
+                <span>단가 ±9~10%, 납기 ±2~3일, 결제조건 30일↔60일</span>
+              </li>
+              <li>
+                <b>영문 USD 견적</b>
+                <span>지난 환율을 쓰는 식의 착오로 단가 ±3~6%</span>
+              </li>
+              <li>
+                <b>포대 단위, VAT 포함 견적</b>
+                <span>절반은 VAT 포함가를 그대로(+10%), 절반은 20kg을 25kg으로 착각(−20%)</span>
+              </li>
+              <li>
+                <b>스캔본</b>
+                <span>입력 시간 1.3배, 오입력 확률 1.5배</span>
+              </li>
+            </ul>
+            <p className="as-model-note">담당자는 틀린 줄 모르고 입력값으로 업체를 고르고 발주해요. 비용은 실제 값으로 계산해서 오입력의 영향이 계산 과정에서 나와요.</p>
+          </section>
+        </Reveal>
       </div>
 
-      <Card title="시드" sub="같은 시드면 시장가격·수요·업체 응답이 항상 똑같이 나옵니다">
-        <div className="row">
-          <span>
-            현재 시드 <span className="mono">{state.seed}</span>
-          </span>
-          <input type="number" placeholder="새 시드 (비우면 무작위)" value={seedInput} onChange={(e) => setSeedInput(e.target.value)} style={{ width: 200 }} />
-          <button className="btn" onClick={newSeed} style={{ color: 'var(--danger)' }}>
+      <SectionHead eyebrow="Seed" title="시드와 새로 시작" desc="같은 시드면 시장가격, 수요, 업체 응답이 항상 똑같이 나와요. 다른 시드로 시작하면 다른 회사 상황을 볼 수 있어요." />
+      <Reveal>
+        <div className="as-seed">
+          <div className="as-seed-now">
+            <span>현재 시드</span>
+            <strong className="num">{state.seed}</strong>
+          </div>
+          <input type="number" placeholder="새 시드, 비우면 무작위" value={seedInput} onChange={(e) => setSeedInput(e.target.value)} aria-label="새 시드" />
+          <button className="pill as-danger" onClick={newSeed}>
             다른 시드로 새로 시작
           </button>
         </div>
-      </Card>
+      </Reveal>
     </>
   );
 }
