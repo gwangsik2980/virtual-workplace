@@ -222,3 +222,28 @@
   .desk-subhead { padding-left: 0.75rem; }
   .desk-rows .row-index { width: 2.5rem; }
 }
+
+/* 실시간: 지금 위치와 아직 오지 않은 일정 */
+.timeline-track { position: relative; }
+.timeline-block.future { opacity: 0.35; }
+.timeline-future {
+  position: absolute; top: 0; bottom: 0; right: 0; pointer-events: none;
+  background: repeating-linear-gradient(-45deg, rgba(var(--fg-rgb), 0.04), rgba(var(--fg-rgb), 0.04) 0.25rem, transparent 0.25rem, transparent 0.5rem);
+}
+.timeline-now { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid var(--accent); pointer-events: none; z-index: 2; }
+.timeline-wrap { position: relative; }
+.timeline-wrap.live { padding-bottom: 1.625rem; }
+.timeline-now-label {
+  position: absolute; bottom: 0; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  font-size: 0.6875rem; font-weight: 600; color: #fff; background: var(--accent); padding: 0.125rem 0.5rem; border-radius: 99px;
+  font-variant-numeric: tabular-nums;
+}
+.timeline-now-label::before {
+  content: ''; position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%);
+  border: 0.25rem solid transparent; border-bottom-color: var(--accent);
+}
+.now-bar { margin-top: 0.25rem; }
+.block-list > li.future { opacity: 0.38; }
+.block-list > li.current { position: relative; }
+.block-list > li.current .block-row { box-shadow: inset 0 0 0 1.5px var(--accent); border-radius: var(--radius-control); background: var(--accent-soft); }
+.now-badge { background: var(--accent); color: #fff; }

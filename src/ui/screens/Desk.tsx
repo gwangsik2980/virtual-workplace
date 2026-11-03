@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { RANKS } from '../../sim/employee';
 import { STAGE_LABELS } from '../../sim/purchasing';
 import type { Quote, SkillId, TimeBlock, WorkKind } from '../../sim/types';
@@ -7,6 +7,7 @@ import { CaseStatus, clock } from '../components/Common';
 import { HeroFacts, RowList, ScreenHero, SectionHead } from '../components/Editorial';
 import { ArrowRight, Reveal } from '../motion';
 import { useLiveStatus } from '../components/LiveWidgets';
+import { useRealtime } from '../realtime';
 import { useStore } from '../store';
 import './desk.css';
 
@@ -64,6 +65,9 @@ export function Desk() {
   const day = deskDay ?? lastDay;
   const { nextRank, rankProgress } = useRank();
   const liveStatus = useLiveStatus();
+  const rt = useRealtime();
+  // 실시간 모드에서 오늘 일정을 볼 때만 '지금' 위치를 표시한다
+  const nowMinute = rt.isRealtime && rt.phase === 'working' && day === rt.target ? rt.liveMinute : null;
 
   const blocks = useMemo(() => state.schedule.filter((b) => b.day === day).sort((a, b) => a.start - b.start), [state.schedule, day]);
   const minDay = useMemo(() => state.schedule.reduce((m, b) => Math.min(m, b.day), lastDay), [state.schedule, lastDay]);
@@ -159,7 +163,7 @@ export function Desk() {
       />
       <Reveal y={1.25}>
         <section className="card card-lg">
-          <DayTimeline blocks={blocks} workday={state.params.workdayMinutes} onOpen={openCase} />
+          <DayTimeline blocks={blocks} workday={state.params.workdayMinutes} onOpen={openCase} nowMinute={nowMinute} />
         </section>
       </Reveal>
 
@@ -285,8 +289,22 @@ function Career() {
   );
 }
 
-function DayTimeline({ blocks, workday, onOpen }: { blocks: TimeBlock[]; workday: number; onOpen: (id: string) => void }) {
+function DayTimeline({
+  blocks,
+  workday,
+  onOpen,
+  nowMinute = null,
+}: {
+  blocks: TimeBlock[];
+  workday: number;
+  onOpen: (id: string) => void;
+  /** 실시간으로 오늘을 볼 때 09:00부터 지난 분. 이후 일정은 흐리게, 지금 하는 일은 강조 */
+  nowMinute?: number | null;
+}) {
+  const currentRef = useRef<HTMLLIElement>(null);
   if (blocks.length === 0) return <div className="empty">이 날의 근무 기록이 없습니다.</div>;
+  const live = nowMinute !== null;
+  const stateOf = (b: TimeBlock) => (!live ? '' : b.start + b.minutes <= nowMinute! ? 'past' : b.start <= nowMinute! ? 'current' : 'future');
   // 시계 기준 정규 근무 종료 = 8시간 + 점심 1시간 = 18:00
   const workEnd = workday + (blocks.some((b) => b.kind === 'lunch') ? 60 : 0);
   const end = Math.max(workEnd, ...blocks.map((b) => b.start + b.minutes));
@@ -311,6 +329,7 @@ function DayTimeline({ blocks, workday, onOpen }: { blocks: TimeBlock[]; workday
           {toolMin > 0 ? `, 도구 사용 ${toolMin}분` : ''}
         </span>
       </div>
+      <div className={`timeline-wrap ${live ? 'live' : ''}`}>
       <div className="timeline">
         <div className="timeline-hours">
           {Array.from({ length: hours - 1 }, (_, i) => (
@@ -323,14 +342,26 @@ function DayTimeline({ blocks, workday, onOpen }: { blocks: TimeBlock[]; workday
           {blocks.map((b, i) => (
             <div
               key={i}
-              className={`timeline-block ${b.caseId ? 'clickable' : ''} ${b.toolId ? 'tool' : ''}`}
+              className={`timeline-block ${b.caseId ? 'clickable' : ''} ${b.toolId ? 'tool' : ''} ${stateOf(b)}`}
               style={{ left: pctOf(b.start), width: pctOf(b.minutes), ['--blk' as string]: KIND_COLORS[b.kind] }}
               title={`${clock(b.start)}~${clock(b.start + b.minutes)} ${b.label}`}
               onClick={() => b.caseId && onOpen(b.caseId)}
             />
           ))}
           {end > workEnd && <div className="timeline-workend" style={{ left: pctOf(workEnd) }} title="정규 근무 종료 (18:00)" />}
+          {live && (
+            <>
+              <div className="timeline-future" style={{ left: pctOf(nowMinute!) }} aria-hidden />
+              <div className="timeline-now" style={{ left: pctOf(nowMinute!) }} aria-hidden />
+            </>
+          )}
         </div>
+      </div>
+      {live && (
+        <span className="timeline-now-label" style={{ left: `clamp(2.5rem, ${(nowMinute! / span) * 100}%, calc(100% - 2.5rem))` }}>
+          지금 {clock(nowMinute!)}
+        </span>
+      )}
       </div>
       <div className="timeline-legend">
         {[...byKind.entries()].map(([k, m]) => (
@@ -340,9 +371,17 @@ function DayTimeline({ blocks, workday, onOpen }: { blocks: TimeBlock[]; workday
           </span>
         ))}
       </div>
+      {live && (
+        <div className="row between now-bar">
+          <span className="faint">지금 {clock(nowMinute!)}. 흐린 줄은 아직 오지 않은 일정이에요.</span>
+          <button className="pill pill-sm" onClick={() => currentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
+            지금 일정 보기
+          </button>
+        </div>
+      )}
       <ul className="block-list">
         {blocks.map((b, i) => (
-          <li key={i}>
+          <li key={i} ref={stateOf(b) === 'current' ? currentRef : undefined} className={stateOf(b)}>
             <button type="button" className={`block-row ${b.caseId ? 'clickable' : ''}`} disabled={!b.caseId} onClick={() => b.caseId && onOpen(b.caseId)}>
               <span className="block-time num" style={{ ['--blk' as string]: KIND_COLORS[b.kind] }}>
                 <span className="swatch" />
@@ -350,6 +389,7 @@ function DayTimeline({ blocks, workday, onOpen }: { blocks: TimeBlock[]; workday
               </span>
               <span className="block-label">{b.label}</span>
               <span className="block-meta">
+                {stateOf(b) === 'current' && <span className="badge now-badge">지금</span>}
                 {b.toolId && <span className="badge badge-accent">AI 도구</span>}
                 <span className="num">{b.minutes}분</span>
               </span>
