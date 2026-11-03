@@ -1,6 +1,6 @@
 import { LUNCH_MINUTES, LUNCH_START } from './calendar';
 import { detectDeliveryRisks, finishExpedite } from './deliveryRisk';
-import { gainExperience } from './employee';
+import { annualReview, gainExperience } from './employee';
 import { updateMarket } from './market';
 import { checkReorders, generateAdhocWork, runFinance, runProduction, scheduleMonthlyWork } from './operations';
 import { runPayroll } from './payroll';
@@ -167,6 +167,7 @@ export function advanceDay(state: GameState): GameState {
   state.nowMinute = 0;
   updateMarket(state);
   runFinance(state);
+  annualReview(state);
   runPayroll(state);
   processWaits(state);
   detectDeliveryRisks(state);

@@ -66,7 +66,10 @@ export function migrate(s: GameState): GameState {
   out.stats = { ...base.stats, ...(s.stats ?? {}) };
   out.counters = s.counters ?? {};
   // 급여 기능 추가 전 저장 파일: 빈 통장으로 시작한다
-  if (!s.payroll) out.payroll = emptyPayroll(s.seed);
+  if (!s.payroll) out.payroll = emptyPayroll(s.seed, s.startDate, s.employee?.rank);
+  // 연봉 이력 추가 전 저장 파일: 지금 직급의 연봉으로 시작한다
+  else if (!s.payroll.salaryHistory) out.payroll = { ...s.payroll, salaryHistory: emptyPayroll(s.seed, s.startDate, s.employee?.rank).salaryHistory };
+  if (out.employee && out.employee.rankSinceDay === undefined) out.employee = { ...out.employee, rankSinceDay: out.employee.joinedDay };
   // 담당자 이름 변경 (서지우 → GWANG). 예전 저장 파일도 새 이름으로 보이게 한다
   // 비용 구조 변경 (기타 원재료 추가, 고정비 조정). 예전 저장 파일은 새 비용 구조로 바꾼다
   if (out.company && out.company.otherCostPerUnit === undefined) {

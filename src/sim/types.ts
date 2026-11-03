@@ -224,6 +224,8 @@ export interface Employee {
   dept: DeptId;
   rank: string;
   joinedDay: number;
+  /** 지금 직급이 된 날 (승진 연차 계산용) */
+  rankSinceDay?: number;
   skills: Record<SkillId, number>;
   xp: number;
   completedCases: number;
@@ -542,4 +544,6 @@ export interface BankTxn {
 export interface Payroll {
   account: { bank: string; number: string; balance: number; txns: BankTxn[] };
   payslips: Payslip[];
+  /** 연봉 이력. from 달(YYYY-MM)부터 적용 */
+  salaryHistory: { from: string; annual: number; rank: string }[];
 }

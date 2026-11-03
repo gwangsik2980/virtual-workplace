@@ -10,12 +10,16 @@ import { dayToDate, logEvent, nextId, sendMessage } from './util';
  * 요율과 근거 수준은 docs/ASSUMPTIONS.md 참고.
  */
 
-/** 직급별 연봉 (가정치, 식품 중견기업 구매직 신입 수준으로 잡음) */
+/**
+ * 직급별 승진 시 최소 연봉 (가정치).
+ * 사원 4,200만원은 대기업 식품·식자재 계열 대졸 신입 수준(4천만원 초중반이라는 공개 후기)을 기준으로 잡았다.
+ * 위 직급은 승진할 때마다 10~15% 오르도록 정했다. 근거는 docs/ASSUMPTIONS.md
+ */
 export const SALARY_BY_RANK: Record<string, number> = {
-  사원: 32_000_000,
-  주임: 35_000_000,
-  대리: 40_000_000,
-  과장: 48_000_000,
+  사원: 42_000_000,
+  주임: 46_000_000,
+  대리: 52_000_000,
+  과장: 60_000_000,
 };
 
 /** 2026년 근로자 부담 요율 */
@@ -120,6 +124,21 @@ export function nextPayday(state: GameState, fromDay = state.day): { day: number
   return { day: fromDay, kind: 'salary' };
 }
 
+/** 그 날짜가 속한 달에 적용되는 연봉과 직급 */
+export function salaryRecord(state: GameState, d: Date): { from: string; annual: number; rank: string } {
+  const label = ym(d);
+  const hist = state.payroll.salaryHistory;
+  return [...hist].reverse().find((h) => h.from <= label) ?? hist[0];
+}
+
+/** 이 날짜가 속한 달부터 새 연봉 적용. 직급은 지금 직급으로 기록 */
+export function setSalary(state: GameState, d: Date, annual: number): void {
+  const from = ym(d);
+  const hist = state.payroll.salaryHistory.filter((h) => h.from !== from);
+  hist.push({ from, annual, rank: state.employee.rank });
+  state.payroll.salaryHistory = hist.sort((a, b) => a.from.localeCompare(b.from));
+}
+
 function prevMonthOf(d: Date): { start: Date; end: Date; label: string } {
   const start = new Date(d.getFullYear(), d.getMonth() - 1, 1);
   const end = new Date(d.getFullYear(), d.getMonth(), 0);
@@ -137,7 +156,8 @@ function makeSlip(
   period: string,
   earnings: PayLine[],
   deductions: PayLine[],
-  note?: string,
+  note: string | undefined,
+  rank: string,
 ): Payslip {
   const gross = earnings.reduce((a, l) => a + l.amount, 0);
   const totalDeduction = deductions.reduce((a, l) => a + l.amount, 0);
@@ -146,7 +166,7 @@ function makeSlip(
     day: state.day,
     kind,
     period,
-    rank: state.employee.rank,
+    rank,
     earnings,
     deductions: deductions.filter((l) => l.amount > 0),
     gross,
@@ -163,7 +183,8 @@ export function salarySlip(state: GameState): Payslip | null {
   const joined = dayToDate(state.startDate, state.employee.joinedDay);
   if (joined > prev.end) return null; // 전월에는 아직 입사 전
 
-  const annual = SALARY_BY_RANK[state.employee.rank] ?? SALARY_BY_RANK['사원'];
+  const rec = salaryRecord(state, prev.start);
+  const annual = rec.annual;
   const monthly = floor10(annual / 12);
   // 입사한 달은 일할 계산 (달력 일수 기준)
   const firstMonth = joined >= prev.start;
@@ -202,6 +223,7 @@ export function salarySlip(state: GameState): Payslip | null {
       { label: '지방소득세', amount: localTax },
     ],
     note,
+    rec.rank,
   );
 }
 
@@ -214,7 +236,8 @@ export function extraSlip(state: GameState): Payslip | null {
 
   const workday = state.params.workdayMinutes;
   const overtimeMin = records.reduce((a, h) => a + Math.max(0, h.employeeMinutes - workday), 0);
-  const annual = SALARY_BY_RANK[state.employee.rank] ?? SALARY_BY_RANK['사원'];
+  const rec = salaryRecord(state, prev.start);
+  const annual = rec.annual;
   // 통상시급: 매달 고정으로 주는 기본급과 식대를 209시간으로 나눈다
   const hourly = floor10(annual / 12 / MONTHLY_HOURS);
   const overtimePay = floor10((overtimeMin / 60) * hourly * OVERTIME_RATE);
@@ -255,6 +278,7 @@ export function extraSlip(state: GameState): Payslip | null {
     ]
       .filter(Boolean)
       .join(' '),
+    rec.rank,
   );
 }
 
@@ -310,17 +334,17 @@ export function runPayroll(state: GameState): void {
   }
 }
 
-export function emptyPayroll(seed: number): GameState['payroll'] {
+export function emptyPayroll(seed: number, startDate: string, rank = '사원'): GameState['payroll'] {
   const tail = String(Math.abs(seed) % 1_000_000).padStart(6, '0');
   return {
     account: { bank: '가상은행', number: `110-${tail.slice(0, 3)}-${tail}`, balance: 0, txns: [] },
     payslips: [],
+    salaryHistory: [{ from: startDate.slice(0, 7), annual: SALARY_BY_RANK[rank] ?? SALARY_BY_RANK['사원'], rank }],
   };
 }
 
-/** 직급별 한 달 예상 실수령 (전체 달 기준, 수당 제외) */
-export function estimateMonthly(rank: string): { annual: number; gross: number; deduction: number; net: number } {
-  const annual = SALARY_BY_RANK[rank] ?? SALARY_BY_RANK['사원'];
+/** 연봉 기준 한 달 예상 실수령 (전체 달 기준, 수당 제외) */
+export function estimateMonthly(annual: number): { annual: number; gross: number; deduction: number; net: number } {
   const monthly = floor10(annual / 12);
   const base = monthly - MEAL_ALLOWANCE;
   const health = floor10(base * RATES.health);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { estimateMonthly, nextPayday, PAYDAY_EXTRA, PAYDAY_SALARY } from '../../sim/payroll';
+import { estimateMonthly, nextPayday, PAYDAY_EXTRA, PAYDAY_SALARY, salaryRecord } from '../../sim/payroll';
 import type { Payslip } from '../../sim/types';
 import { dayToDate, formatDay } from '../../sim/util';
 import { Reveal } from '../motion';
@@ -18,7 +18,7 @@ export function PayrollPanel() {
   const { account, payslips } = state.payroll;
   const [selected, setSelected] = useState<string | null>(null);
   const slip = payslips.find((p) => p.id === selected) ?? payslips[payslips.length - 1];
-  const est = estimateMonthly(e.rank);
+  const est = estimateMonthly(salaryRecord(state, dayToDate(state.startDate, Math.max(1, state.day - 1))).annual);
 
   const next = nextPayday(state);
   const nextDate = dayToDate(state.startDate, next.day);

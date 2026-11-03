@@ -220,6 +220,7 @@ export function createInitialState(seed = 20270104, startDate: string = START_DA
       dept: 'purchasing',
       rank: '사원',
       joinedDay: 1,
+      rankSinceDay: 1,
       skills: { market: 30, costing: 25, negotiation: 20, docs: 35 },
       xp: 0,
       completedCases: 0,
@@ -236,7 +237,7 @@ export function createInitialState(seed = 20270104, startDate: string = START_DA
     learning: { unlocked: {}, understood: {}, notes: [], improvements: [] },
     verifications: [],
     reports: [],
-    payroll: emptyPayroll(seed),
+    payroll: emptyPayroll(seed, startDate),
     counters: {},
     stats: emptyStats(),
   };

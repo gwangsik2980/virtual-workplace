@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { RANKS } from '../../sim/employee';
+import { earliestPromotionDay, promotionStatus } from '../../sim/employee';
 import { STAGE_LABELS } from '../../sim/purchasing';
 import type { Quote, SkillId, Stage, TimeBlock, WorkKind } from '../../sim/types';
 import { formatDay, formatDayShort } from '../../sim/util';
@@ -52,13 +52,14 @@ const WAIT_STAGE_SET = new Set<Stage>(['awaitQuotes', 'approve', 'awaitDelivery'
 
 type MailFilter = 'all' | 'in' | 'out';
 
+/** 다음 승진: 연차를 얼마나 채웠는지와 가장 빠른 정기 심사일 */
 function useRank() {
   const { state } = useStore();
-  const e = state.employee;
-  const nextRank = RANKS.find((r) => r.xp > e.xp);
-  const curRank = [...RANKS].reverse().find((r) => r.xp <= e.xp) ?? RANKS[0];
-  const rankProgress = nextRank ? (e.xp - curRank.xp) / (nextRank.xp - curRank.xp) : 1;
-  return { nextRank, rankProgress };
+  const st = promotionStatus(state);
+  const nextRank = st?.next;
+  const rankProgress = st ? Math.min(1, st.years / st.next.years) : 1;
+  const reviewDay = earliestPromotionDay(state);
+  return { nextRank, rankProgress, reviewDay, xpOk: st?.xpOk ?? true };
 }
 
 export function Desk() {
@@ -66,7 +67,7 @@ export function Desk() {
   const e = state.employee;
   const lastDay = state.day - 1;
   const day = deskDay ?? lastDay;
-  const { nextRank, rankProgress } = useRank();
+  const { nextRank, rankProgress, reviewDay, xpOk } = useRank();
   const liveStatus = useLiveStatus();
   const rt = useRealtime();
   // 실시간 모드에서 오늘 일정을 볼 때만 '지금' 위치를 표시한다
@@ -130,7 +131,11 @@ export function Desk() {
               {
                 label: '경험치',
                 value: Math.round(e.xp).toLocaleString('ko-KR'),
-                note: nextRank ? `${nextRank.name}까지 ${Math.ceil(nextRank.xp - e.xp).toLocaleString('ko-KR')}` : '최고 직급',
+                note: !nextRank
+                  ? '최고 직급'
+                  : xpOk
+                    ? `${nextRank.name} 승진 실적 충족`
+                    : `${nextRank.name} 승진까지 ${Math.ceil(nextRank.xp - e.xp).toLocaleString('ko-KR')}`,
               },
               {
                 label: '어제 근무',
@@ -146,7 +151,7 @@ export function Desk() {
             <span>입사 {formatDay(state.startDate, e.joinedDay)}</span>
             <span>{liveStatus}</span>
             <span className="row" style={{ gap: '0.5rem' }}>
-              {nextRank ? `다음 직급 ${nextRank.name}` : '최고 직급'}
+              {nextRank ? `${nextRank.name} 승진 심사 ${reviewDay ? formatDay(state.startDate, reviewDay).slice(0, 7).replace('-', '년 ') + '월' : ''}` : '최고 직급'}
               <span className="desk-rankbar" aria-hidden>
                 <span style={{ width: `${Math.round(rankProgress * 100)}%` }} />
               </span>
