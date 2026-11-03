@@ -56,7 +56,7 @@ export function ToolLab() {
               <span className="lab-step-no">{i + 1}단계</span>
               <strong>{s.title}</strong>
               <span className="faint">{s.desc}</span>
-              <span className="badge badge-accent" style={{ marginTop: 6 }}>
+              <span className="badge badge-accent lab-step-out">
                 {s.output}
               </span>
             </div>

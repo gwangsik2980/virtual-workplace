@@ -10,7 +10,13 @@
   border-radius: 8px;
   padding: 10px 12px;
   position: relative;
+  /* 설명이 한 줄이든 두 줄이든 산출물 표시가 카드 아래에 나란히 오게 한다 */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
+.lab-step-out { margin-top: auto; }
+.lab-step span.faint { margin-bottom: 0.375rem; }
 
 .lab-step .lab-step-no {
   font-size: 11px;
