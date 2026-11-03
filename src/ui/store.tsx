@@ -11,6 +11,12 @@ interface Store {
   /** 상태를 복제해 수정한다. 수정 내용은 자동 저장된다. */
   update(fn: (draft: GameState) => void): void;
   advance(days: number): void;
+  /** 직전 조작 이전 상태로 되돌린다 (최근 UNDO_LIMIT번까지) */
+  undo(): void;
+  /** 되돌릴 수 있는 단계 수 */
+  undoCount: number;
+  /** 가장 최근 되돌리기 대상의 설명 */
+  undoLabel: string | null;
   replace(next: GameState): void;
   reset(seed?: number): void;
   saveOk: boolean;
@@ -25,6 +31,9 @@ interface Store {
 
 const Ctx = createContext<Store | null>(null);
 
+/** 상태 하나가 수백 KB~수 MB라서 최근 10번까지만 메모리에 둔다 (새로고침하면 사라짐) */
+const UNDO_LIMIT = 10;
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GameState>(() => loadLocal() ?? createInitialState());
   const [saveOk, setSaveOk] = useState(true);
@@ -38,6 +47,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [caseId, setCaseId] = useState<string | null>(null);
   const [deskDay, setDeskDay] = useState<number | null>(null);
   const first = useRef(true);
+  // 연속 클릭에도 최신 상태를 쓰도록 렌더를 기다리지 않고 바로 갱신하는 참조
+  const stateRef = useRef(state);
+  const undoStack = useRef<{ state: GameState; label: string }[]>([]);
+  const [undoCount, setUndoCount] = useState(0);
+  const [undoLabel, setUndoLabel] = useState<string | null>(null);
+
+  // 상태는 수정할 때마다 새 객체로 바뀌므로(불변) 이전 객체를 그대로 보관해도 안전하다
+  const commit = useCallback((next: GameState, label: string) => {
+    undoStack.current.push({ state: stateRef.current, label });
+    if (undoStack.current.length > UNDO_LIMIT) undoStack.current.shift();
+    stateRef.current = next;
+    setState(next);
+    setUndoCount(undoStack.current.length);
+    setUndoLabel(label);
+  }, []);
+
+  const clearUndo = useCallback(() => {
+    undoStack.current = [];
+    setUndoCount(0);
+    setUndoLabel(null);
+  }, []);
 
   useEffect(() => {
     if (first.current) {
@@ -47,30 +77,56 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSaveOk(saveLocal(state));
   }, [state]);
 
-  const update = useCallback((fn: (draft: GameState) => void) => {
-    setState((prev) => {
-      const next = structuredClone(prev);
+  const update = useCallback(
+    (fn: (draft: GameState) => void) => {
+      const next = structuredClone(stateRef.current);
       fn(next);
-      return next;
-    });
-  }, []);
+      commit(next, '설정 변경');
+    },
+    [commit],
+  );
 
-  const advance = useCallback((days: number) => {
-    setState((prev) => {
-      const next = structuredClone(prev);
+  const advance = useCallback(
+    (days: number) => {
+      const next = structuredClone(stateRef.current);
       for (let i = 0; i < days; i++) advanceDay(next);
-      return next;
-    });
+      commit(next, days === 1 ? '하루 진행' : `${days}일 진행`);
+      setDeskDay(null);
+    },
+    [commit],
+  );
+
+  const undo = useCallback(() => {
+    const prev = undoStack.current.pop();
+    if (!prev) return;
+    stateRef.current = prev.state;
+    setState(prev.state);
+    setUndoCount(undoStack.current.length);
+    setUndoLabel(undoStack.current[undoStack.current.length - 1]?.label ?? null);
     setDeskDay(null);
+    setCaseId(null);
   }, []);
 
-  const replace = useCallback((next: GameState) => setState(next), []);
+  const replace = useCallback(
+    (next: GameState) => {
+      stateRef.current = next;
+      setState(next);
+      clearUndo();
+    },
+    [clearUndo],
+  );
 
-  const reset = useCallback((seed?: number) => {
-    clearLocal();
-    setState(createInitialState(seed));
-    setDeskDay(null);
-  }, []);
+  const reset = useCallback(
+    (seed?: number) => {
+      clearLocal();
+      const next = createInitialState(seed);
+      stateRef.current = next;
+      setState(next);
+      clearUndo();
+      setDeskDay(null);
+    },
+    [clearUndo],
+  );
 
   const setScreen = useCallback((s: ScreenId) => {
     setScreenRaw(s);
@@ -83,8 +139,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Store>(
-    () => ({ state, update, advance, replace, reset, saveOk, screen, setScreen, openCase: setCaseId, caseId, deskDay, setDeskDay }),
-    [state, update, advance, replace, reset, saveOk, screen, setScreen, caseId, deskDay],
+    () => ({ state, update, advance, undo, undoCount, undoLabel, replace, reset, saveOk, screen, setScreen, openCase: setCaseId, caseId, deskDay, setDeskDay }),
+    [state, update, advance, undo, undoCount, undoLabel, replace, reset, saveOk, screen, setScreen, caseId, deskDay],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

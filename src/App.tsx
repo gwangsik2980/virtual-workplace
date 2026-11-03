@@ -187,7 +187,7 @@ function NavMenu({ open, onClose, onExport, onImport, onReset, themePref, onThem
 }
 
 function Shell() {
-  const { state, advance, screen, setScreen, caseId, openCase, saveOk, replace, reset } = useStore();
+  const { state, advance, undo, undoCount, undoLabel, screen, setScreen, caseId, openCase, saveOk, replace, reset } = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [menu, setMenu] = useState(false);
   const [about, setAbout] = useState(false);
@@ -223,6 +223,20 @@ function Shell() {
     scrollToTop();
     setAbout(false);
   }, [screen]);
+
+  // Ctrl+Z / Cmd+Z 로 되돌리기 (입력칸에서는 원래 동작 유지)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo]);
 
   // About 패널: Esc나 헤더 바깥을 누르면 닫는다
   useEffect(() => {
@@ -326,6 +340,19 @@ function Shell() {
             </button>
           </div>
           <div className="day-controls">
+            <button
+              className="pill pill-sm undo-btn"
+              onClick={undo}
+              disabled={undoCount === 0}
+              aria-label={undoCount ? `되돌리기: ${undoLabel} 이전으로` : '되돌릴 내용 없음'}
+              title={undoCount ? `${undoLabel} 이전으로 되돌리기 (남은 ${undoCount}번)` : '되돌릴 내용이 없습니다'}
+            >
+              <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9 14 4 9l5-5" />
+                <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+              </svg>
+              <span className="undo-text">되돌리기</span>
+            </button>
             <button className="pill pill-dark pill-arrow" onClick={() => advance(1)}>
               하루 진행
               <span className="arrow-badge">
