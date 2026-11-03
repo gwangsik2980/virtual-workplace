@@ -3,6 +3,9 @@ import { disablePush, isPushOn } from '../push';
 import { useStore } from '../store';
 import { claimOwner, enterOwnerKey, forgetOwnerKey, formatKey, KEY_LENGTH, ownerClaimed, useSyncInfo } from '../sync';
 
+/** 앞 4자리만 남기고 가린다 */
+export const maskKey = (key: string) => formatKey(key.slice(0, 4) + '•'.repeat(key.length - 4));
+
 const time = (t: number) => new Date(t).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 
 /**
@@ -16,6 +19,8 @@ export function OwnerKeyDialog({ onClose }: { onClose: () => void }) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // 옆에서 화면을 봐도 키가 드러나지 않게 평소에는 앞 4자리만 보여 준다
+  const [shown, setShown] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -81,9 +86,12 @@ export function OwnerKeyDialog({ onClose }: { onClose: () => void }) {
         {key ? (
           <>
             <p className="muted">이 기기는 회사를 바꾸고 알림을 받을 수 있어요. 다른 기기에도 이 키를 한 번 넣어 주세요.</p>
-            <div className="sync-code">{formatKey(key)}</div>
+            <div className="sync-code">{shown ? formatKey(key) : maskKey(key)}</div>
             <span className="faint">{at ? `서버와 마지막으로 맞춘 시각 ${time(at)}` : '아직 서버와 맞추지 않았어요'}</span>
             <div className="sync-actions">
+              <button className="pill pill-sm" onClick={() => setShown((v) => !v)}>
+                {shown ? '가리기' : '보기'}
+              </button>
               <button className="pill pill-sm" onClick={copy} disabled={busy}>
                 키 복사
               </button>
