@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { exportJson, importJson } from './sim/persistence';
 import { formatDay } from './sim/util';
+import { AboutContent } from './ui/components/About';
 import { CaseDrawer } from './ui/components/CaseDrawer';
 import {
   applyAdaptiveGrid,
@@ -189,6 +190,8 @@ function Shell() {
   const { state, advance, screen, setScreen, caseId, openCase, saveOk, replace, reset } = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [menu, setMenu] = useState(false);
+  const [about, setAbout] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
   const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref);
   const [, bump] = useState(0);
@@ -218,7 +221,23 @@ function Shell() {
 
   useEffect(() => {
     scrollToTop();
+    setAbout(false);
   }, [screen]);
+
+  // About 패널: Esc나 헤더 바깥을 누르면 닫는다
+  useEffect(() => {
+    if (!about) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setAbout(false);
+    const onDown = (e: PointerEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) setAbout(false);
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('pointerdown', onDown);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onDown);
+    };
+  }, [about]);
 
   useEffect(() => {
     if (!caseId) return;
@@ -260,14 +279,24 @@ function Shell() {
         본문으로 건너뛰기
       </a>
       <PageLoader />
-      <header className="header">
+      <header className={`header ${about ? 'about-open' : ''}`} ref={headerRef}>
         <div className="shell header-row">
-          <button className="brand" onClick={() => setScreen('overview')} aria-label="기업 현황으로">
-            <span className="brand-mark">
-              <Mark />
-            </span>
-            Virtual Workplace
-          </button>
+          <div className="brand-group">
+            <button className="brand" onClick={() => setScreen('overview')} aria-label="기업 현황으로">
+              <span className="brand-mark">
+                <Mark />
+              </span>
+              <span className="brand-text">Virtual Workplace</span>
+            </button>
+            <button className="about-btn" onClick={() => setAbout((a) => !a)} aria-expanded={about} aria-controls="about-panel">
+              About
+              <span className="about-caret" aria-hidden>
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </span>
+            </button>
+          </div>
           <nav className="header-nav" aria-label="화면">
             {NAV.map((n) => (
               <button key={n.id} aria-current={screen === n.id ? 'page' : undefined} onClick={() => setScreen(n.id)}>
@@ -309,6 +338,19 @@ function Shell() {
             <button className="pill pill-sm" onClick={() => advance(20)}>
               1개월
             </button>
+          </div>
+        </div>
+        <div id="about-panel" className="about-panel" aria-hidden={!about} data-lenis-prevent>
+          <div className="about-inner">
+            <div className="ink about-sheet">
+              <div className="shell about-shell">
+                <p className="about-lead">
+                  <span className="intro-eyebrow">About this project</span>
+                  가상 기업에서 구매 업무를 관찰하고, 도구로 바꾸고, 효과를 검증하는 시뮬레이션입니다.
+                </p>
+                <AboutContent />
+              </div>
+            </div>
           </div>
         </div>
       </header>

@@ -6,7 +6,6 @@ import type { DeptId, GameState, MaterialId } from '../../sim/types';
 import { DEPT_NAMES, formatDay, formatDayShort, wonShort } from '../../sim/util';
 import { LineChart } from '../components/Chart';
 import { Card, EventBadge, pct, Stat } from '../components/Common';
-import { IntroBanner } from '../components/IntroBanner';
 import { ArrowRight, DotIcon, LineReveal, Mark, Reveal, useIntroReady, useScrollCount } from '../motion';
 import { useStore, type ScreenId } from '../store';
 
@@ -344,7 +343,6 @@ export function Overview() {
 
   return (
     <>
-      <IntroBanner />
       <Hero />
       <LoopBand />
       <StatsPanel />

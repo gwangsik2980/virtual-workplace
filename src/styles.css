@@ -937,29 +937,40 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 }
 
 /* ===================================================================
-   프로젝트 소개 배너 (첫 화면 맨 위)
+   About: 헤더 로고 옆 버튼을 누르면 헤더 아래로 펼쳐지는 소개
    =================================================================== */
-.intro-banner { border-radius: var(--radius-card); padding: 1rem 1.25rem; margin-top: 0.5rem; }
-@media (min-width: 1024px) { .intro-banner { padding: 1.125rem 1.75rem; } }
-.intro-top { display: flex; align-items: center; gap: 1rem; }
-.intro-mark { font-size: 1.5rem; color: var(--accent-from); display: inline-flex; flex-shrink: 0; }
-.intro-headline { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
-.intro-eyebrow { font-size: 0.6875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.45); }
-.intro-headline strong { font-size: 0.9375rem; font-weight: 500; line-height: 1.4; color: #fff; }
-.intro-toggle {
-  flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 99px;
-  padding: 0.4375rem 1rem; font-size: 0.8125rem; font-weight: 500; color: rgba(255, 255, 255, 0.85);
-  transition: border-color 0.3s, color 0.3s, transform 0.35s var(--spring-snap);
+.brand-group { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.about-btn {
+  display: inline-flex; align-items: center; gap: 0.3125rem; flex-shrink: 0;
+  border: 1px solid var(--line); background: var(--glass-soft); border-radius: 99px;
+  padding: 0.3125rem 0.75rem; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em; color: var(--foreground);
+  transition: background 0.25s, border-color 0.25s, transform 0.35s var(--spring-snap);
 }
-.intro-toggle:hover { border-color: rgba(255, 255, 255, 0.5); color: #fff; transform: scale(1.04); }
+.about-btn:hover { background: var(--card-bg); transform: scale(1.04); }
+.about-btn[aria-expanded='true'] { background: var(--ink); border-color: var(--ink); color: #fff; }
+:root[data-theme='dark'] .about-btn[aria-expanded='true'] { background: #ededed; border-color: #ededed; color: #0a0a0a; }
+.about-caret { display: inline-flex; font-size: 0.75rem; transition: transform 0.35s var(--spring); }
+.about-btn[aria-expanded='true'] .about-caret { transform: rotate(180deg); }
+
+/* 높이 0 → 내용 높이로 부드럽게 열린다 */
+.about-panel {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 0.55s var(--spring);
+}
+.header.about-open .about-panel { grid-template-rows: 1fr; }
+.about-inner { overflow: hidden; min-height: 0; }
+.about-sheet { border-top: 1px solid rgba(255, 255, 255, 0.08); max-height: calc(100vh - 5rem); overflow-y: auto; }
+.about-shell { padding-block: 1.5rem 1.75rem; opacity: 0; transform: translateY(-0.5rem); transition: opacity 0.4s var(--spring), transform 0.5s var(--spring); }
+.header.about-open .about-shell { opacity: 1; transform: none; transition-delay: 0.08s; }
+.about-lead { display: flex; flex-direction: column; gap: 0.25rem; font-size: 1.0625rem; font-weight: 500; line-height: 1.4; color: #fff; max-width: 48rem; }
+
+.intro-eyebrow { font-size: 0.6875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.45); }
 .intro-body {
   display: grid; grid-template-columns: 1fr; gap: 1.5rem;
   margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.1);
-  animation: intro-in 0.5s var(--spring);
 }
 @media (min-width: 768px) { .intro-body { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1280px) { .intro-body { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem; } }
-@keyframes intro-in { from { opacity: 0; transform: translateY(-0.5rem); } to { opacity: 1; transform: none; } }
 .intro-col h3 { font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-from); margin-bottom: 0.5rem; }
 .intro-col p { font-size: 0.8125rem; line-height: 1.65; color: rgba(255, 255, 255, 0.68); }
 .intro-results { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -974,8 +985,5 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
   transition: background 0.25s;
 }
 .intro-link:hover { background: rgba(255, 255, 255, 0.16); }
-@media (max-width: 640px) {
-  .intro-top { flex-wrap: wrap; }
-  .intro-mark { display: none; }
-  .intro-toggle { width: 100%; text-align: center; }
-}
+
+@media (max-width: 520px) { .brand-text { display: none; } }
