@@ -21,9 +21,35 @@ describe('영업일 달력', () => {
     expect(isBusinessDay(at('2030-02-05'))).toBe(false); // 설날 대체공휴일
   });
 
+  it('2027년은 관보 월력요항과 같다 (노동절·제헌절·성탄절 대체)', () => {
+    expect(isBusinessDay(at('2027-05-03'))).toBe(false); // 노동절(토) 대체
+    expect(isBusinessDay(at('2027-07-19'))).toBe(false); // 제헌절(토) 대체
+    expect(isBusinessDay(at('2027-12-27'))).toBe(false); // 기독탄신일(토) 대체
+    expect(isBusinessDay(at('2027-02-09'))).toBe(false); // 설날 대체
+    expect(isBusinessDay(at('2027-06-07'))).toBe(true); // 현충일(일)은 대체 없음
+  });
+
+  it('노동절과 제헌절은 2026년 규정 개정부터 공휴일', () => {
+    expect(isBusinessDay(at('2026-05-01'))).toBe(false);
+    expect(isBusinessDay(at('2026-07-17'))).toBe(false);
+    expect(isBusinessDay(at('2028-05-01'))).toBe(false);
+    expect(isBusinessDay(at('2028-07-17'))).toBe(false);
+    expect(isBusinessDay(at('2029-05-01'))).toBe(false);
+    expect(isBusinessDay(at('2030-07-17'))).toBe(false);
+  });
+
+  it('선거일: 2028 국회의원, 2030 대통령, 2030 지방선거는 현충일 전날을 피해 6/12', () => {
+    expect(isBusinessDay(at('2028-04-12'))).toBe(false);
+    expect(isBusinessDay(at('2030-03-27'))).toBe(false);
+    expect(isBusinessDay(at('2030-06-12'))).toBe(false);
+    expect(isBusinessDay(at('2030-06-05'))).toBe(true);
+  });
+
   it('목록이 끝난 해부터는 양력 고정 공휴일만 쉰다', () => {
     expect(isBusinessDay(at('2031-01-01'))).toBe(false); // 신정 (수)
     expect(isBusinessDay(at('2031-10-09'))).toBe(false); // 한글날 (목)
+    expect(isBusinessDay(at('2031-05-01'))).toBe(false); // 노동절 (목)
+    expect(isBusinessDay(at('2031-07-17'))).toBe(false); // 제헌절 (목)
     expect(isBusinessDay(at('2031-01-02'))).toBe(true);
   });
 
