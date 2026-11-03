@@ -6,6 +6,7 @@ import { formatDay, formatDayShort } from '../../sim/util';
 import { CaseStatus, clock } from '../components/Common';
 import { HeroFacts, RowList, ScreenHero, SectionHead } from '../components/Editorial';
 import { ArrowRight, Reveal } from '../motion';
+import { useLiveStatus } from '../components/LiveWidgets';
 import { useStore } from '../store';
 import './desk.css';
 
@@ -60,6 +61,7 @@ export function Desk() {
   const lastDay = state.day - 1;
   const day = deskDay ?? lastDay;
   const { nextRank, rankProgress } = useRank();
+  const liveStatus = useLiveStatus();
 
   const blocks = useMemo(() => state.schedule.filter((b) => b.day === day).sort((a, b) => a.start - b.start), [state.schedule, day]);
   const minDay = useMemo(() => state.schedule.reduce((m, b) => Math.min(m, b.day), lastDay), [state.schedule, lastDay]);
@@ -125,7 +127,7 @@ export function Desk() {
         footer={
           <>
             <span>입사 {formatDay(state.startDate, e.joinedDay)}</span>
-            <span>{state.day}일차 근무 시작 전</span>
+            <span>{liveStatus}</span>
             <span className="row" style={{ gap: '0.5rem' }}>
               {nextRank ? `다음 직급 ${nextRank.name}` : '최고 직급'}
               <span className="desk-rankbar" aria-hidden>

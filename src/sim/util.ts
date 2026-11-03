@@ -1,15 +1,21 @@
+import { isBusinessDay } from './calendar';
 import type { DeptId, EventLog, EventType, GameState, Message } from './types';
 
-/** 영업일 기준 날짜. 1일차 = startDate, 주말은 건너뛴다. */
+/** 영업일 기준 날짜. 1일차 = startDate, 주말과 공휴일은 건너뛴다. 자주 불려서 결과를 기억해 둔다 */
+const dateCache = new Map<string, Date[]>();
 export function dayToDate(startDate: string, day: number): Date {
-  const d = new Date(startDate + 'T00:00:00');
-  let remaining = day - 1;
-  while (remaining > 0) {
-    d.setDate(d.getDate() + 1);
-    const wd = d.getDay();
-    if (wd !== 0 && wd !== 6) remaining--;
+  let list = dateCache.get(startDate);
+  if (!list) {
+    list = [new Date(startDate + 'T00:00:00')];
+    dateCache.set(startDate, list);
   }
-  return d;
+  while (list.length < day) {
+    const d = new Date(list[list.length - 1]);
+    do d.setDate(d.getDate() + 1);
+    while (!isBusinessDay(d));
+    list.push(d);
+  }
+  return new Date(list[Math.max(0, day - 1)]);
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -52,7 +58,7 @@ export function logEvent(
   detail: string,
   caseId?: string,
 ): EventLog {
-  const e: EventLog = { id: nextId(state, 'EV'), day: state.day, type, dept, title, detail, caseId };
+  const e: EventLog = { id: nextId(state, 'EV'), day: state.day, minute: state.nowMinute ?? 0, type, dept, title, detail, caseId };
   state.events.push(e);
   return e;
 }

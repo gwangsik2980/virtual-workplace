@@ -272,6 +272,8 @@ export type EventType =
 export interface EventLog {
   id: string;
   day: number;
+  /** 그날 09:00부터 지난 분. 실시간 모드에서 알림을 이 시각에 보낸다 */
+  minute?: number;
   type: EventType;
   dept: DeptId;
   title: string;
@@ -440,6 +442,10 @@ export interface GameState {
   /** 작성된 월간 보고서 */
   reports: ReportRecord[];
   counters: Record<string, number>;
+  /** 시간 흐름: realtime = 현실 날짜와 함께 흐름, manual = 버튼으로만 진행 */
+  clock?: { mode: 'realtime' | 'manual' };
+  /** 하루 계산 중 지금 몇 분째인지 (사건 시각 기록용, 계산이 끝나면 비움) */
+  nowMinute?: number;
   stats: CumulativeStats;
 }
 

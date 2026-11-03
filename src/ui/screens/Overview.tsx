@@ -6,6 +6,7 @@ import type { DeptId, GameState, MaterialId } from '../../sim/types';
 import { DEPT_NAMES, formatDay, formatDayShort, wonShort } from '../../sim/util';
 import { LineChart } from '../components/Chart';
 import { Card, EventBadge, pct, Stat } from '../components/Common';
+import { useLiveStatus } from '../components/LiveWidgets';
 import { ArrowRight, DotIcon, LineReveal, Mark, Reveal, useIntroReady, useScrollCount } from '../motion';
 import { useStore, type ScreenId } from '../store';
 
@@ -79,6 +80,7 @@ function HeroCard() {
 function Hero() {
   const { state, advance, setScreen } = useStore();
   const ready = useIntroReady();
+  const liveStatus = useLiveStatus();
   return (
     <section className="hero" aria-label="소개">
       <div className="hero-watermark reveal-wm" style={{ opacity: ready ? 1 : 0, transform: ready ? 'none' : 'translateY(1.25rem)', transition: 'opacity 1.2s var(--spring) 300ms, transform 1.2s var(--spring) 300ms' }}>
@@ -131,7 +133,7 @@ function Hero() {
       </div>
       <Reveal gated delay={900} y={0} className="hero-status">
         <span>
-          {formatDay(state.startDate, state.day)} 근무 시작 전
+          {liveStatus}
         </span>
         <span className="mid">회사, 인물, 업체, 시세는 모두 가상</span>
         <span>스크롤해서 보기 ↓</span>

@@ -25,6 +25,8 @@ import { Overview } from './ui/screens/Overview';
 import { Performance } from './ui/screens/Performance';
 import { ProcessMap } from './ui/screens/ProcessMap';
 import { ToolLab } from './ui/screens/ToolLab';
+import { AlertsBell, AwayModal, ClockChip } from './ui/components/LiveWidgets';
+import { RealtimeProvider, useRealtime } from './ui/realtime';
 import { StoreProvider, useStore, type ScreenId } from './ui/store';
 import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme, type ThemePref } from './ui/theme';
 
@@ -109,6 +111,29 @@ function PageLoader() {
   );
 }
 
+/** 메뉴 하단: 시간 흐름 방식 (실시간 / 수동) */
+function TimeModeChoice({ open }: { open: boolean }) {
+  const { state, update } = useStore();
+  const rt = useRealtime();
+  const mode = state.clock?.mode ?? 'manual';
+  const set = (m: 'realtime' | 'manual') => {
+    if (m === mode) return;
+    if (m === 'realtime' && !confirm('실시간으로 바꾸면 회사 날짜가 현실 날짜를 따라갑니다. 지금 진행 중인 회사는 시작일이 현실과 다를 수 있어서, 처음부터 다시 시작하는 것을 추천해요. 그래도 바꿀까요?')) return;
+    update((d) => {
+      d.clock = { mode: m };
+    });
+  };
+  return (
+    <span className="theme-choice" role="group" aria-label="시간 흐름" title={rt.isRealtime ? '현실 날짜와 함께 흐르는 중' : '버튼으로만 진행'}>
+      {(['realtime', 'manual'] as const).map((m) => (
+        <button key={m} tabIndex={open ? 0 : -1} aria-pressed={mode === m} className={mode === m ? 'on' : ''} onClick={() => set(m)}>
+          {m === 'realtime' ? '실시간' : '수동'}
+        </button>
+      ))}
+    </span>
+  );
+}
+
 /* ------------------------------------------------------------------
    전체 화면 메뉴
    ------------------------------------------------------------------ */
@@ -164,6 +189,7 @@ function NavMenu({ open, onClose, onExport, onImport, onReset, themePref, onThem
           {formatDay(state.startDate, state.day)} — {state.day}일차
         </span>
         <div className="actions">
+          <TimeModeChoice open={open} />
           <span className="theme-choice" role="group" aria-label="화면 테마">
             {(['system', 'light', 'dark'] as ThemePref[]).map((p) => (
               <button key={p} tabIndex={open ? 0 : -1} aria-pressed={themePref === p} className={themePref === p ? 'on' : ''} onClick={() => onTheme(p)}>
@@ -319,12 +345,8 @@ function Shell() {
             ))}
           </nav>
           <div className="header-right">
-            <span className="chip-glass clock-chip" title={saveOk ? '이 브라우저에 자동 저장됨' : '자동 저장 실패: 내보내기로 백업하세요'}>
-              <span className="label">{state.company.name}</span>
-              <span className="val">{formatDay(state.startDate, state.day)}</span>
-              <span className="sep">•</span>
-              <span className="val">{state.day}일차</span>
-            </span>
+            <ClockChip title={saveOk ? '이 브라우저에 자동 저장됨' : '자동 저장 실패: 내보내기로 백업하세요'} />
+            <AlertsBell />
             <button
               className="theme-btn"
               onClick={toggleTheme}
@@ -411,6 +433,7 @@ function Shell() {
         }}
       />
       {caseId && <CaseDrawer caseId={caseId} onClose={() => openCase(null)} />}
+      <AwayModal />
     </>
   );
 }
@@ -418,7 +441,9 @@ function Shell() {
 export function App() {
   return (
     <StoreProvider>
-      <Shell />
+      <RealtimeProvider>
+        <Shell />
+      </RealtimeProvider>
     </StoreProvider>
   );
 }

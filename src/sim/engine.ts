@@ -50,6 +50,8 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
     if (b.minutes <= 0) return;
     blocks.push({ day: state.day, start: t, ...b });
     t += b.minutes;
+    // 이 블록이 끝나는 시각에 생긴 사건으로 기록된다
+    state.nowMinute = t;
   };
 
   // 메일 확인: 전날 이후 받은 메일 수에 비례
@@ -138,6 +140,8 @@ function inventoryValue(state: GameState): number {
 
 /** 하루 진행. 상태를 직접 바꾼다 (호출 측에서 필요하면 복제해서 넘긴다). */
 export function advanceDay(state: GameState): GameState {
+  // 출근 전후(시장 변화, 입고, 생산)에 생긴 사건은 09:00로 기록한다
+  state.nowMinute = 0;
   updateMarket(state);
   runFinance(state);
   processWaits(state);
@@ -177,6 +181,7 @@ export function advanceDay(state: GameState): GameState {
     }
   }
 
+  delete state.nowMinute;
   state.day += 1;
   return state;
 }

@@ -1,7 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { advanceDay } from '../sim/engine';
 import { clearLocal, loadLocal, saveLocal } from '../sim/persistence';
+import { nextBusinessDayISO } from '../sim/calendar';
 import { createInitialState } from '../sim/seed';
+
+/** 새 회사는 오늘(휴일이면 다음 영업일)을 1일차로, 현실 시간과 함께 흐르도록 시작한다 */
+const newCompany = (seed?: number) => createInitialState(seed, nextBusinessDayISO(), 'realtime');
 import type { GameState } from '../sim/types';
 
 export type ScreenId = 'overview' | 'desk' | 'process' | 'market' | 'lab' | 'performance' | 'learning' | 'assumptions';
@@ -10,7 +14,10 @@ interface Store {
   state: GameState;
   /** 상태를 복제해 수정한다. 수정 내용은 자동 저장된다. */
   update(fn: (draft: GameState) => void): void;
-  advance(days: number): void;
+  /** record=false면 되돌리기 기록을 남기지 않는다 (자동 진행 중) */
+  advance(days: number, opts?: { record?: boolean }): void;
+  /** 지금 상태를 되돌리기 지점으로 남긴다 (자동 진행 시작 시) */
+  checkpoint(label: string): void;
   /** 직전 조작 이전 상태로 되돌린다 (최근 UNDO_LIMIT번까지) */
   undo(): void;
   /** 되돌릴 수 있는 단계 수 */
@@ -35,7 +42,7 @@ const Ctx = createContext<Store | null>(null);
 const UNDO_LIMIT = 10;
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<GameState>(() => loadLocal() ?? createInitialState());
+  const [state, setState] = useState<GameState>(() => loadLocal() ?? newCompany());
   const [saveOk, setSaveOk] = useState(true);
   const [screen, setScreenRaw] = useState<ScreenId>(() => {
     try {
@@ -54,14 +61,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [undoLabel, setUndoLabel] = useState<string | null>(null);
 
   // 상태는 수정할 때마다 새 객체로 바뀌므로(불변) 이전 객체를 그대로 보관해도 안전하다
-  const commit = useCallback((next: GameState, label: string) => {
+  const pushUndo = useCallback((label: string) => {
     undoStack.current.push({ state: stateRef.current, label });
     if (undoStack.current.length > UNDO_LIMIT) undoStack.current.shift();
-    stateRef.current = next;
-    setState(next);
     setUndoCount(undoStack.current.length);
     setUndoLabel(label);
   }, []);
+
+  const commit = useCallback(
+    (next: GameState, label: string, record = true) => {
+      if (record) pushUndo(label);
+      stateRef.current = next;
+      setState(next);
+    },
+    [pushUndo],
+  );
+
+  const checkpoint = useCallback((label: string) => pushUndo(label), [pushUndo]);
 
   const clearUndo = useCallback(() => {
     undoStack.current = [];
@@ -87,10 +103,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const advance = useCallback(
-    (days: number) => {
+    (days: number, opts?: { record?: boolean }) => {
       const next = structuredClone(stateRef.current);
       for (let i = 0; i < days; i++) advanceDay(next);
-      commit(next, days === 1 ? '하루 진행' : `${days}일 진행`);
+      commit(next, days === 1 ? '하루 진행' : `${days}일 진행`, opts?.record ?? true);
       setDeskDay(null);
     },
     [commit],
@@ -119,7 +135,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(
     (seed?: number) => {
       clearLocal();
-      const next = createInitialState(seed);
+      const next = newCompany(seed);
       stateRef.current = next;
       setState(next);
       clearUndo();
@@ -139,8 +155,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Store>(
-    () => ({ state, update, advance, undo, undoCount, undoLabel, replace, reset, saveOk, screen, setScreen, openCase: setCaseId, caseId, deskDay, setDeskDay }),
-    [state, update, advance, undo, undoCount, undoLabel, replace, reset, saveOk, screen, setScreen, caseId, deskDay],
+    () => ({ state, update, advance, checkpoint, undo, undoCount, undoLabel, replace, reset, saveOk, screen, setScreen, openCase: setCaseId, caseId, deskDay, setDeskDay }),
+    [state, update, advance, checkpoint, undo, undoCount, undoLabel, replace, reset, saveOk, screen, setScreen, caseId, deskDay],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

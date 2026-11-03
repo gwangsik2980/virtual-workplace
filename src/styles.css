@@ -1050,3 +1050,60 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
   .learn-more, .navmenu-bottom button { min-height: 2.5rem; padding-block: 0.5rem; }
   .theme-choice button { min-height: 2.25rem; }
 }
+
+/* 실시간 칩 */
+.live-dot { width: 0.5rem; height: 0.5rem; border-radius: 99px; background: var(--subtle); flex-shrink: 0; }
+.live-dot.on { background: #2f9e44; box-shadow: 0 0 0 0 rgba(47, 158, 68, 0.5); animation: live-pulse 2s infinite; }
+@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(47, 158, 68, 0.45); } 70% { box-shadow: 0 0 0 0.45rem rgba(47, 158, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(47, 158, 68, 0); } }
+
+/* 알림 종 */
+.bell-wrap { position: relative; }
+.bell-btn { position: relative; }
+.bell-badge {
+  position: absolute; top: -0.3rem; right: -0.3rem; min-width: 1.125rem; height: 1.125rem; padding: 0 0.3rem;
+  border-radius: 99px; background: var(--accent); color: #fff; font-size: 0.625rem; font-weight: 600;
+  display: grid; place-items: center; line-height: 1;
+}
+.bell-panel {
+  position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 60;
+  width: min(24rem, calc(100vw - 1.5rem)); max-height: min(32rem, 75vh); overflow-y: auto;
+  background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius-card-sm);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.14); animation: fade-in 0.25s var(--spring);
+}
+@media (max-width: 640px) { .bell-panel { position: fixed; left: 0.75rem; right: 0.75rem; top: 4rem; width: auto; } }
+.bell-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--card-bg); border-bottom: 1px solid var(--line); }
+.bell-head b { font-size: 0.875rem; }
+.bell-link { font-size: 0.75rem; color: var(--text-2); padding: 0.25rem 0.5rem; border-radius: 99px; }
+.bell-link:hover { background: var(--surface-2); color: var(--text); }
+.bell-list { list-style: none; }
+.bell-item {
+  width: 100%; text-align: left; display: grid; grid-template-columns: auto 1fr; gap: 0.125rem 0.625rem;
+  padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); transition: background 0.2s;
+}
+.bell-item:hover { background: var(--surface-2); }
+.bell-item.unread { background: var(--accent-soft); }
+.bell-kind { grid-row: span 2; align-self: start; font-size: 0.6875rem; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 99px; background: var(--surface-2); color: var(--text-2); white-space: nowrap; }
+.bell-kind.k-stockout, .bell-kind.k-urgent { background: var(--danger-soft); color: var(--danger); }
+.bell-kind.k-delay, .bell-kind.k-risk { background: var(--accent-soft); color: var(--accent-text); }
+.bell-title { font-size: 0.8125rem; font-weight: 500; line-height: 1.35; }
+.bell-when { font-size: 0.6875rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.bell-prefs { padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.bell-pref { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; }
+.bell-foot { padding: 0.75rem 1rem; border-top: 1px solid var(--line); }
+
+/* 자리를 비운 동안 */
+.away-modal {
+  position: fixed; left: 50%; top: 50%; z-index: 92; transform: translate(-50%, -50%);
+  width: min(34rem, calc(100vw - 1.5rem)); max-height: calc(100vh - 2rem); overflow-y: auto;
+  background: var(--card-bg); border-radius: var(--radius-card); padding: 1.75rem;
+  display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  animation: fade-in 0.35s var(--spring);
+}
+.away-modal h2 { font-size: 1.875rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.1; }
+.away-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.away-count { display: flex; flex-direction: column; gap: 0.125rem; padding: 0.625rem 0.75rem; border-radius: var(--radius-control); background: var(--surface-2); }
+.away-count span { font-size: 0.6875rem; color: var(--text-3); }
+.away-count b { font-size: 1.25rem; font-weight: 600; color: var(--text-3); }
+.away-count.has b { color: var(--text); }
+.away-list { list-style: none; border-top: 1px solid var(--line); }
+.away-list button { width: 100%; text-align: left; padding: 0.5rem 0; border-bottom: 1px solid var(--line); font-size: 0.8125rem; }

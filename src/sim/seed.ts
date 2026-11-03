@@ -175,7 +175,7 @@ const emptyStats = (): CumulativeStats => ({
   expediteRecoveredDays: 0,
 });
 
-export function createInitialState(seed = 20270104): GameState {
+export function createInitialState(seed = 20270104, startDate: string = START_DATE, mode: 'realtime' | 'manual' = 'manual'): GameState {
   const materials = makeMaterials();
   const prices = {} as Record<MaterialId, number>;
   for (const m of Object.values(materials)) prices[m.id] = m.baseMarketPrice;
@@ -184,7 +184,8 @@ export function createInitialState(seed = 20270104): GameState {
     version: 1,
     seed,
     day: 1,
-    startDate: START_DATE,
+    startDate,
+    clock: { mode },
     company: {
       name: '가온식품',
       industry: '식품 제조 (가상 기업)',
