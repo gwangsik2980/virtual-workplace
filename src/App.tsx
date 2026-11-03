@@ -29,6 +29,8 @@ import { AlertsBell, AwayModal, ClockChip } from './ui/components/LiveWidgets';
 import { useInstall } from './ui/install';
 import { useChatUnread } from './ui/chatRead';
 import { PushSync } from './ui/push';
+import { DeviceSync, syncAvailable } from './ui/sync';
+import { DeviceLinkDialog } from './ui/components/DeviceLink';
 import { RealtimeProvider } from './ui/realtime';
 import { StoreProvider, useStore, type ScreenId } from './ui/store';
 import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme, type ThemePref } from './ui/theme';
@@ -132,7 +134,7 @@ function InstallAction({ open }: { open: boolean }) {
 /* ------------------------------------------------------------------
    전체 화면 메뉴
    ------------------------------------------------------------------ */
-function NavMenu({ open, onClose, onExport, onImport, onReset, themePref, onTheme }: { open: boolean; onClose: () => void; onExport: () => void; onImport: () => void; onReset: () => void; themePref: ThemePref; onTheme: (p: ThemePref) => void }) {
+function NavMenu({ open, onClose, onExport, onImport, onReset, onDeviceLink, themePref, onTheme }: { open: boolean; onClose: () => void; onExport: () => void; onImport: () => void; onReset: () => void; onDeviceLink: () => void; themePref: ThemePref; onTheme: (p: ThemePref) => void }) {
   const { state, screen, setScreen } = useStore();
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
   const chatUnread = useChatUnread().total;
@@ -203,6 +205,11 @@ function NavMenu({ open, onClose, onExport, onImport, onReset, themePref, onThem
           <button tabIndex={open ? 0 : -1} onClick={onReset} style={{ color: '#e3a173' }}>
             처음부터 다시 시작
           </button>
+          {syncAvailable() && (
+            <button tabIndex={open ? 0 : -1} className="navmenu-settings" onClick={onDeviceLink}>
+              기기 연결
+            </button>
+          )}
           <button
             tabIndex={open ? 0 : -1}
             className="navmenu-settings"
@@ -225,6 +232,7 @@ function Shell() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [menu, setMenu] = useState(false);
   const [about, setAbout] = useState(false);
+  const [link, setLink] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
   // 메뉴 버튼 숫자는 새 개념만. 안 읽은 팀 채팅은 메뉴를 열었을 때 '팀 채팅' 옆에만 보인다
@@ -387,6 +395,10 @@ function Shell() {
         onExport={doExport}
         onImport={() => fileRef.current?.click()}
         onReset={doReset}
+        onDeviceLink={() => {
+          setMenu(false);
+          setLink(true);
+        }}
         themePref={themePref}
         onTheme={chooseTheme}
       />
@@ -403,6 +415,8 @@ function Shell() {
       />
       {caseId && <CaseDrawer caseId={caseId} onClose={() => openCase(null)} />}
       <AwayModal />
+      {link && <DeviceLinkDialog onClose={() => setLink(false)} />}
+      <DeviceSync />
       <PushSync />
     </>
   );

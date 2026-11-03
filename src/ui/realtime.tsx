@@ -51,21 +51,22 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const target = isRealtime ? realtimeTargetDay(state.startDate, now) : state.day - 1;
   const simulatedThrough = state.day - 1;
   const [away, setAway] = useState<{ fromDay: number; toDay: number } | null>(null);
-  // 같은 목표로 두 번 따라잡지 않게 기억한다 (개발 모드의 이중 실행 대비)
-  const syncedFor = useRef<string>('');
+  // 같은 상태에서 두 번 따라잡지 않게 기억한다 (개발 모드의 이중 실행 대비).
+  // 값(시드·날짜)이 아니라 상태 객체로 구분한다. 처음부터 다시 시작하거나 다른 기기 저장본을 받으면
+  // 시드와 날짜가 예전과 같아도 새 객체라서 다시 따라잡아야 한다.
+  const syncedFrom = useRef<GameState | null>(null);
 
   // 밀린 영업일 따라잡기
   useEffect(() => {
     if (!isRealtime) return;
     const n = target - simulatedThrough;
-    const key = `${state.seed}/${state.startDate}/${target}/${simulatedThrough}`;
-    if (n <= 0 || syncedFor.current === key) return;
-    syncedFor.current = key;
+    if (n <= 0 || syncedFrom.current === state) return;
+    syncedFrom.current = state;
     const fromDay = state.day;
     if (n >= 2) checkpoint('자리를 비운 동안');
     advance(n, { record: false });
     if (n >= 2) setAway({ fromDay, toDay: target });
-  }, [isRealtime, target, simulatedThrough, state.day, state.seed, state.startDate, advance, checkpoint]);
+  }, [isRealtime, target, simulatedThrough, state, advance, checkpoint]);
 
   const value = useMemo<RealtimeInfo>(() => {
     const aheadDays = isRealtime ? Math.max(0, simulatedThrough - target) : 0;

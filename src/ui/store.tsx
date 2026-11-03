@@ -26,8 +26,11 @@ interface Store {
   undoCount: number;
   /** 가장 최근 되돌리기 대상의 설명 */
   undoLabel: string | null;
-  replace(next: GameState): void;
+  /** remote=true면 다른 기기에서 받은 저장본이라 다시 올리지 않는다 */
+  replace(next: GameState, opts?: { remote?: boolean }): void;
   reset(seed?: number): void;
+  /** 사용자가 직접 바꿀 때마다 1씩 오른다 (따라잡기·다른 기기에서 받은 것은 제외). 기기 연결이 이 값을 보고 올린다 */
+  userRev: number;
   saveOk: boolean;
   screen: ScreenId;
   setScreen(s: ScreenId): void;
@@ -61,6 +64,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const undoStack = useRef<{ state: GameState; label: string }[]>([]);
   const [undoCount, setUndoCount] = useState(0);
   const [undoLabel, setUndoLabel] = useState<string | null>(null);
+  const [userRev, setUserRev] = useState(0);
+  const bumpUser = useCallback(() => setUserRev((r) => r + 1), []);
 
   // 상태는 수정할 때마다 새 객체로 바뀌므로(불변) 이전 객체를 그대로 보관해도 안전하다
   const pushUndo = useCallback((label: string) => {
@@ -100,18 +105,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const next = structuredClone(stateRef.current);
       fn(next);
       commit(next, '설정 변경');
+      bumpUser();
     },
-    [commit],
+    [commit, bumpUser],
   );
 
   const advance = useCallback(
     (days: number, opts?: { record?: boolean }) => {
       const next = structuredClone(stateRef.current);
       for (let i = 0; i < days; i++) advanceDay(next);
-      commit(next, days === 1 ? '하루 진행' : `${days}일 진행`, opts?.record ?? true);
+      const record = opts?.record ?? true;
+      commit(next, days === 1 ? '하루 진행' : `${days}일 진행`, record);
+      // 실시간 따라잡기(record:false)는 어느 기기에서나 같은 결과라 올리지 않는다
+      if (record) bumpUser();
       setDeskDay(null);
     },
-    [commit],
+    [commit, bumpUser],
   );
 
   const undo = useCallback(() => {
@@ -123,16 +132,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setUndoLabel(undoStack.current[undoStack.current.length - 1]?.label ?? null);
     setDeskDay(null);
     setCaseId(null);
-  }, []);
+    bumpUser();
+  }, [bumpUser]);
 
   const replace = useCallback(
-    (loaded: GameState) => {
+    (loaded: GameState, opts?: { remote?: boolean }) => {
       const next = asRealtime(loaded);
       stateRef.current = next;
       setState(next);
       clearUndo();
+      if (!opts?.remote) bumpUser();
     },
-    [clearUndo],
+    [clearUndo, bumpUser],
   );
 
   const reset = useCallback(
@@ -143,8 +154,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setState(next);
       clearUndo();
       setDeskDay(null);
+      bumpUser();
     },
-    [clearUndo],
+    [clearUndo, bumpUser],
   );
 
   const setScreen = useCallback((s: ScreenId) => {
@@ -158,8 +170,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Store>(
-    () => ({ state, update, advance, checkpoint, undo, undoCount, undoLabel, replace, reset, saveOk, screen, setScreen, openCase: setCaseId, caseId, deskDay, setDeskDay }),
-    [state, update, advance, checkpoint, undo, undoCount, undoLabel, replace, reset, saveOk, screen, setScreen, caseId, deskDay],
+    () => ({ state, update, advance, checkpoint, undo, undoCount, undoLabel, replace, reset, userRev, saveOk, screen, setScreen, openCase: setCaseId, caseId, deskDay, setDeskDay }),
+    [state, update, advance, checkpoint, undo, undoCount, undoLabel, replace, reset, userRev, saveOk, screen, setScreen, caseId, deskDay],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

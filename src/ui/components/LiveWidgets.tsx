@@ -205,6 +205,7 @@ export function AlertsBell() {
 
 /** 닫아 둔 동안에도 받기 (웹 푸시). 알림 서버가 설정돼 있고 브라우저가 지원할 때만 보인다 */
 function PushToggle() {
+  const { state } = useStore();
   const on = usePushOn();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -214,7 +215,7 @@ function PushToggle() {
     setErr('');
     try {
       if (on) await disablePush();
-      else await enablePush();
+      else await enablePush(state);
     } catch (e) {
       setErr(e instanceof Error && e.message.includes('권한') ? e.message : '연결하지 못했어요. 잠시 뒤 다시 눌러 주세요.');
     } finally {
