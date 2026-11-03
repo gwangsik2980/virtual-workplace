@@ -1,10 +1,15 @@
+import { activeTool } from '../../sim/compare';
+import { STAGE_LABELS } from '../../sim/purchasing';
+import type { Stage } from '../../sim/types';
 import { ArrowUpRight } from '../motion';
+import { useStore } from '../store';
 
 const REPO = 'https://github.com/gwangsik2980/virtual-workplace';
 
 /** 헤더의 About 버튼을 누르면 헤더 아래로 펼쳐지는 프로젝트 소개 */
 export function AboutContent() {
   return (
+    <>
     <div className="intro-body">
       <div className="intro-col">
         <h3>무엇인가</h3>
@@ -57,6 +62,72 @@ export function AboutContent() {
           </a>
         </div>
       </div>
+    </div>
+    <ProcessStrip />
+    </>
+  );
+}
+
+const PHASES: { name: string; dept: string; stages: Stage[] }[] = [
+  { name: '요청', dept: '생산 → 구매', stages: ['request'] },
+  { name: '조사·분석', dept: '구매', stages: ['market', 'costing'] },
+  { name: '견적·협상', dept: '구매 ↔ 공급업체', stages: ['rfq', 'awaitQuotes', 'compare', 'negotiate'] },
+  { name: '승인·발주', dept: '경영지원 → 구매', stages: ['approve', 'order'] },
+  { name: '입고·정산', dept: '물류·품질·경영지원', stages: ['awaitDelivery', 'inspect', 'done'] },
+];
+
+const WAIT: Stage[] = ['awaitQuotes', 'approve', 'awaitDelivery'];
+
+const TOOL_AT: Partial<Record<Stage, { id: string; label: string }>> = {
+  compare: { id: 'quote-compare', label: '견적 추출' },
+  awaitDelivery: { id: 'delivery-risk', label: '납기 알림' },
+};
+
+/** 구매 12단계 흐름도: 단계별 현재 건수와 도구 연결 지점을 함께 보여 준다 */
+function ProcessStrip() {
+  const { state } = useStore();
+  const count = (st: Stage) =>
+    st === 'done' ? state.stats.closedCases : state.cases.filter((c) => c.stage === st).length;
+  let n = 0;
+  return (
+    <div className="pstrip">
+      <div className="pstrip-head">
+        <h3>구매 업무 흐름</h3>
+        <span>숫자는 지금 그 단계에 있는 구매 건 수이고 마지막은 누적 완료입니다. 줄무늬는 기다리는 단계, 점선 칩은 도구를 붙일 수 있는 자리, 채워진 칩은 적용 중인 도구입니다.</span>
+      </div>
+      <ol className="pstrip-phases">
+        {PHASES.map((ph, pi) => (
+          <li key={ph.name} className="pstrip-phase">
+            <div className="pstrip-phase-head">
+              <b>{ph.name}</b>
+              <span>{ph.dept}</span>
+            </div>
+            <ol className="pstrip-steps">
+              {ph.stages.map((st) => {
+                n += 1;
+                const c = count(st);
+                const tool = TOOL_AT[st];
+                const on = tool ? !!activeTool(state, tool.id) : false;
+                return (
+                  <li key={st} className={`pstrip-step ${WAIT.includes(st) ? 'wait' : ''} ${st === 'done' ? 'done' : ''} ${c > 0 && st !== 'done' ? 'busy' : ''}`}>
+                    <span className="pstrip-no">{String(n).padStart(2, '0')}</span>
+                    <span className="pstrip-name">{STAGE_LABELS[st]}</span>
+                    <span className="pstrip-count">{c}</span>
+                    {tool && (
+                      <span className={`pstrip-tool ${on ? 'on' : ''}`} title={on ? `${tool.label} 도구 적용 중` : `${tool.label} 도구를 붙일 수 있는 자리`}>
+                        {on ? '● ' : '+ '}
+                        {tool.label}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+            {pi < PHASES.length - 1 && <span className="pstrip-arrow" aria-hidden>→</span>}
+          </li>
+        ))}
+      </ol>
+      <p className="pstrip-foot">월간 보고서 초안 도구는 구매 단계가 아니라 월말 보고 업무에 붙습니다.</p>
     </div>
   );
 }

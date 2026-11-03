@@ -987,3 +987,50 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .intro-link:hover { background: rgba(255, 255, 255, 0.16); }
 
 @media (max-width: 520px) { .brand-text { display: none; } }
+
+/* About 패널 안 구매 업무 흐름도 */
+.pstrip { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.pstrip-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1rem; margin-bottom: 0.875rem; }
+.pstrip-head h3 { font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-from); }
+.pstrip-head span { font-size: 0.6875rem; color: rgba(255, 255, 255, 0.42); }
+.pstrip-phases { list-style: none; display: grid; grid-template-columns: 1fr; gap: 0.625rem; }
+@media (min-width: 900px) {
+  .pstrip-phases { grid-template-columns: 1fr 2fr 4fr 2fr 3fr; gap: 1.25rem; }
+}
+.pstrip-phase { position: relative; min-width: 0; }
+.pstrip-phase-head { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.4375rem; }
+.pstrip-phase-head b { font-size: 0.8125rem; font-weight: 600; color: #fff; white-space: nowrap; }
+.pstrip-phase-head span { font-size: 0.6875rem; color: rgba(255, 255, 255, 0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pstrip-steps { list-style: none; display: flex; gap: 0.3125rem; }
+.pstrip-step {
+  position: relative; flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 0.125rem;
+  padding: 0.5rem 0.5625rem; border-radius: 0.625rem;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.pstrip-step.wait { background: repeating-linear-gradient(-45deg, rgba(255,255,255,.05), rgba(255,255,255,.05) 5px, rgba(255,255,255,.02) 5px, rgba(255,255,255,.02) 10px); }
+.pstrip-step.busy { border-color: rgba(207, 128, 71, 0.55); }
+.pstrip-step.done { background: #fff; color: #0a0a0a; }
+.pstrip-no { font-size: 0.625rem; font-weight: 500; color: rgba(255, 255, 255, 0.4); font-variant-numeric: tabular-nums; }
+.pstrip-step.done .pstrip-no { color: rgba(10, 10, 10, 0.5); }
+.pstrip-name { font-size: 0.75rem; font-weight: 500; line-height: 1.25; color: rgba(255, 255, 255, 0.85); min-height: 1.875rem; word-break: keep-all; }
+.pstrip-step.done .pstrip-name { color: #0a0a0a; }
+.pstrip-count { font-size: 1.125rem; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; color: #fff; }
+.pstrip-step:not(.busy):not(.done) .pstrip-count { color: rgba(255, 255, 255, 0.35); }
+.pstrip-step.busy .pstrip-count { color: var(--accent-from); }
+.pstrip-step.done .pstrip-count { color: #0a0a0a; }
+.pstrip-tool {
+  margin-top: 0.25rem; align-self: flex-start; max-width: 100%;
+  font-size: 0.625rem; font-weight: 500; padding: 0.0625rem 0.4375rem; border-radius: 99px;
+  border: 1px dashed rgba(207, 128, 71, 0.6); color: #e3a173; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pstrip-tool.on { border-style: solid; background: var(--accent-from); border-color: var(--accent-from); color: #fff; }
+.pstrip-arrow { display: none; }
+@media (min-width: 900px) {
+  .pstrip-arrow { display: block; position: absolute; right: -0.95rem; top: 50%; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); }
+}
+@media (max-width: 899px) {
+  .pstrip-steps { flex-wrap: wrap; }
+  .pstrip-step { flex: 1 1 calc(50% - 0.3125rem); }
+}
+.pstrip-foot { margin-top: 0.625rem; font-size: 0.6875rem; color: rgba(255, 255, 255, 0.42); }
