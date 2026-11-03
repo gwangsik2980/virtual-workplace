@@ -141,7 +141,7 @@ function makeSuppliers(): Supplier[] {
     history: emptyHistory(),
   });
   return [
-    s('S01', '대한제분유통', ['flour', 'sugar'], 1.04, 0.008, 4, 0.95, 0.04, 30, 'A'),
+    s('S01', '제분대한유통', ['flour', 'sugar'], 1.04, 0.008, 4, 0.95, 0.04, 30, 'A'),
     s('S02', '한결곡물', ['flour'], 1.0, 0.025, 6, 0.82, 0.06, 45, 'C'),
     s('S03', 'Pacific Agri Trading', ['soyoil', 'sugar'], 0.97, 0.012, 12, 0.88, 0.05, 60, 'B'),
     s('S04', '오성유지', ['soyoil'], 1.06, 0.006, 5, 0.96, 0.03, 30, 'A'),

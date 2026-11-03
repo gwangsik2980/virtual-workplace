@@ -79,6 +79,10 @@ export function migrate(s: GameState): GameState {
   if (!s.inbound) out.inbound = [];
   if (!s.sourcing) out.sourcing = { nextDay: Math.max(40, s.day + 20), candidates: [] };
   if (out.finance && out.finance.otherExpenseCum === undefined) out.finance = { ...out.finance, otherExpenseCum: 0 };
+  // 실제 기업명과 겹치지 않게 업체명 변경 (대한제분유통 → 제분대한유통)
+  if (out.suppliers?.some((x) => x.name === '대한제분유통')) {
+    out.suppliers = out.suppliers.map((x) => (x.name === '대한제분유통' ? { ...x, name: '제분대한유통' } : x));
+  }
   if (out.employee?.name === '서지우') out.employee = { ...out.employee, name: 'GWANG' };
   return out;
 }
