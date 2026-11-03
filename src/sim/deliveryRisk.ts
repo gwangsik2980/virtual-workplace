@@ -74,8 +74,8 @@ export function detectDeliveryRisks(state: GameState): void {
     );
     if (!viaTool) {
       chat(state, 'logi', [
-        ['them', `${m.name} 오늘 입고 예정이었는데 아직 차가 안 들어왔어요.`],
-        ['me', '업체에 바로 확인해 볼게요. 알려 주셔서 감사해요.'],
+        ['them', [`${m.name} 오늘 입고 예정이었는데 아직 차가 안 들어왔어요.`, `GWANG님, ${m.name} 오늘 오는 거 맞죠? 아직 소식이 없어요.`, `${m.name} 입고 예정 시간 지났는데 연락이 없네요.`]],
+        ['me', ['업체에 바로 확인해 볼게요. 알려 주셔서 감사해요.', '헉 확인해 보겠습니다. 출하 됐는지 물어볼게요.', '업체 통화해 보고 바로 말씀드릴게요.']],
       ], c.id);
     }
     sendMessage(state, {

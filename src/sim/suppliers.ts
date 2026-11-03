@@ -84,8 +84,8 @@ export function scheduleSupplierWork(state: GameState): void {
       const skill = (Object.keys(skills) as SkillId[]).reduce((a, b) => (skills[b] < skills[a] ? b : a));
       state.backlog.push({ ...item(state, 'training', `사내 교육: ${SKILL_TOPIC[skill]}`, TRAINING_MINUTES, 0), skill });
       chat(state, 'lead', [
-        ['them', `오늘 ${SKILL_TOPIC[skill]} 교육 하루 종일이죠? 급한 건 제가 볼 테니 교육에 집중해요.`],
-        ['me', '감사합니다 팀장님. 끝나고 밀린 건 바로 처리하겠습니다.'],
+        ['them', [`오늘 ${SKILL_TOPIC[skill]} 교육 하루 종일이죠? 급한 건 제가 볼 테니 교육에 집중해요.`, `${SKILL_TOPIC[skill]} 교육 잘 듣고 와요. 들은 거 다음 주 회의 때 짧게 공유해 주고요.`]],
+        ['me', ['감사합니다 팀장님. 끝나고 밀린 건 바로 처리하겠습니다.', '네, 정리해서 공유드리겠습니다.']],
       ]);
     }
   }
@@ -109,7 +109,7 @@ function runSourcing(state: GameState): void {
     const pct = (cand.sampleDefectRate * 100).toFixed(1);
     logEvent(state, 'quality', 'quality', `${cand.name} 샘플 시험 ${pass ? '합격' : '불합격'}`, `샘플 불량률 ${pct}% (기준 ${SAMPLE_PASS_DEFECT * 100}% 미만).`);
     chat(state, 'qa', [
-      ['them', `${cand.name} 샘플 시험 ${pass ? '합격' : '불합격'}이에요. 불량률 ${pct}% 나왔습니다.`],
+      ['them', [`${cand.name} 샘플 시험 ${pass ? '합격' : '불합격'}이에요. 불량률 ${pct}% 나왔습니다.`, `${cand.name} 샘플 결과 나왔어요. 불량률 ${pct}%라 ${pass ? '통과예요' : '기준 넘었어요'}.`]],
       ['me', pass ? '감사합니다! 등록 진행할게요.' : '아쉽네요. 다른 후보 찾아보겠습니다. 감사합니다.'],
     ]);
     sendMessage(state, {
@@ -245,8 +245,8 @@ export function finishReview(state: GameState): void {
     } else {
       state.backlog.push({ ...item(state, 'meeting', `협력사 개선 미팅: ${s.name} (납기·품질 개선 요청)`, MEETING_MINUTES, 10), supplierId: s.id });
       chat(state, 'lead', [
-        ['them', `${s.name} 이번 분기 평가 기준 미달이네요. 미팅 잡아서 개선 계획 받아 와요.`],
-        ['me', '네, 이번 주 안으로 미팅 잡겠습니다.'],
+        ['them', [`${s.name} 이번 분기 평가 기준 미달이네요. 미팅 잡아서 개선 계획 받아 와요.`, `평가표 보니 ${s.name} 납기·품질이 안 좋네요. 직접 만나서 원인 들어 봐요.`]],
+        ['me', ['네, 이번 주 안으로 미팅 잡겠습니다.', '알겠습니다. 개선 계획서 받아서 공유드릴게요.']],
       ]);
     }
   }

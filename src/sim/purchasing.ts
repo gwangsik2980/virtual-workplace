@@ -104,17 +104,17 @@ export function createCase(
   const need = formatDayShort(state.startDate, neededByDay);
   if (urgent) {
     chat(state, 'prod', [
-      ['them', `GWANG님 ${m.name} 재고가 거의 바닥이에요. 방금 긴급으로 요청 올렸습니다. ${need}까지는 꼭 들어와야 해요.`],
-      ['me', '네 확인했습니다. 오늘 바로 견적 돌려서 제일 빨리 되는 곳으로 잡아볼게요.'],
+      ['them', [`GWANG님 ${m.name} 재고가 거의 바닥이에요. 방금 긴급으로 요청 올렸습니다. ${need}까지는 꼭 들어와야 해요.`, `${m.name} 긴급 요청 넣었어요! ${need} 넘으면 라인 멈춰요.`, `급해요 ㅠ ${m.name} 며칠분 안 남았어요. ${need}까지 부탁드립니다.`]],
+      ['me', ['네 확인했습니다. 오늘 바로 견적 돌려서 제일 빨리 되는 곳으로 잡아볼게요.', '봤습니다. 납기 되는 업체 위주로 바로 알아볼게요.', '알겠습니다. 오늘 중으로 어디서 받을지 말씀드릴게요.']],
     ], c.id);
     chat(state, 'lead', [
-      ['them', `${m.name} 긴급 건 봤어요. 단가보다 납기 우선으로 보고, 진행 상황 수시로 공유해 줘요.`],
-      ['me', '네 팀장님, 견적 받는 대로 보고드리겠습니다.'],
+      ['them', [`${m.name} 긴급 건 봤어요. 단가보다 납기 우선으로 보고, 진행 상황 수시로 공유해 줘요.`, `${m.name} 긴급이라면서요? 이번엔 몇 % 비싸도 빨리 오는 데로 가요.`, `${m.name} 건은 오늘 견적 받으면 바로 나한테 보고해요. 품의는 빨리 봐 줄게요.`]],
+      ['me', ['네 팀장님, 견적 받는 대로 보고드리겠습니다.', '네, 납기 기준으로 추려서 말씀드리겠습니다.', '알겠습니다. 오후에 한 번 중간 보고드릴게요.']],
     ], c.id);
   } else {
     chat(state, 'prod', [
-      ['them', `${m.name} 구매요청 올렸어요. 필요일은 ${need}입니다.`],
-      ['me', '확인했습니다. 견적 받아보고 일정 말씀드릴게요.'],
+      ['them', [`${m.name} 구매요청 올렸어요. 필요일은 ${need}입니다.`, `${m.name} 요청 넣었습니다~ ${need}까지만 들어오면 돼요.`, `GWANG님 ${m.name} 구매요청 하나 올렸어요. 필요일 ${need}이요.`]],
+      ['me', ['확인했습니다. 견적 받아보고 일정 말씀드릴게요.', '네 봤습니다. 업체 확인하고 입고일 알려 드릴게요.', '접수했어요. 진행되면 공유드릴게요.']],
     ], c.id);
   }
   return c;
@@ -254,8 +254,8 @@ export function completeStage(state: GameState, c: PurchaseCase): void {
           caseId: c.id,
         });
         chat(state, 'lead', [
-          ['me', `팀장님, ${s.name}에서 ${m.name} 단가를 ${(requested * 100).toFixed(1)}% 올려 달라고 합니다. 협상해서 ${(up * 100).toFixed(1)}%까지 낮췄습니다.`],
-          ['them', '원자재 오른 건 맞으니 어느 정도는 어쩔 수 없죠. 다음 견적 때는 다른 업체도 꼭 같이 받아 봐요.'],
+          ['me', [`팀장님, ${s.name}에서 ${m.name} 단가를 ${(requested * 100).toFixed(1)}% 올려 달라고 합니다. 협상해서 ${(up * 100).toFixed(1)}%까지 낮췄습니다.`, `팀장님, ${s.name}이 ${m.name} 원료값 올랐다고 ${(requested * 100).toFixed(1)}% 인상 요청해서 ${(up * 100).toFixed(1)}%로 합의했습니다.`]],
+          ['them', ['원자재 오른 건 맞으니 어느 정도는 어쩔 수 없죠. 다음 견적 때는 다른 업체도 꼭 같이 받아 봐요.', '수고했어요. 시세 내려가면 다시 낮춰 달라고 요청할 수 있게 근거 남겨 둬요.']],
         ], c.id);
         logEvent(state, 'market', 'purchasing', `${s.name} ${m.name} 단가 인상 요구 (${c.id})`, `요구 ${(requested * 100).toFixed(1)}%, 협상 후 ${(up * 100).toFixed(1)}% 인상으로 합의.`, c.id);
         enterStage(state, c, 'approve');
@@ -394,8 +394,8 @@ export function processWaits(state: GameState): void {
       // 금액이 큰 품의만 팀장이 메신저로 따로 말한다 (매번 오면 대화방이 승인 알림으로 도배된다)
       if (c.negotiation && c.negotiation.finalPrice * c.qty > 30_000_000) {
         chat(state, 'lead', [
-          ['them', `${c.id} ${state.materials[c.materialId].name} 품의 승인했어요. 금액이 커서 재무팀에도 공유해 뒀으니 발주 진행하세요.`],
-          ['me', '감사합니다. 바로 발주서 보내겠습니다.'],
+          ['them', [`${c.id} ${state.materials[c.materialId].name} 품의 승인했어요. 금액이 커서 재무팀에도 공유해 뒀으니 발주 진행하세요.`, `${c.id} 승인 났어요. 금액 커서 결제 일정은 재무팀이랑 한 번 맞춰 줘요.`]],
+          ['me', ['감사합니다. 바로 발주서 보내겠습니다.', '네, 발주 넣고 재무팀에도 공유하겠습니다.']],
         ], c.id);
       }
       sendMessage(state, {
@@ -462,14 +462,14 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
   );
   if (late) {
     chat(state, 'logi', [
-      ['them', `${m.name} 이제 들어왔어요. 약속일보다 ${state.day - po.promisedDay}일 늦었네요.`],
-      ['me', '고생 많으셨어요. 업체에 재발 방지 요청해 둘게요.'],
+      ['them', [`${m.name} 이제 들어왔어요. 약속일보다 ${state.day - po.promisedDay}일 늦었네요.`, `${m.name} 방금 하차했어요. ${state.day - po.promisedDay}일 늦게 왔네요.`, `늦었던 ${m.name} 입고 끝났습니다. 검수 넘겼어요.`]],
+      ['me', ['고생 많으셨어요. 업체에 재발 방지 요청해 둘게요.', '감사합니다! 늦은 건 업체 평가에 반영해 둘게요.', '다행이네요. 다음엔 출하 전에 미리 확인하겠습니다.']],
     ], c.id);
   }
   if (defectRate > 0.02) {
     chat(state, 'qa', [
-      ['them', `${m.name} 입고분 검사했는데 불량률 ${(defectRate * 100).toFixed(1)}% 나왔어요. 불량분은 격리해 뒀습니다. 클레임 부탁드려요.`],
-      ['me', `네, ${s.name}에 대체 납품 요청하겠습니다. 사진 몇 장만 보내 주세요.`],
+      ['them', [`${m.name} 입고분 검사했는데 불량률 ${(defectRate * 100).toFixed(1)}% 나왔어요. 불량분은 격리해 뒀습니다. 클레임 부탁드려요.`, `이번 ${m.name} 상태가 안 좋아요. 불량 ${(defectRate * 100).toFixed(1)}%라서 따로 빼 뒀어요.`, `${m.name} 검사 결과 불량률 ${(defectRate * 100).toFixed(1)}%예요. 기준 넘어서 반품해야 할 것 같아요.`]],
+      ['me', [`네, ${s.name}에 대체 납품 요청하겠습니다. 사진 몇 장만 보내 주세요.`, `알겠습니다. ${s.name}에 클레임 걸고 대체품 일정 받을게요.`, `확인했어요. 검사 성적서 보내 주시면 ${s.name}에 바로 전달할게요.`]],
     ], c.id);
     state.backlog.push({
       id: nextId(state, 'BL'),
@@ -493,8 +493,8 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
   }
   if (mismatch) {
     chat(state, 'fin', [
-      ['them', `${po.id} 발주서 단가랑 업체 청구 단가가 달라요. 어느 쪽이 맞는 거예요?`],
-      ['me', '확인해 보니 제가 비교표에 잘못 옮긴 것 같아요. 수정 발주 올리겠습니다. 죄송합니다.'],
+      ['them', [`${po.id} 발주서 단가랑 업체 청구 단가가 달라요. 어느 쪽이 맞는 거예요?`, `GWANG님, ${po.id} 정산하려는데 단가가 안 맞아요. 확인 부탁드려요.`]],
+      ['me', ['확인해 보니 제가 비교표에 잘못 옮긴 것 같아요. 수정 발주 올리겠습니다. 죄송합니다.', '아, 제가 단가 입력을 잘못했네요. 바로 고쳐서 다시 보내 드릴게요.']],
     ], c.id);
     logEvent(
       state,

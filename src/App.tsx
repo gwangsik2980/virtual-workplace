@@ -27,6 +27,7 @@ import { ProcessMap } from './ui/screens/ProcessMap';
 import { ToolLab } from './ui/screens/ToolLab';
 import { AlertsBell, AwayModal, ClockChip } from './ui/components/LiveWidgets';
 import { useInstall } from './ui/install';
+import { useChatUnread } from './ui/chatRead';
 import { RealtimeProvider } from './ui/realtime';
 import { StoreProvider, useStore, type ScreenId } from './ui/store';
 import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme, type ThemePref } from './ui/theme';
@@ -133,6 +134,7 @@ function InstallAction({ open }: { open: boolean }) {
 function NavMenu({ open, onClose, onExport, onImport, onReset, themePref, onTheme }: { open: boolean; onClose: () => void; onExport: () => void; onImport: () => void; onReset: () => void; themePref: ThemePref; onTheme: (p: ThemePref) => void }) {
   const { state, screen, setScreen } = useStore();
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
+  const chatUnread = useChatUnread().total;
 
   useEffect(() => {
     if (!open) return;
@@ -173,6 +175,7 @@ function NavMenu({ open, onClose, onExport, onImport, onReset, themePref, onThem
               <span className="idx">0{i + 1}</span>
               <span className="lbl">{n.label}</span>
               {n.id === 'learning' && newConcepts > 0 && <span className="nbadge">새 개념 {newConcepts}</span>}
+              {n.id === 'chat' && chatUnread > 0 && <span className="nbadge">안 읽음 {chatUnread}</span>}
             </button>
           </li>
         ))}
@@ -223,6 +226,8 @@ function Shell() {
   const [about, setAbout] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const newConcepts = Object.keys(state.learning.unlocked).filter((k) => !state.learning.understood[k]).length;
+  // 메뉴 버튼 숫자 = 새 개념 + 안 읽은 팀 채팅
+  const menuBadge = newConcepts + useChatUnread().total;
   const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref);
   const [, bump] = useState(0);
   const resolved = resolveTheme(themePref);
@@ -345,10 +350,10 @@ function Shell() {
             >
               {resolved === 'dark' ? <SunIcon /> : <MoonIcon />}
             </button>
-            <button className="menu-btn" onClick={() => setMenu(true)} aria-label="메뉴 열기">
+            <button className="menu-btn" onClick={() => setMenu(true)} aria-label={menuBadge > 0 ? `메뉴 열기, 새 소식 ${menuBadge}개` : '메뉴 열기'}>
               <MenuIcon />
               <span>Menu</span>
-              {newConcepts > 0 && <span className="badge-dot">{newConcepts}</span>}
+              {menuBadge > 0 && <span className="badge-dot">{menuBadge}</span>}
             </button>
           </div>
         </div>

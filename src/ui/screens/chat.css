@@ -34,7 +34,13 @@
   background: var(--surface-2); font-size: 0.875rem; line-height: 1.5; color: var(--text);
 }
 .chat-line.mine .chat-bubble { background: var(--accent-soft); border-bottom-left-radius: 1rem; border-bottom-right-radius: 0.25rem; }
-.chat-time { flex-shrink: 0; font-size: 0.6875rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.chat-time { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; font-size: 0.6875rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.chat-line:not(.mine) .chat-time { align-items: flex-start; }
+.chat-read { color: var(--accent-text); font-size: 0.625rem; }
+.chat-unread-mark {
+  display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; font-size: 0.6875rem; color: var(--accent-text);
+}
+.chat-unread-mark::before, .chat-unread-mark::after { content: ''; flex: 1; height: 1px; background: var(--accent); opacity: 0.4; }
 .chat-case {
   display: block; margin-top: 0.25rem; border: 0; background: transparent; padding: 0; cursor: pointer;
   font-size: 0.75rem; color: var(--accent-text); text-decoration: underline; text-underline-offset: 0.15em;

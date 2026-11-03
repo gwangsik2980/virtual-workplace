@@ -5,25 +5,24 @@ import { formatDay } from '../../sim/util';
 import { clock } from '../components/Common';
 import { HeroFacts, ScreenHero, SectionHead } from '../components/Editorial';
 import { Reveal } from '../motion';
-import { useRealtime } from '../realtime';
+import { CHAT_THREADS, useChatUnread, useVisibleChats } from '../chatRead';
 import { useStore } from '../store';
 import './chat.css';
 
-const THREADS = Object.keys(CHAT_PEOPLE) as ChatThread[];
+const THREADS = CHAT_THREADS;
 const SHOW = 120;
 
 export function TeamChat() {
   const { state, openCase } = useStore();
-  const rt = useRealtime();
   const [thread, setThread] = useState<ChatThread>('lead');
   const listRef = useRef<HTMLDivElement>(null);
   const me = state.employee.name;
 
   // 실시간 근무 중에는 지금 시각까지 온 메시지만 보여 준다
-  const visible = useMemo(() => {
-    const live = rt.isRealtime && rt.phase === 'working' && rt.liveMinute !== null;
-    return (state.chats ?? []).filter((c) => !live || c.day < rt.target || c.minute <= rt.liveMinute!);
-  }, [state.chats, rt.isRealtime, rt.phase, rt.target, rt.liveMinute]);
+  const visible = useVisibleChats();
+  const { unread, total, markRead, lastRead } = useChatUnread();
+  // 화면을 열 때 기준으로 어디까지 읽었었는지 (그 아래에 "여기까지 읽음" 줄을 긋는다)
+  const [readMark, setReadMark] = useState<Partial<Record<ChatThread, number>>>(() => ({ ...lastRead }));
 
   const byThread = useMemo(() => {
     const map = new Map<ChatThread, ChatMessage[]>();
@@ -32,7 +31,7 @@ export function TeamChat() {
     return map;
   }, [visible]);
 
-  const today = rt.isRealtime ? rt.target : state.day - 1;
+  const today = state.day - 1;
   const todayCount = visible.filter((c) => c.day === today).length;
   const leadOrders = visible.filter((c) => c.thread === 'lead' && c.from === 'them').length;
   const msgs = (byThread.get(thread) ?? []).slice(-SHOW);
@@ -41,6 +40,18 @@ export function TeamChat() {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [thread, msgs.length]);
+
+  // 보고 있는 방은 새 메시지가 와도 바로 읽음 처리한다
+  useEffect(() => {
+    markRead(thread);
+  }, [thread, msgs.length, markRead]);
+
+  const openThread = (t: ChatThread) => {
+    setReadMark((m) => ({ ...m, [thread]: Infinity, [t]: lastRead[t] ?? 0 }));
+    setThread(t);
+  };
+  const mark = readMark[thread] ?? 0;
+  const firstUnreadIdx = msgs.findIndex((c) => c.from === 'them' && Number(c.id.replace(/\D/g, '')) > mark);
 
   return (
     <>
@@ -52,7 +63,7 @@ export function TeamChat() {
         aside={
           <HeroFacts
             items={[
-              { label: '오늘 대화', value: `${todayCount}줄` },
+              { label: '안 읽은 메시지', value: `${total}개`, note: `오늘 대화 ${todayCount}줄` },
               { label: '팀장 지시', value: `${leadOrders}건`, note: '보관 중인 대화 기준' },
               { label: '대화방', value: `${THREADS.length}개`, note: '상사 1, 다른 부서 5' },
               { label: '보관', value: `${visible.length}줄`, note: '최근 1,500줄까지' },
@@ -70,9 +81,9 @@ export function TeamChat() {
                 const p = CHAT_PEOPLE[t];
                 const list = byThread.get(t) ?? [];
                 const last = list[list.length - 1];
-                const fresh = list.filter((c) => c.day === today && c.from === 'them').length;
+                const fresh = unread[t];
                 return (
-                  <button key={t} role="tab" aria-selected={thread === t} className={`chat-thread ${thread === t ? 'active' : ''}`} onClick={() => setThread(t)}>
+                  <button key={t} role="tab" aria-selected={thread === t} className={`chat-thread ${thread === t ? 'active' : ''}`} onClick={() => openThread(t)}>
                     <span className="chat-avatar" aria-hidden>
                       {p.name.slice(0, 1)}
                     </span>
@@ -103,6 +114,7 @@ export function TeamChat() {
                     return (
                       <div key={c.id}>
                         {newDay && <div className="chat-day">{formatDay(state.startDate, c.day)}</div>}
+                        {i === firstUnreadIdx && i > 0 && <div className="chat-unread-mark">여기서부터 새 메시지</div>}
                         <div className={`chat-line ${c.from === 'me' ? 'mine' : ''}`}>
                           <div className="chat-bubble">
                             {c.text}
@@ -112,7 +124,10 @@ export function TeamChat() {
                               </button>
                             )}
                           </div>
-                          <span className="chat-time">{clock(c.minute)}</span>
+                          <span className="chat-time">
+                            {c.from === 'me' && msgs.slice(i + 1).some((x) => x.from === 'them') && <span className="chat-read">읽음</span>}
+                            {clock(c.minute)}
+                          </span>
                         </div>
                       </div>
                     );

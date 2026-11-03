@@ -23,19 +23,23 @@ const MAX_CHATS = 1500;
  * 대화 한 묶음을 남긴다. lines의 첫 줄은 지금 시각(state.nowMinute), 다음 줄은 몇 분씩 뒤에 온다.
  * 'me'는 GWANG, 'them'은 대화 상대.
  */
-export function chat(state: GameState, thread: ChatThread, lines: ['me' | 'them', string][], caseId?: string): void {
+export type ChatLine = ['me' | 'them', string | string[]];
+
+export function chat(state: GameState, thread: ChatThread, lines: ChatLine[], caseId?: string): void {
   if (!state.chats) state.chats = [];
   const rng = makeRng(state.seed, 'chat', thread, state.day, state.counters['CH'] ?? 0);
   let minute = state.nowMinute ?? 0;
+  // 같은 상황에도 말투가 조금씩 다르게: 문장 후보 중 하나를 고른다 (시드·날짜·순번으로 정해져 재현된다)
   for (const [from, text] of lines) {
-    state.chats.push({ id: nextId(state, 'CH'), day: state.day, minute, thread, from, text, caseId });
+    const pick = Array.isArray(text) ? rng.pick(text) : text;
+    state.chats.push({ id: nextId(state, 'CH'), day: state.day, minute, thread, from, text: pick, caseId });
     minute += rng.int(1, 8);
   }
   if (state.chats.length > MAX_CHATS) state.chats = state.chats.slice(-MAX_CHATS);
 }
 
 /** 같은 날 같은 방에 같은 종류의 말을 반복하지 않게 (연초 인상 공문처럼 여러 건이 한꺼번에 올 때) */
-export function chatOncePerDay(state: GameState, thread: ChatThread, key: string, lines: ['me' | 'them', string][]): void {
+export function chatOncePerDay(state: GameState, thread: ChatThread, key: string, lines: ChatLine[]): void {
   const k = `chat:${key}:${state.day}`;
   if (state.counters[k]) return;
   state.counters[k] = 1;

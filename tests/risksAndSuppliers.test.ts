@@ -103,8 +103,11 @@ describe('팀 채팅', () => {
     // 구매 요청마다 생산팀 대화가 남는다 (보관 한도 안에서)
     const firstDay = s.chats[0].day;
     const requested = s.cases.filter((c) => c.createdDay >= firstDay).length;
-    const prodAsks = s.chats.filter((c) => c.thread === 'prod' && c.from === 'them' && c.text.includes('요청 올렸')).length;
+    const prodAsks = new Set(s.chats.filter((c) => c.thread === 'prod' && c.from === 'them' && c.caseId).map((c) => c.caseId)).size;
     expect(prodAsks).toBe(requested);
+    // 같은 상황에도 문장이 여러 가지로 나온다
+    const asks = s.chats.filter((c) => c.thread === 'prod' && c.from === 'them' && c.caseId);
+    expect(new Set(asks.map((c) => c.text.replace(/[0-9/()월화수목금토일]+/g, '').slice(0, 8))).size).toBeGreaterThan(1);
     // 시각은 근무 시간 안
     expect(s.chats.every((c) => c.minute >= 0 && c.minute < 9 * 60 + 60)).toBe(true);
   });

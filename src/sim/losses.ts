@@ -80,8 +80,8 @@ export function checkLatentDefects(state: GameState): void {
       c.id,
     );
     chat(state, 'qa', [
-      ['them', `생산 중에 ${s.name} ${m.name}에서 이물이 나와서 ${qty.toLocaleString('ko-KR')}${m.unit} 폐기했어요. 손실 보상 청구 부탁드립니다.`],
-      ['me', '확인했습니다. 로트 번호랑 사진 보내 주시면 오늘 바로 청구할게요.'],
+      ['them', [`생산 중에 ${s.name} ${m.name}에서 이물이 나와서 ${qty.toLocaleString('ko-KR')}${m.unit} 폐기했어요. 손실 보상 청구 부탁드립니다.`, `${m.name} 투입하다가 규격 벗어난 게 나와서 ${qty.toLocaleString('ko-KR')}${m.unit} 버렸어요. ${s.name} 로트예요.`]],
+      ['me', ['확인했습니다. 로트 번호랑 사진 보내 주시면 오늘 바로 청구할게요.', '아이고, 알겠습니다. 폐기 내역서 주시면 업체에 보상 요청하겠습니다.']],
     ], c.id);
     sendMessage(state, {
       from: '품질팀 정주임',
@@ -218,8 +218,8 @@ export function emergencySpotBuy(state: GameState): void {
       `재고가 내일 생산분(${Math.round(usage).toLocaleString('ko-KR')}${m.unit})에 못 미치고 내일까지 들어올 물량이 없어 ${qty.toLocaleString('ko-KR')}${m.unit}를 ${won(unitPrice)}/${m.unit}에 샀습니다. 웃돈 약 ${won((unitPrice - market) * qty)}.`,
     );
     chat(state, 'lead', [
-      ['me', `팀장님, ${m.name} 내일 생산분이 모자라서 현물로 ${qty.toLocaleString('ko-KR')}${m.unit} 샀습니다. 시세보다 ${Math.round(premium * 100)}% 비쌉니다.`],
-      ['them', '라인 서는 것보단 낫죠. 사후 품의 오늘 중으로 올리고, 왜 모자랐는지도 같이 적어 줘요.'],
+      ['me', [`팀장님, ${m.name} 내일 생산분이 모자라서 현물로 ${qty.toLocaleString('ko-KR')}${m.unit} 샀습니다. 시세보다 ${Math.round(premium * 100)}% 비쌉니다.`, `팀장님, ${m.name} 급하게 현물로 구했습니다. ${qty.toLocaleString('ko-KR')}${m.unit}, 시세 대비 +${Math.round(premium * 100)}%입니다.`]],
+      ['them', ['라인 서는 것보단 낫죠. 사후 품의 오늘 중으로 올리고, 왜 모자랐는지도 같이 적어 줘요.', '잘했어요. 대신 현물 자꾸 쓰면 원가 올라가니까 재주문 시점 다시 봐 줘요.']],
     ]);
     sendMessage(state, {
       from: '생산팀 김대리',
