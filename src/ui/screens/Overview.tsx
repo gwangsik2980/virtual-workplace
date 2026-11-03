@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { activeTool } from '../../sim/compare';
 import { dailyUsage } from '../../sim/market';
 import { onOrderQty, reorderPoint } from '../../sim/operations';
@@ -7,7 +7,7 @@ import { DEPT_NAMES, formatDay, formatDayShort, wonShort } from '../../sim/util'
 import { LineChart } from '../components/Chart';
 import { Card, EventBadge, pct, Stat } from '../components/Common';
 import { ArrowRight, DotIcon, LineReveal, Mark, Reveal, useIntroReady, useScrollCount } from '../motion';
-import { useStore } from '../store';
+import { useStore, type ScreenId } from '../store';
 
 function HeroCard() {
   const { state, setScreen } = useStore();
@@ -104,7 +104,7 @@ function Hero() {
                   <ArrowRight />
                 </span>
               </button>
-              <button className="pill" onClick={() => setScreen('desk')}>
+              <button className="pill pill-white" onClick={() => setScreen('desk')}>
                 담당자 업무 보기
               </button>
             </div>
@@ -141,19 +141,25 @@ function Hero() {
 }
 
 function LoopBand() {
-  const tiles: { cls: string; label: ReactNode; aria?: string }[] = [
-    { cls: 'light', label: '관찰' },
-    { cls: 'accent', label: '발견' },
-    { cls: 'dark', label: <ArrowRight />, aria: '다음으로' },
-    { cls: 'ghost', label: '개선' },
+  const { setScreen } = useStore();
+  const steps: { cls: string; no: string; label: string; desc: string; go: ScreenId }[] = [
+    { cls: 'light', no: '01', label: '관찰', desc: '담당자의 하루 보기', go: 'desk' },
+    { cls: 'accent', no: '02', label: '발견', desc: '성과와 문제 찾기', go: 'performance' },
+    { cls: 'dark', no: '03', label: '개선', desc: '도구를 업무에 적용', go: 'lab' },
+    { cls: 'ghost', no: '04', label: '검증', desc: '도구 전후 비교', go: 'lab' },
   ];
   return (
-    <ul className="loop-band" aria-label="관찰, 발견, 개선의 순환">
-      {tiles.map((t, i) => (
-        <Reveal as="li" key={i} delay={i * 120} y={1.75}>
-          <div className={`loop-tile ${t.cls}`} aria-label={t.aria}>
-            {t.label}
-          </div>
+    <ul className="loop-band" aria-label="관찰, 발견, 개선, 검증의 순환">
+      {steps.map((t, i) => (
+        <Reveal as="li" key={t.no} delay={i * 100} y={1}>
+          <button className={`loop-tile ${t.cls}`} onClick={() => setScreen(t.go)}>
+            <span className="loop-no">{t.no}</span>
+            <span className="loop-label">{t.label}</span>
+            <span className="loop-desc">{t.desc}</span>
+            <span className="loop-arrow" aria-hidden>
+              <ArrowRight />
+            </span>
+          </button>
         </Reveal>
       ))}
     </ul>
