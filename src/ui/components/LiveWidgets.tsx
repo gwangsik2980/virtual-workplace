@@ -40,7 +40,7 @@ function DateWithDay({ text }: { text: string }) {
 
 export type Light = 'green' | 'orange' | 'red' | 'off';
 
-/** 상태 불: 근무 중 초록, 점심 주황, 퇴근·출근 전·휴일 빨강, 실시간이 아니면 꺼짐 */
+/** 상태 불: 근무 중 초록, 점심 주황, 퇴근 빨강, 출근 전·휴일·실시간이 아닐 때 회색 */
 export function useLight(): { light: Light; text: string } {
   const rt = useRealtime();
   if (!rt.isRealtime) return { light: 'off', text: '수동 진행' };
@@ -49,7 +49,8 @@ export function useLight(): { light: Light; text: string } {
     const lunch = rt.liveMinute !== null && rt.liveMinute >= LUNCH_START && rt.liveMinute < LUNCH_START + LUNCH_MINUTES;
     return lunch ? { light: 'orange', text: '점심시간' } : { light: 'green', text: '근무 중' };
   }
-  return { light: 'red', text: PHASE_TEXT[rt.phase] };
+  // 퇴근은 빨강, 출근 전과 휴일은 회색
+  return { light: rt.phase === 'after' ? 'red' : 'off', text: PHASE_TEXT[rt.phase] };
 }
 
 /** 헤더 날짜 칩 */

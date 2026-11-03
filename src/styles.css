@@ -1053,7 +1053,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 
 /* 실시간 칩 */
 .live-dot { width: 0.5rem; height: 0.5rem; border-radius: 99px; background: var(--subtle); flex-shrink: 0; }
-/* 상태 불: 근무 중 초록, 점심 주황, 퇴근 빨강, 꺼짐 회색 */
+/* 상태 불: 근무 중 초록, 점심 주황, 퇴근 빨강, 출근 전·휴일·수동 회색 */
 .light-green { --light: #2f9e44; --light-glow: rgba(47, 158, 68, 0.45); }
 .light-orange { --light: #e8890c; --light-glow: rgba(232, 137, 12, 0.45); }
 .light-red { --light: #e03131; --light-glow: rgba(224, 49, 49, 0); }
