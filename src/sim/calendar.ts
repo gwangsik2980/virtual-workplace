@@ -59,6 +59,9 @@ export function nextBusinessDayISO(from: Date = new Date()): string {
 /** 근무 시간 (분, 자정 기준) */
 export const WORK_START_MIN = 9 * 60;
 export const WORK_END_MIN = 18 * 60;
+/** 점심시간: 09:00 기준 180분(12:00)부터 60분 */
+export const LUNCH_START = 180;
+export const LUNCH_MINUTES = 60;
 
 /**
  * 실시간 모드에서 지금까지 시뮬레이션이 끝나 있어야 하는 마지막 날(일차).

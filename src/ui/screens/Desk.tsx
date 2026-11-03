@@ -32,6 +32,7 @@ const KIND_COLORS: Record<WorkKind, string> = {
   claim: 'var(--danger)',
   adhoc: 'var(--series-2)',
   expedite: 'var(--warn)',
+  lunch: 'var(--subtle)',
 };
 
 const KIND_LABELS: Record<WorkKind, string> = {
@@ -42,6 +43,7 @@ const KIND_LABELS: Record<WorkKind, string> = {
   claim: '클레임',
   adhoc: '일상 업무',
   expedite: '납기 독촉',
+  lunch: '점심',
 };
 
 type MailFilter = 'all' | 'in' | 'out';
@@ -66,7 +68,7 @@ export function Desk() {
   const blocks = useMemo(() => state.schedule.filter((b) => b.day === day).sort((a, b) => a.start - b.start), [state.schedule, day]);
   const minDay = useMemo(() => state.schedule.reduce((m, b) => Math.min(m, b.day), lastDay), [state.schedule, lastDay]);
   const openCases = state.cases.filter((c) => c.stage !== 'done' && c.stage !== 'cancelled');
-  const lastDayMinutes = state.schedule.filter((b) => b.day === lastDay).reduce((a, b) => a + b.minutes, 0);
+  const lastDayMinutes = state.schedule.filter((b) => b.day === lastDay && b.kind !== 'lunch').reduce((a, b) => a + b.minutes, 0);
 
   const heroLines = [`${e.name} ${e.rank}의`, '하루'];
 
@@ -285,10 +287,12 @@ function Career() {
 
 function DayTimeline({ blocks, workday, onOpen }: { blocks: TimeBlock[]; workday: number; onOpen: (id: string) => void }) {
   if (blocks.length === 0) return <div className="empty">이 날의 근무 기록이 없습니다.</div>;
-  const end = Math.max(workday, ...blocks.map((b) => b.start + b.minutes));
+  // 시계 기준 정규 근무 종료 = 8시간 + 점심 1시간 = 18:00
+  const workEnd = workday + (blocks.some((b) => b.kind === 'lunch') ? 60 : 0);
+  const end = Math.max(workEnd, ...blocks.map((b) => b.start + b.minutes));
   const span = Math.ceil(end / 60) * 60;
   const pctOf = (m: number) => `${(m / span) * 100}%`;
-  const total = blocks.reduce((a, b) => a + b.minutes, 0);
+  const total = blocks.filter((b) => b.kind !== 'lunch').reduce((a, b) => a + b.minutes, 0);
   const toolMin = blocks.filter((b) => b.toolId).reduce((a, b) => a + b.minutes, 0);
   const byKind = new Map<WorkKind, number>();
   for (const b of blocks) byKind.set(b.kind, (byKind.get(b.kind) ?? 0) + b.minutes);
@@ -325,7 +329,7 @@ function DayTimeline({ blocks, workday, onOpen }: { blocks: TimeBlock[]; workday
               onClick={() => b.caseId && onOpen(b.caseId)}
             />
           ))}
-          {end > workday && <div className="timeline-workend" style={{ left: pctOf(workday) }} title="정규 근무시간(8시간) 종료" />}
+          {end > workEnd && <div className="timeline-workend" style={{ left: pctOf(workEnd) }} title="정규 근무 종료 (18:00)" />}
         </div>
       </div>
       <div className="timeline-legend">

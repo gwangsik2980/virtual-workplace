@@ -231,7 +231,7 @@ export interface Employee {
   milestones: { day: number; text: string }[];
 }
 
-export type WorkKind = 'case' | 'report' | 'mail' | 'claim' | 'meeting' | 'adhoc' | 'expedite';
+export type WorkKind = 'case' | 'report' | 'mail' | 'claim' | 'meeting' | 'adhoc' | 'expedite' | 'lunch';
 
 export interface TimeBlock {
   day: number;

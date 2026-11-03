@@ -1,3 +1,4 @@
+import { LUNCH_MINUTES, LUNCH_START } from './calendar';
 import { detectDeliveryRisks, finishExpedite } from './deliveryRisk';
 import { gainExperience } from './employee';
 import { updateMarket } from './market';
@@ -45,11 +46,30 @@ function collectTasks(state: GameState): Task[] {
 function runWorkday(state: GameState): { minutes: number; compareMinutes: number } {
   const p = state.params;
   const blocks: TimeBlock[] = [];
+  // t는 09:00부터 지난 시계 분(점심 포함), w()는 실제 일한 분(점심 제외)
   let t = 0;
+  let lunchDone = false;
+  const w = () => t - (lunchDone ? LUNCH_MINUTES : 0);
+  const insertLunch = () => {
+    blocks.push({ day: state.day, start: t, minutes: LUNCH_MINUTES, label: '점심시간', kind: 'lunch' });
+    t += LUNCH_MINUTES;
+    lunchDone = true;
+  };
   const push = (b: Omit<TimeBlock, 'day' | 'start'>) => {
     if (b.minutes <= 0) return;
-    blocks.push({ day: state.day, start: t, ...b });
-    t += b.minutes;
+    if (!lunchDone && t >= LUNCH_START) insertLunch();
+    if (!lunchDone && t + b.minutes > LUNCH_START) {
+      // 12:00에 걸치는 업무는 점심 전후로 나눈다
+      const before = LUNCH_START - t;
+      blocks.push({ day: state.day, start: t, ...b, minutes: before });
+      t += before;
+      insertLunch();
+      blocks.push({ day: state.day, start: t, ...b, minutes: b.minutes - before });
+      t += b.minutes - before;
+    } else {
+      blocks.push({ day: state.day, start: t, ...b });
+      t += b.minutes;
+    }
     // 이 블록이 끝나는 시각에 생긴 사건으로 기록된다
     state.nowMinute = t;
   };
@@ -64,14 +84,14 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
   let guard = 0;
   while (guard++ < 200) {
     const limit = p.workdayMinutes + (hasUrgent() ? 90 : 0);
-    if (t >= limit) break;
+    if (w() >= limit) break;
     const tasks = collectTasks(state);
     if (tasks.length === 0) break;
     const task = tasks[0];
-    const available = limit - t;
+    const available = limit - w();
     if (task.kind === 'case') {
       const c = task.c;
-      if (!c.urgent && t >= p.workdayMinutes) break;
+      if (!c.urgent && w() >= p.workdayMinutes) break;
       const work = Math.min(available, c.stageMinutesLeft);
       const info = stageWorkInfo(c.stage)!;
       const m = state.materials[c.materialId];
@@ -90,7 +110,7 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
       if (c.stageMinutesLeft <= 0) completeStage(state, c);
     } else {
       const b = task.b;
-      if (t >= p.workdayMinutes) break;
+      if (w() >= p.workdayMinutes) break;
       const work = Math.min(available, b.minutesLeft);
       push({ minutes: work, label: b.title + (work < b.minutesLeft ? ' (계속)' : ''), kind: b.kind, caseId: b.caseId });
       b.minutesLeft -= work;
@@ -108,10 +128,11 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
   state.schedule.push(...blocks);
   const minDay = state.day - MAX_SCHEDULE_DAYS;
   state.schedule = state.schedule.filter((b) => b.day > minDay);
-  const overtime = Math.max(0, t - p.workdayMinutes);
-  state.stats.employeeMinutes += t;
+  const worked = w();
+  const overtime = Math.max(0, worked - p.workdayMinutes);
+  state.stats.employeeMinutes += worked;
   state.stats.overtimeMinutes += overtime;
-  return { minutes: t, compareMinutes };
+  return { minutes: worked, compareMinutes };
 }
 
 /** 월간 보고서 완료: 도구를 썼으면 도구 초안, 아니면 담당자가 직접 정리한 같은 내용의 보고서가 남는다 */

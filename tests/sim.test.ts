@@ -68,6 +68,18 @@ describe('구매 업무 흐름', () => {
     expect(s.stats.deliveriesOnTime + s.stats.deliveriesLate).toBeGreaterThan(0);
   });
 
+  it('점심시간 12:00~13:00에는 업무가 없다', () => {
+    for (const b of s.schedule) {
+      if (b.kind === 'lunch') {
+        expect(b.start).toBe(180);
+        expect(b.minutes).toBe(60);
+        continue;
+      }
+      const end = b.start + b.minutes;
+      expect(end <= 180 || b.start >= 240).toBe(true);
+    }
+  });
+
   it('업무 이력과 관찰 기록이 쌓인다', () => {
     expect(s.schedule.length).toBeGreaterThan(0);
     expect(s.messages.length).toBeGreaterThan(0);
@@ -76,7 +88,7 @@ describe('구매 업무 흐름', () => {
 
   it('하루 근무시간은 연장 한도를 넘지 않는다', () => {
     const byDay = new Map<number, number>();
-    for (const b of s.schedule) byDay.set(b.day, (byDay.get(b.day) ?? 0) + b.minutes);
+    for (const b of s.schedule) if (b.kind !== 'lunch') byDay.set(b.day, (byDay.get(b.day) ?? 0) + b.minutes);
     for (const m of byDay.values()) expect(m).toBeLessThanOrEqual(s.params.workdayMinutes + 90 + 60);
   });
 });
