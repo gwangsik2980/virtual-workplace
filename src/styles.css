@@ -679,8 +679,7 @@ textarea { width: 100%; resize: vertical; min-height: 4.5rem; }
 /* 관찰 대상 카드와 거래 공급업체 목록의 폭을 맞춘다 (카드가 내용 폭으로 줄어 왼쪽이 비지 않게) */
 .hero-card-wrap,
 .hero-partners { width: 100%; max-width: 24rem; }
-.hero-partners .lbl { margin-bottom: 0.75rem; font-size: 0.75rem; font-weight: 500; color: rgba(var(--fg-rgb), 0.45); }
-@media (min-width: 1024px) { .hero-partners .lbl { text-align: right; } }
+.hero-partners .lbl { margin-bottom: 0.875rem; font-size: 0.8125rem; font-weight: 600; color: var(--text-2); }
 .hero-partners ul { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem 0.75rem; }
 .hero-partners li {
   display: flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; color: rgba(var(--fg-rgb), 0.7); opacity: 0.8;

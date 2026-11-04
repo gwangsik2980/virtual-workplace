@@ -229,6 +229,7 @@ function Hero() {
   const showClock = rt.isRealtime && rt.phase !== 'ahead';
   const sec = useSecondClock(showClock);
   const d = showClock ? sec : dayToDate(state.startDate, today);
+  const activeSuppliers = state.suppliers.filter((s) => s.active !== false);
   const titleLines = [
     <>
       {d.getFullYear()}-{pad2(d.getMonth() + 1)}-{pad2(d.getDate())}
@@ -258,8 +259,10 @@ function Hero() {
             <HeroCard />
           </Reveal>
           <Reveal gated delay={550} y={0.875} className="hero-partners">
-            <ul aria-label={`거래 공급업체 ${state.suppliers.length}곳`}>
-              {state.suppliers.map((s) => (
+            {/* 거래 중지한 업체는 빼고 지금 거래하는 곳만 */}
+            <div className="lbl">공급업체 현황 : {activeSuppliers.length}곳</div>
+            <ul aria-label={`공급업체 ${activeSuppliers.length}곳`}>
+              {activeSuppliers.map((s) => (
                 <li key={s.id} title={s.name}>
                   <span style={{ color: 'var(--text-3)', display: 'inline-flex', fontSize: '0.875rem' }}>
                     <DotIcon />
