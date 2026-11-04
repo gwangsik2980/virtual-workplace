@@ -11,7 +11,7 @@ import { completeStage, processWaits, stageWorkInfo, STAGE_LABELS } from './purc
 import type { BacklogItem, DailySnapshot, GameState, PurchaseCase, SkillId, TimeBlock } from './types';
 import { draftMonthlyReport } from '../tools/monthlyReport/draft';
 import { getToolVersion } from '../tools/registry';
-import { logEvent, nextId } from './util';
+import { isWeekStart, logEvent, nextId } from './util';
 
 const MAX_SCHEDULE_DAYS = 40;
 const MAX_MESSAGES = 600;
@@ -83,7 +83,8 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
   // 메일 확인: 전날 이후 받은 메일 수에 비례
   const inbox = state.messages.filter((m) => m.day === state.day && m.to.includes(state.employee.name)).length;
   push({ minutes: Math.min(60, 15 + inbox * 3), label: `메일 확인 (${inbox}건)`, kind: 'mail' });
-  if (state.day % 5 === 1) push({ minutes: 30, label: '주간 팀 회의', kind: 'meeting' });
+  // 주간 팀 회의: 매주 첫 영업일 메일 확인 뒤 (예전에는 '5영업일마다'라서 요일이 화·금으로 떠돌았다)
+  if (isWeekStart(state.startDate, state.day)) push({ minutes: 30, label: '주간 팀 회의', kind: 'meeting' });
 
   let compareMinutes = 0;
   const hasUrgent = () => state.cases.some((c) => c.urgent && c.stageMinutesLeft > 0 && stageWorkInfo(c.stage));

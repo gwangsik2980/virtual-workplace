@@ -1,6 +1,6 @@
 import { makeRng } from './rng';
 import type { ChatThread, GameState } from './types';
-import { dayToDate, formatDayShort, nextId } from './util';
+import { dayToDate, formatDayShort, isWeekStart, nextId, weekKey } from './util';
 
 /**
  * 가상 팀 채팅 (사내 메신저).
@@ -59,10 +59,36 @@ export function chatOncePerDay(state: GameState, thread: ChatThread, key: string
 
 // ── 구매팀 단체방 ─────────────────────────────────────
 
-/** 월요일 기준 주 번호 (같은 주인지 비교용) */
-function weekKey(d: Date): number {
-  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
-  return monday.getTime();
+/** 회의 정리 메시지가 이 말로 시작한다 (업무 일지가 찾아 쓴다) */
+export const MEETING_NOTE = '오늘 회의 정리합니다.';
+
+/** 주간 회의 정리: 이번 주 입고 예정, 진행 중 구매(긴급), 지난주 결품 일수 */
+function meetingSummary(state: GameState, today: Date): ChatLine[] {
+  const wk = weekKey(today);
+  const open = state.cases.filter((c) => c.stage !== 'done' && c.stage !== 'cancelled');
+  const arrivals = open
+    .filter((c) => c.po && weekKey(dayToDate(state.startDate, c.po.promisedDay)) === wk)
+    .sort((a, b) => a.po!.promisedDay - b.po!.promisedDay);
+  const name = (id: (typeof open)[number]) => state.materials[id.materialId].name;
+  // 긴급 건 중 아직 발주 전인 것만 (이미 발주한 긴급 건은 입고 예정에 나온다)
+  const urgent = open.filter((c) => c.urgent && !c.po);
+  const lastWeek = state.history.filter((h) => weekKey(dayToDate(state.startDate, h.day)) === wk - 7 * 86_400_000);
+  const stockoutDays = lastWeek.filter((h) => h.shortMaterial).length;
+  const arrivalText = arrivals.length
+    ? `${arrivals.length}건 (${arrivals.slice(0, 3).map((c) => `${name(c)} ${formatDayShort(state.startDate, c.po!.promisedDay)}`).join(', ')}${arrivals.length > 3 ? ' 외' : ''})`
+    : '없음';
+  const lines = [
+    MEETING_NOTE,
+    `- 이번 주 입고 예정: ${arrivalText}`,
+    `- 진행 중 구매: ${open.length}건${urgent.length ? `, 발주 전 긴급 ${urgent.map(name).join(', ')}` : ''}`,
+    ...(lastWeek.length ? [`- 지난주 결품: ${stockoutDays}일`] : []),
+    urgent.length ? 'GWANG님은 긴급 건부터 이번 주 안에 발주까지 마무리해 주세요.' : stockoutDays > 0 ? '결품 원인은 이번 주 안에 정리해서 공유해 주세요.' : '이번 주도 납기 위주로 챙겨 봅시다.',
+  ];
+  return [
+    ['them', lines.join('\n'), '이팀장'],
+    ['them', ['네 확인했습니다.', '네, 입고 일정 같이 챙기겠습니다.'], '최대리'],
+    ['me', urgent.length ? ['네, 긴급 건부터 챙기겠습니다.', '네 팀장님, 이번 주 안에 발주까지 마무리하겠습니다.'] : ['네 확인했습니다.', '네, 입고 예정 건 업체에 미리 확인해 두겠습니다.']],
+  ];
 }
 
 /**
@@ -71,7 +97,7 @@ function weekKey(d: Date): number {
  */
 export function teamChat(state: GameState): void {
   const today = dayToDate(state.startDate, state.day);
-  const firstOfWeek = state.day === 1 || weekKey(dayToDate(state.startDate, state.day - 1)) !== weekKey(today);
+  const firstOfWeek = isWeekStart(state.startDate, state.day);
   const lastOfWeek = weekKey(dayToDate(state.startDate, state.day + 1)) !== weekKey(today);
   const rng = makeRng(state.seed, 'teamchat', state.day);
   const saved = state.nowMinute;
@@ -84,6 +110,13 @@ export function teamChat(state: GameState): void {
       ['them', ['네 팀장님, 정리해서 올리겠습니다.', '네, 이번 주 입고 일정부터 확인하겠습니다.'], '최대리'],
       ['me', ['네 알겠습니다!', '네, 맡은 건 정리해서 금요일에 올리겠습니다.', '네 팀장님, 확인하겠습니다.']],
     ]);
+  }
+
+  // 주간 팀 회의가 끝나면 이팀장이 실제 숫자로 회의 내용을 정리한다
+  const meeting = state.schedule.find((b) => b.day === state.day && b.label === '주간 팀 회의');
+  if (meeting) {
+    state.nowMinute = meeting.start + meeting.minutes + rng.int(2, 8);
+    chat(state, 'team', meetingSummary(state, today), undefined);
   }
 
   const stockout = todays.find((e) => e.type === 'stockout' && e.title.includes('생산 차질'));

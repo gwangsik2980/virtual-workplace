@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { MEETING_NOTE } from '../src/sim/chat';
+import { isWeekStart } from '../src/sim/util';
 import { advanceDays } from '../src/sim/engine';
 import { createInitialState } from '../src/sim/seed';
 import type { GameState } from '../src/sim/types';
@@ -144,6 +146,14 @@ describe('팀 채팅', () => {
     const ordered = s.cases.filter((c) => c.po && c.po.orderDay >= s.chats[0].day);
     expect(ordered.length).toBeGreaterThan(0);
     for (const c of ordered) expect(s.chats.some((m) => m.thread === 'logi' && m.caseId === c.id && m.from === 'me' && m.day === c.po!.orderDay)).toBe(true);
+    // 주간 팀 회의: 매주 첫 영업일에만 하고, 끝나면 단체방에 회의 정리가 남는다
+    const meetDays = [...new Set(s.schedule.filter((b) => b.label === '주간 팀 회의').map((b) => b.day))];
+    expect(meetDays.length).toBeGreaterThan(0);
+    for (const d of meetDays) {
+      expect(isWeekStart(s.startDate, d), `day ${d}`).toBe(true);
+      if (d >= s.chats[0].day) expect(s.chats.some((c) => c.day === d && c.thread === 'team' && c.text.startsWith(MEETING_NOTE))).toBe(true);
+    }
+    for (const d of new Set(s.schedule.map((b) => b.day))) if (isWeekStart(s.startDate, d)) expect(meetDays).toContain(d);
     // 시각은 근무 시간 안
     expect(s.chats.every((c) => c.minute >= 0 && c.minute < 9 * 60 + 60)).toBe(true);
   });

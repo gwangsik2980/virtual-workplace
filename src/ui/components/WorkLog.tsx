@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { MEETING_NOTE } from '../../sim/chat';
 import { STAGE_LABELS } from '../../sim/purchasing';
 import type { Stage, TimeBlock, WorkKind } from '../../sim/types';
 import { formatDay } from '../../sim/util';
@@ -69,7 +70,21 @@ export function WorkLogModal({ day, title, onClose }: { day: number; title: stri
     return { id, name: c ? state.materials[c.materialId].name : id, urgent: c?.urgent, from, to, min };
   });
 
-  const events = state.events.filter((x) => x.day === day).sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0));
+  // 주요 사항: 그날 사건 + 주간 팀 회의 (회의 정리는 단체방의 이팀장 메시지에서 가져온다)
+  const meeting = blocks.find((b) => b.label === '주간 팀 회의');
+  const note = (state.chats ?? []).find((c) => c.day === day && c.thread === 'team' && c.text.startsWith(MEETING_NOTE));
+  const meetingItem = meeting
+    ? {
+        id: 'meeting',
+        minute: meeting.start,
+        title: `주간 팀 회의${note ? `: ${note.text.split('\n').slice(1, -1).map((l) => l.replace(/^- /, '')).join(', ')}` : ''}`,
+        caseId: undefined as string | undefined,
+      }
+    : null;
+  const events = [
+    ...state.events.filter((x) => x.day === day).map((x) => ({ id: x.id, minute: x.minute ?? 0, title: x.title, caseId: x.caseId })),
+    ...(meetingItem ? [meetingItem] : []),
+  ].sort((a, b) => a.minute - b.minute);
   const openCases = state.cases.filter((c) => c.stage !== 'done' && c.stage !== 'cancelled').length;
   const open = (id?: string) => {
     if (!id) return;
@@ -187,7 +202,7 @@ export function WorkLogModal({ day, title, onClose }: { day: number; title: stri
             <ul className="worklog-events">
               {events.map((x) => (
                 <li key={x.id} className={x.caseId ? 'link' : ''} onClick={() => open(x.caseId)}>
-                  <span className="num faint">{clock(x.minute ?? 0)}</span>
+                  <span className="num faint">{clock(x.minute)}</span>
                   <span>{x.title}</span>
                 </li>
               ))}

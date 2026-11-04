@@ -32,6 +32,16 @@ export function formatDayShort(startDate: string, day: number): string {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+/** 월요일 기준 주 번호 (같은 주인지 비교용) */
+export function weekKey(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)).getTime();
+}
+
+/** 그 주의 첫 영업일인지 (보통 월요일, 월요일이 쉬는 날이면 화요일). 회사 첫날도 포함 */
+export function isWeekStart(startDate: string, day: number): boolean {
+  return day === 1 || weekKey(dayToDate(startDate, day - 1)) !== weekKey(dayToDate(startDate, day));
+}
+
 /** 해당 날짜가 월의 마지막 영업일인지 */
 export function isMonthEnd(startDate: string, day: number): boolean {
   const today = dayToDate(startDate, day);
