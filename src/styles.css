@@ -136,6 +136,12 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 .lenis.lenis-stopped { overflow: hidden; }
 
+/* 가벼운 모드 (그래픽 가속이 꺼진 브라우저, src/ui/lite.ts): 등장 효과·불 깜빡임·흐림을 끈다 */
+.lite .reveal, .lite .line-inner, .lite .word { opacity: 1 !important; transform: none !important; transition: none !important; will-change: auto !important; }
+.lite .live-dot::after, .lite .live-eyebrow::after { animation: none !important; display: none; }
+.lite .header { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--background); }
+.lite .drawer-backdrop, .lite .drawer-head { backdrop-filter: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

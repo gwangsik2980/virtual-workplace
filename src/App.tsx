@@ -32,6 +32,7 @@ import { PushSync } from './ui/push';
 import { DeviceSync, syncAvailable } from './ui/sync';
 import { OwnerKeyDialog } from './ui/components/OwnerKey';
 import { RealtimeProvider } from './ui/realtime';
+import { LITE } from './ui/lite';
 import { StoreProvider, useStore, type ScreenId } from './ui/store';
 import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme, type ThemePref } from './ui/theme';
 
@@ -62,6 +63,15 @@ const SCREENS = {
    인트로 로더: 000 → 100을 1.3초 동안 세고 위로 밀려 올라간다
    ------------------------------------------------------------------ */
 function PageLoader() {
+  // 가벼운 모드는 인트로를 건너뛴다 (전체 화면을 밀어 올리는 효과가 CPU로는 무겁다)
+  useEffect(() => {
+    if (LITE) markIntroDone();
+  }, []);
+  if (LITE) return null;
+  return <PageLoaderAnim />;
+}
+
+function PageLoaderAnim() {
   const [progress, setProgress] = useState(0);
   const [out, setOut] = useState(false);
   const [gone, setGone] = useState(false);

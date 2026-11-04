@@ -31,6 +31,7 @@
 - `main.tsx`에서 `styles.css`를 App보다 먼저 불러온다. 화면별 CSS가 같은 우선순위의 전역 규칙을 이기게 하기 위해서다.
 - 부드러운 스크롤은 Lenis를 쓰되, 입력이 있을 때만 requestAnimationFrame을 돌리고 멈추면 끈다(`motion.tsx`). 자체 스크롤이 있는 영역은 `data-lenis-prevent`를 붙인다.
 - 스크롤과 함께 움직이는 카드에는 `backdrop-filter`(블러)를 쓰지 않는다. 배경이 거의 단색이라 눈에 띄는 차이가 없는데 스크롤마다 GPU가 다시 흐리게 계산한다. 헤더와 드로어만 쓴다.
+- 가벼운 모드(`src/ui/lite.ts`): 그래픽 가속이 꺼진 브라우저(WebGL 장치 이름이 SwiftShader 등 소프트웨어 렌더러)는 `<html class="lite">`로 등장 효과·인트로·부드러운 스크롤·불 깜빡임·헤더 흐림을 끈다. **Playwright 헤드리스도 SwiftShader라 자동으로 가벼운 모드가 된다.** 평소 화면을 찍으려면 localStorage `virtual-workplace/lite`에 `off`를 넣는다(`on`은 강제로 켜기).
 - 계속 도는 애니메이션은 `transform`과 `opacity`만 움직인다. `box-shadow`·`width` 같은 걸 무한 반복하면 가만히 있어도 매 프레임 다시 칠해서 렉이 생긴다.
 - 화면을 바꾸면 Playwright로 1440px과 390px, 라이트와 다크를 찍어 확인한다. 과하게 큰 요소를 사용자가 싫어한다.
 

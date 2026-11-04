@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client';
 // 전역 스타일을 먼저 불러와야 화면별 CSS가 같은 우선순위에서 이긴다
 import './styles.css';
 import { App } from './App';
+import { applyLite } from './ui/lite';
+
+// 그래픽 가속이 꺼진 브라우저는 무거운 효과를 끈다 (첫 화면을 그리기 전에)
+applyLite();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

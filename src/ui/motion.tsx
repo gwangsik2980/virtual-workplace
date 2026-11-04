@@ -1,4 +1,5 @@
 import Lenis from 'lenis';
+import { LITE } from './lite';
 import { createElement, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 /* ------------------------------------------------------------------
@@ -31,7 +32,8 @@ function wake() {
 }
 
 export function initSmoothScroll(): void {
-  if (lenis || reduceMotion()) return;
+  // 가벼운 모드는 매 프레임 스크롤을 옮기는 일을 CPU가 떠맡게 되니 기본 스크롤로 둔다
+  if (lenis || reduceMotion() || LITE) return;
   lenis = new Lenis({
     smoothWheel: true,
     autoRaf: false,
@@ -222,9 +224,11 @@ export function WordReveal({ parts, as = 'p', className, style, stagger = 35 }: 
  */
 export function useScrollCount(target: number): [React.RefObject<HTMLElement>, number] {
   const ref = useRef<HTMLElement>(null);
-  const [value, setValue] = useState(reduceMotion() ? target : 0);
+  // 가벼운 모드는 스크롤할 때마다 다시 그리지 않게 처음부터 최종 숫자를 보여 준다
+  const still = reduceMotion() || LITE;
+  const [value, setValue] = useState(still ? target : 0);
   useEffect(() => {
-    if (reduceMotion()) {
+    if (still) {
       setValue(target);
       return;
     }
@@ -259,7 +263,7 @@ export function useScrollCount(target: number): [React.RefObject<HTMLElement>, n
       window.removeEventListener('resize', onScroll);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [target]);
+  }, [target, still]);
   return [ref, value];
 }
 
