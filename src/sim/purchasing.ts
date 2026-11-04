@@ -371,6 +371,15 @@ export function completeStage(state: GameState, c: PurchaseCase): void {
         `${c.po.id}: ${c.qty.toLocaleString('ko-KR')}${m.unit} × ${won(nego.finalPrice)} = ${won(c.po.amountKRW)}, 입고 예정 ${formatDay(state.startDate, promised)}`,
         c.id,
       );
+      // 물류팀에 입고 예정을 알린다 (구매 담당자가 가장 자주 주고받는 말)
+      {
+        const d = formatDayShort(state.startDate, promised);
+        const q2 = `${c.qty.toLocaleString('ko-KR')}${m.unit}`;
+        chat(state, 'logi', [
+          ['me', [`${m.name} ${s.name}에 발주 넣었어요. ${d} 입고 예정이고 ${q2}입니다.`, `물류팀 공유드려요. ${m.name} ${q2}, ${d}에 들어올 예정이에요 (${s.name}).`, `${m.name} 발주 나갔습니다. ${s.name}에서 ${d}에 ${q2} 들어와요.`]],
+          ['them', c.urgent ? ['긴급 건이죠? 들어오면 바로 검수 넘길게요.', '네 그날 오전에 하차 먼저 잡아 둘게요.'] : ['네 확인했어요. 하차 일정 잡아 둘게요.', '감사합니다! 창고 자리 미리 비워 둘게요.', '넵 입고 예정표에 올려 둘게요.']],
+        ], c.id);
+      }
       sendMessage(state, {
         from: state.employee.name,
         to: s.name,
@@ -519,6 +528,17 @@ function receiveDelivery(state: GameState, c: PurchaseCase): void {
       ['them', [`${m.name} 이제 들어왔어요. 약속일보다 ${state.day - po.promisedDay}일 늦었네요.`, `${m.name} 방금 하차했어요. ${state.day - po.promisedDay}일 늦게 왔네요.`, `늦었던 ${m.name} 입고 끝났습니다. 검수 넘겼어요.`]],
       ['me', ['고생 많으셨어요. 업체에 재발 방지 요청해 둘게요.', '감사합니다! 늦은 건 업체 평가에 반영해 둘게요.', '다행이네요. 다음엔 출하 전에 미리 확인하겠습니다.']],
     ], c.id);
+  }
+  // 제때 깨끗하게 들어온 입고도 물류팀이 짧게 알린다 (늦거나 불량이면 위아래의 따로 된 대화가 남는다)
+  if (!late && defectRate <= 0.02) {
+    const saved = state.nowMinute;
+    // 입고는 아침 계산에서 처리된다. 하차는 보통 오전이라 09:15~10:50 사이로 둔다 (말 시각만 정한다)
+    state.nowMinute = Math.max(saved ?? 0, makeRng(state.seed, 'recvchat', c.id).int(15, 110));
+    chat(state, 'logi', [
+      ['them', [`${m.name} 입고 끝났어요. ${po.qty.toLocaleString('ko-KR')}${m.unit} 검수 넘겼습니다.`, `${s.name} ${m.name} 방금 하차했어요. 수량 맞아요.`, `${m.name} 들어왔습니다~ 검수 진행 중이에요.`]],
+      ['me', ['감사합니다! 확인했어요.', '수고하셨어요. 생산팀에도 말해 둘게요.', '고생하셨습니다. 날짜 딱 맞췄네요.']],
+    ], c.id);
+    state.nowMinute = saved;
   }
   if (defectRate > 0.02) {
     chat(state, 'qa', [

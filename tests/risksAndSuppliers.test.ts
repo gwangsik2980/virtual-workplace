@@ -137,6 +137,13 @@ describe('팀 채팅', () => {
       const today = s.history.find((h) => h.day === c.day);
       expect(prev?.shortMaterial && prev.shortMaterial === today?.shortMaterial).toBeFalsy();
     }
+    // 영업일마다 대화가 적어도 하나는 있다 (조용한 날은 단체방에서 진행 중인 건을 짚는다)
+    const chatDays = new Set(s.chats.map((c) => c.day));
+    for (let d = s.chats[0].day; d < s.day; d++) expect(chatDays.has(d), `day ${d}`).toBe(true);
+    // 발주하면 물류팀에 입고 예정을 알린다
+    const ordered = s.cases.filter((c) => c.po && c.po.orderDay >= s.chats[0].day);
+    expect(ordered.length).toBeGreaterThan(0);
+    for (const c of ordered) expect(s.chats.some((m) => m.thread === 'logi' && m.caseId === c.id && m.from === 'me' && m.day === c.po!.orderDay)).toBe(true);
     // 시각은 근무 시간 안
     expect(s.chats.every((c) => c.minute >= 0 && c.minute < 9 * 60 + 60)).toBe(true);
   });

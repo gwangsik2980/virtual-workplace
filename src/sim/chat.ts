@@ -1,6 +1,6 @@
 import { makeRng } from './rng';
 import type { ChatThread, GameState } from './types';
-import { dayToDate, nextId } from './util';
+import { dayToDate, formatDayShort, nextId } from './util';
 
 /**
  * 가상 팀 채팅 (사내 메신저).
@@ -112,6 +112,30 @@ export function teamChat(state: GameState): void {
       ['them', ['수고하셨습니다!', '고생하셨습니다. 주말 잘 보내세요.'], '최대리'],
       ['me', ['수고하셨습니다!', '고생 많으셨습니다. 좋은 주말 보내세요!']],
     ]);
+  }
+  // 조용한 날: 하루 종일 메신저가 비어 있으면 어색하다. 최대리가 실제 진행 중인 건을 짚는다
+  if (!state.chats.some((c) => c.day === state.day)) {
+    state.nowMinute = rng.int(240, 470);
+    const open = state.cases.filter((c) => c.stage !== 'done' && c.stage !== 'cancelled');
+    const next = open.filter((c) => c.po && c.po.promisedDay > state.day).sort((a, b) => a.po!.promisedDay - b.po!.promisedDay)[0];
+    if (next) {
+      const name = state.materials[next.materialId].name;
+      const d = formatDayShort(state.startDate, next.po!.promisedDay);
+      chat(state, 'team', [
+        ['them', [`오늘은 조용하네요. ${d}에 들어오는 ${name} 건 업체에 출하 한 번만 확인해 줘요.`, `특별한 건 없죠? ${name} ${d} 입고 예정이니까 하루 전에 업체랑 통화해 두세요.`], '최대리'],
+        ['me', ['네, 오후에 통화해 보겠습니다.', '넵 출하 일정 확인해 두겠습니다.']],
+      ]);
+    } else if (open.length > 0) {
+      chat(state, 'team', [
+        ['them', [`오늘은 조용하네요. 진행 중인 ${open.length}건 견적 회신이랑 품의 상태만 한 번씩 챙겨 주세요.`, `급한 건 없죠? 진행 중인 ${open.length}건 중에 막힌 데 있으면 말해 줘요.`], '최대리'],
+        ['me', ['네, 퇴근 전에 한 번 정리해 두겠습니다.', '지금은 막힌 건 없어요. 내일 아침에 다시 보겠습니다.']],
+      ]);
+    } else {
+      chat(state, 'team', [
+        ['them', ['오늘은 급한 건 없네요. 남는 시간에 업체별 단가표 최신으로 정리해 둡시다.', '조용한 날이네요. 다음 달 발주 예정 품목 미리 한 번 훑어봐 줘요.'], '이팀장'],
+        ['me', ['네 팀장님, 정리해 두겠습니다.', '네, 오늘 중으로 보겠습니다.']],
+      ]);
+    }
   }
   state.nowMinute = saved;
 }
