@@ -74,6 +74,7 @@
 .msgr-bubble {
   width: fit-content; padding: 0.5625rem 0.875rem; border-radius: 0.75rem; background: var(--surface-2);
   font-size: 0.875rem; line-height: 1.55; color: var(--text);
+  white-space: pre-line;
 }
 .msgr-line.mine .msgr-bubble { background: var(--accent-soft); }
 .msgr-case {

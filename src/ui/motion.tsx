@@ -1,46 +1,28 @@
-import Lenis from 'lenis';
 import { createElement, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 /* ------------------------------------------------------------------
-   부드러운 스크롤 (Lenis)와 스크롤 잠금
+   스크롤 잠금
+   예전에는 Lenis로 휠 스크롤을 부드럽게 했는데, 매 프레임 자바스크립트로 스크롤을 옮기느라
+   노트북 크롬에서 버벅였다(가만히 있어도 초당 60번 돌았다). 브라우저 기본 스크롤로 되돌렸다.
    ------------------------------------------------------------------ */
 
-let lenis: Lenis | null = null;
 let lockCount = 0;
 
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-export function initSmoothScroll(): void {
-  if (lenis || reduceMotion()) return;
-  lenis = new Lenis({
-    smoothWheel: true,
-    // 드로어·메뉴처럼 자체 스크롤이 있는 곳은 Lenis가 가로채지 않게 한다
-    prevent: (node: HTMLElement) => !!node.closest?.('.drawer, .navmenu, .table-wrap, .kanban, [data-lenis-prevent]'),
-  });
-  const raf = (t: number) => {
-    lenis?.raf(t);
-    requestAnimationFrame(raf);
-  };
-  requestAnimationFrame(raf);
-}
-
 export function lockScroll(): void {
   lockCount++;
-  lenis?.stop();
-  const h = document.documentElement.style;
-  h.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
 }
 
 export function unlockScroll(): void {
   lockCount = Math.max(0, lockCount - 1);
   if (lockCount > 0) return;
-  lenis?.start();
   document.documentElement.style.removeProperty('overflow');
 }
 
 export function scrollToTop(): void {
-  if (lenis) lenis.scrollTo(0, { immediate: true });
-  else window.scrollTo(0, 0);
+  window.scrollTo(0, 0);
 }
 
 /* 1920px보다 넓은 화면에서도 비율대로 계속 커지게 한다 (계수 0.6666) */

@@ -111,14 +111,32 @@ describe('팀 채팅', () => {
       if (b) expect(s.chats[i].minute).toBeGreaterThan(b.minute);
       void a;
     }
-    // 구매 요청마다 생산팀 대화가 남는다 (보관 한도 안에서)
+    // 구매 요청마다 생산팀 대화가 남는다 (보관 한도 안에서). 같은 날 여러 건은 한 메시지에 묶여 품목명이 모두 들어간다
     const firstDay = s.chats[0].day;
-    const requested = s.cases.filter((c) => c.createdDay >= firstDay).length;
-    const prodAsks = new Set(s.chats.filter((c) => c.thread === 'prod' && c.from === 'them' && c.caseId).map((c) => c.caseId)).size;
-    expect(prodAsks).toBe(requested);
+    const requested = s.cases.filter((c) => c.createdDay >= firstDay);
+    for (const c of requested) {
+      const name = s.materials[c.materialId].name;
+      const ask = s.chats.find((m) => m.thread === 'prod' && m.from === 'them' && m.day === c.createdDay && m.caseId && m.text.includes(name));
+      expect(ask, `${c.id} ${name}`).toBeTruthy();
+    }
+    // 묻고 답하기: 한 방에서 같은 날 상대가 연달아 묻고 내가 연달아 답하는 '묻고-답-묻고-답'이 몇 분 사이에 되풀이되지 않는다
+    const byDayThread = new Map<string, typeof s.chats>();
+    for (const m of s.chats) {
+      const k = `${m.thread}:${m.day}`;
+      byDayThread.set(k, [...(byDayThread.get(k) ?? []), m]);
+    }
+    const prodRequestTalks = [...byDayThread.entries()].filter(([k]) => k.startsWith('prod:')).map(([, l]) => l.filter((m) => m.caseId && m.from === 'them').length);
+    expect(Math.max(...prodRequestTalks)).toBeLessThanOrEqual(1);
     // 같은 상황에도 문장이 여러 가지로 나온다
     const asks = s.chats.filter((c) => c.thread === 'prod' && c.from === 'them' && c.caseId);
     expect(new Set(asks.map((c) => c.text.replace(/[0-9/()월화수목금토일]+/g, '').slice(0, 8))).size).toBeGreaterThan(1);
+    // 결품이 며칠 이어져도 팀장이 매일 같은 지시를 되풀이하지 않는다
+    const leadStockout = s.chats.filter((c) => c.thread === 'lead' && c.from === 'them' && /결품|생산 차질/.test(c.text));
+    for (const c of leadStockout) {
+      const prev = s.history.find((h) => h.day === c.day - 1);
+      const today = s.history.find((h) => h.day === c.day);
+      expect(prev?.shortMaterial && prev.shortMaterial === today?.shortMaterial).toBeFalsy();
+    }
     // 시각은 근무 시간 안
     expect(s.chats.every((c) => c.minute >= 0 && c.minute < 9 * 60 + 60)).toBe(true);
   });

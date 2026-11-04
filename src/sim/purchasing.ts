@@ -67,6 +67,8 @@ export function createCase(
   neededByDay: number,
   urgent: boolean,
   reason: string,
+  /** true면 메신저 대화를 남기지 않는다. 같은 날 요청 여러 건을 requestChats로 한 번에 묶을 때 쓴다 */
+  quiet = false,
 ): PurchaseCase {
   const c: PurchaseCase = {
     id: nextId(state, 'PR'),
@@ -101,23 +103,75 @@ export function createCase(
     body: `${reason}\n아래와 같이 구매를 요청드립니다.\n\n- 품목: ${m.name}\n- 수량: ${qty.toLocaleString('ko-KR')}${m.unit}\n- 필요일: ${formatDay(state.startDate, neededByDay)}\n\n검토 후 진행 부탁드립니다.`,
     caseId: c.id,
   });
-  const need = formatDayShort(state.startDate, neededByDay);
-  if (urgent) {
-    chat(state, 'prod', [
-      ['them', [`GWANG님 ${m.name} 재고가 거의 바닥이에요. 방금 긴급으로 요청 올렸습니다. ${need}까지는 꼭 들어와야 해요.`, `${m.name} 긴급 요청 넣었어요! ${need} 넘으면 라인 멈춰요.`, `급해요 ㅠ ${m.name} 며칠분 안 남았어요. ${need}까지 부탁드립니다.`]],
-      ['me', ['네 확인했습니다. 오늘 바로 견적 돌려서 제일 빨리 되는 곳으로 잡아볼게요.', '봤습니다. 납기 되는 업체 위주로 바로 알아볼게요.', '알겠습니다. 오늘 중으로 어디서 받을지 말씀드릴게요.']],
-    ], c.id);
-    chat(state, 'lead', [
-      ['them', [`${m.name} 긴급 건 봤어요. 단가보다 납기 우선으로 보고, 진행 상황 수시로 공유해 줘요.`, `${m.name} 긴급이라면서요? 이번엔 몇 % 비싸도 빨리 오는 데로 가요.`, `${m.name} 건은 오늘 견적 받으면 바로 나한테 보고해요. 품의는 빨리 봐 줄게요.`]],
-      ['me', ['네 팀장님, 견적 받는 대로 보고드리겠습니다.', '네, 납기 기준으로 추려서 말씀드리겠습니다.', '알겠습니다. 오후에 한 번 중간 보고드릴게요.']],
-    ], c.id);
-  } else {
-    chat(state, 'prod', [
-      ['them', [`${m.name} 구매요청 올렸어요. 필요일은 ${need}입니다.`, `${m.name} 요청 넣었습니다~ ${need}까지만 들어오면 돼요.`, `GWANG님 ${m.name} 구매요청 하나 올렸어요. 필요일 ${need}이요.`]],
-      ['me', ['확인했습니다. 견적 받아보고 일정 말씀드릴게요.', '네 봤습니다. 업체 확인하고 입고일 알려 드릴게요.', '접수했어요. 진행되면 공유드릴게요.']],
-    ], c.id);
-  }
+  if (!quiet) requestChats(state, [c]);
   return c;
+}
+
+/**
+ * 생산팀의 구매 요청 대화. 같은 날 여러 건이면 한 메시지에 목록으로 묶고, GWANG도 한 번에 답한다.
+ * (예전에는 건마다 묻고 답해서 몇 분 사이에 '요청 → 답 → 요청 → 답'이 다섯 번씩 오갔다)
+ * 긴급 건이 있으면 팀장도 한 번만 짚는다.
+ */
+export function requestChats(state: GameState, cases: PurchaseCase[]): void {
+  if (cases.length === 0) return;
+  const name = (c: PurchaseCase) => state.materials[c.materialId].name;
+  const need = (c: PurchaseCase) => formatDayShort(state.startDate, c.neededByDay);
+  const list = (cs: PurchaseCase[]) => cs.map((c) => `${name(c)} ${need(c)}`).join(', ');
+  const urgent = cases.filter((c) => c.urgent);
+  const normal = cases.filter((c) => !c.urgent);
+  const first = urgent[0] ?? cases[0];
+  // 요청은 출근해서 재고를 본 뒤에 올라온다. 출근 직후 사건(결품 등)과 같은 분에 겹치지 않게 조금 뒤로 둔다 (말 시각만 바뀐다)
+  const saved = state.nowMinute;
+  state.nowMinute = Math.max(saved ?? 0, makeRng(state.seed, 'reqchat', state.day).int(8, 35));
+  const n = cases.length;
+
+  if (n === 1) {
+    const c = cases[0];
+    const m = name(c);
+    const d = need(c);
+    if (c.urgent) {
+      chat(state, 'prod', [
+        ['them', [`GWANG님 ${m} 재고가 거의 바닥이에요. 방금 긴급으로 요청 올렸습니다. ${d}까지는 꼭 들어와야 해요.`, `${m} 긴급 요청 넣었어요! ${d} 넘으면 라인 멈춰요.`, `급해요 ㅠ ${m} 며칠분 안 남았어요. ${d}까지 부탁드립니다.`]],
+        ['me', ['네 확인했습니다. 오늘 바로 견적 돌려서 제일 빨리 되는 곳으로 잡아볼게요.', '봤습니다. 납기 되는 업체 위주로 바로 알아볼게요.', '알겠습니다. 오늘 중으로 어디서 받을지 말씀드릴게요.']],
+      ], c.id);
+    } else {
+      chat(state, 'prod', [
+        ['them', [`${m} 구매요청 올렸어요. 필요일은 ${d}입니다.`, `${m} 요청 넣었습니다~ ${d}까지만 들어오면 돼요.`, `GWANG님 ${m} 구매요청 하나 올렸어요. 필요일 ${d}이요.`]],
+        ['me', ['확인했습니다. 견적 받아보고 일정 말씀드릴게요.', '네 봤습니다. 업체 확인하고 입고일 알려 드릴게요.', '접수했어요. 진행되면 공유드릴게요.']],
+      ], c.id);
+    }
+  } else if (urgent.length === 0) {
+    chat(state, 'prod', [
+      ['them', [`GWANG님 구매요청 ${n}건 올렸어요.\n${list(normal)}까지 필요해요.`, `오늘 요청 ${n}건 넣었습니다~\n${list(normal)}\n날짜까지만 들어오면 돼요.`]],
+      ['me', [`네 ${n}건 다 확인했습니다. 견적 받아보고 입고일 정리해서 한 번에 말씀드릴게요.`, `접수했어요. ${n}건 업체 확인해서 일정 같이 공유드릴게요.`]],
+    ], first.id);
+  } else if (normal.length === 0) {
+    chat(state, 'prod', [
+      ['them', [`급해요 ㅠ 긴급 요청 ${n}건 넣었어요.\n${list(urgent)}\n이날 넘으면 라인 멈춰요.`, `GWANG님 긴급 ${n}건 올렸습니다. ${list(urgent)}까지는 꼭 들어와야 해요.`]],
+      ['me', [`네 ${n}건 다 봤습니다. 오늘 바로 견적 돌려서 빨리 되는 곳으로 잡고, 어디서 받을지 한 번에 말씀드릴게요.`, `확인했어요. 납기 되는 업체 위주로 ${n}건 같이 알아보고 오늘 안에 알려 드릴게요.`]],
+    ], first.id);
+  } else {
+    const un = urgent.map(name).join(', ');
+    chat(state, 'prod', [
+      ['them', [`GWANG님 구매요청 ${n}건 올렸어요.\n긴급: ${list(urgent)}\n일반: ${list(normal)}\n긴급 건은 그날 넘으면 라인 멈춰요 ㅠ`, `오늘 요청 ${n}건이에요. ${un} 재고가 거의 바닥이라 긴급으로 올렸고 (${list(urgent)}), 나머지는 ${list(normal)}까지만 들어오면 돼요.`]],
+      ['me', [`네 ${n}건 다 확인했습니다. 긴급인 ${un} 먼저 오늘 견적 돌리고, 나머지는 업체 확인해서 입고일 같이 말씀드릴게요.`, `봤습니다. ${un}부터 납기 되는 곳으로 잡고, 일반 건은 견적 받아서 한 번에 공유드릴게요.`]],
+    ], first.id);
+  }
+
+  if (urgent.length === 1) {
+    const m = name(urgent[0]);
+    chat(state, 'lead', [
+      ['them', [`${m} 긴급 건 봤어요. 단가보다 납기 우선으로 보고, 진행 상황 수시로 공유해 줘요.`, `${m} 긴급이라면서요? 이번엔 몇 % 비싸도 빨리 오는 데로 가요.`, `${m} 건은 오늘 견적 받으면 바로 나한테 보고해요. 품의는 빨리 봐 줄게요.`]],
+      ['me', ['네 팀장님, 견적 받는 대로 보고드리겠습니다.', '네, 납기 기준으로 추려서 말씀드리겠습니다.', '알겠습니다. 오후에 한 번 중간 보고드릴게요.']],
+    ], urgent[0].id);
+  } else if (urgent.length > 1) {
+    const un = urgent.map(name).join(', ');
+    chat(state, 'lead', [
+      ['them', [`오늘 긴급이 ${urgent.length}건이네요 (${un}). 이번엔 단가보다 납기 우선으로 보고, 견적 나오면 한 번에 보고해 줘요.`, `${un} 긴급 건 봤어요. 몇 % 비싸도 빨리 오는 데로 가고, 품의는 묶어서 올려 주면 빨리 볼게요.`]],
+      ['me', [`네 팀장님, ${urgent.length}건 견적 받는 대로 같이 정리해서 보고드리겠습니다.`, `알겠습니다. 납기 기준으로 추려서 오후에 한 번에 말씀드릴게요.`]],
+    ], urgent[0].id);
+  }
+  state.nowMinute = saved;
 }
 
 function setWork(state: GameState, c: PurchaseCase, baseMinutes: number, skill: SkillId) {

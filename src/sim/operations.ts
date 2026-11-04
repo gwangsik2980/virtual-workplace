@@ -4,9 +4,9 @@ import { makeRng } from './rng';
 import { monthPeriod } from '../tools/monthlyReport/draft';
 import { getToolVersion } from '../tools/registry';
 import { dailyUsage, demandToday } from './market';
-import { createCase } from './purchasing';
-import type { GameState, MaterialId } from './types';
-import { isMonthEnd, isMonthStart, logEvent, nextId, sendMessage, won } from './util';
+import { createCase, requestChats } from './purchasing';
+import type { GameState, MaterialId, PurchaseCase } from './types';
+import { formatDayShort, isMonthEnd, isMonthStart, logEvent, nextId, sendMessage, won } from './util';
 
 /**
  * 구매팀 바깥의 부서 활동. 구매 결정의 결과가 여기서 비용·현금·재고·매출로 나타난다.
@@ -95,21 +95,53 @@ export function runProduction(state: GameState): ProductionResult {
       `${state.materials[shortMaterial].name} 부족으로 생산 차질`,
       `계획 ${target.toLocaleString('ko-KR')}세트 중 ${produced.toLocaleString('ko-KR')}세트만 생산. 매출 손실 약 ${won(lost)}.`,
     );
-    const mn = state.materials[shortMaterial].name;
+    stockoutChat(state, shortMaterial);
+  }
+  return { demand, produced, shortMaterial, revenue, cogs };
+}
+
+/**
+ * 결품 대화. 첫날에는 생산팀이 묻고 팀장이 경위를 묻는다.
+ * 결품이 며칠 이어지면 같은 말을 되풀이하지 않고, 생산팀이 '오늘도'라고 묻고 GWANG은 실제 입고 예정일로 답한다.
+ */
+function stockoutChat(state: GameState, id: MaterialId): void {
+  const mn = state.materials[id].name;
+  const yesterday = state.history[state.history.length - 1];
+  const continued = yesterday?.day === state.day - 1 && yesterday.shortMaterial === id;
+  // 이미 발주한 건이 있으면 약속 입고일로 답한다 (말만 바뀌고 계산에는 영향 없음)
+  const open = state.cases.filter((c) => c.materialId === id && c.stage !== 'done' && c.stage !== 'cancelled');
+  const po = open.map((c) => c.po).filter((p) => p !== undefined).sort((a, b) => a!.promisedDay - b!.promisedDay)[0];
+  const d = po ? formatDayShort(state.startDate, po.promisedDay) : '';
+  const eta = po
+    ? po.promisedDay >= state.day
+      ? `${d}에 들어올 예정이에요`
+      : `약속일(${d})이 지났는데 아직 안 와서 업체에 독촉하고 있어요`
+    : open.length > 0
+      ? '아직 발주 전이라 오늘 업체 정해서 입고일 바로 알려 드릴게요'
+      : '오늘 바로 긴급으로 구할 곳 찾아볼게요';
+  if (!continued) {
     chat(state, 'prod', [
       ['them', [`GWANG님, ${mn}이 모자라서 오늘 라인 일부 세웠어요. 언제 들어와요?`, `${mn} 재고가 바닥나서 오후 생산 줄였어요. 입고 언제쯤 될까요?`, `${mn} 때문에 계획 물량 다 못 뽑았어요 ㅠ 들어오는 날짜 좀 알려 주세요.`]],
-      ['me', ['죄송합니다. 업체랑 통화해서 입고 일정 바로 말씀드릴게요.', '죄송해요. 지금 업체에 확인 중이라 30분 안에 다시 연락드릴게요.', '불편 드려 죄송합니다. 당겨 받을 방법 찾아보고 바로 말씀드릴게요.']],
+      ['me', [`죄송합니다. ${eta}.${po ? ' 하루라도 당길 수 있는지 업체에 물어볼게요.' : ''}`, `불편 드려 죄송해요. ${eta}.${po ? ' 당겨지면 바로 말씀드릴게요.' : ''}`]],
     ]);
     chatOncePerDay(state, 'lead', 'stockout', [
       ['them', [`${mn} 때문에 생산 차질 났다고 들었어요. 원인이랑 재발 방지책 정리해서 오늘 중으로 공유해 줘요.`, `생산팀에서 ${mn} 결품 얘기 들었어요. 어디서 꼬였는지 정리해서 퇴근 전에 알려 줘요.`, `${mn} 결품 건, 업체 문제인지 우리 발주 타이밍 문제인지 확인해서 보고해 줘요.`]],
       ['me', ['네 팀장님, 정리해서 보고드리겠습니다.', '네, 경위 정리해서 오늘 안에 드리겠습니다.', '알겠습니다. 재발 방지안까지 같이 정리하겠습니다.']],
     ]);
+    return;
   }
-  return { demand, produced, shortMaterial, revenue, cogs };
+  // 며칠째인지 (오늘 포함)
+  let streak = 1;
+  for (let i = state.history.length - 1; i >= 0 && state.history[i].shortMaterial === id && state.history[i].day === state.day - streak; i--) streak++;
+  chat(state, 'prod', [
+    ['them', [`${mn} 오늘도 모자라서 라인 줄였어요. 들어오는 날짜 그대로예요?`, `오늘도 ${mn} 때문에 다 못 뽑았어요 ㅠ 혹시 당겨졌어요?`, `${mn} 벌써 ${streak}일째예요 ㅠ 입고 날짜 변동 없죠?`]],
+    ['me', [`네, ${eta}. 계속 불편 드려 죄송합니다.`, `죄송해요. ${eta}.${po ? ' 하루라도 당겨 달라고 다시 요청해 뒀어요.' : ''}`, `${streak}일째라 정말 죄송합니다. ${eta}.${po ? ' 오늘 업체에 한 번 더 확인했어요.' : ''}`]],
+  ]);
 }
 
 /** 생산팀의 구매 요청: 재고 + 발주 진행분이 재주문점 아래면 요청한다 */
 export function checkReorders(state: GameState): void {
+  const created: PurchaseCase[] = [];
   for (const m of Object.values(state.materials)) {
     const usage = dailyUsage(state, m.id);
     const rop = reorderPoint(state, m.id);
@@ -125,8 +157,10 @@ export function checkReorders(state: GameState): void {
     const reason = urgent
       ? `${m.name} 재고가 약 ${daysLeft.toFixed(1)}일분밖에 남지 않았습니다. 생산 차질이 우려됩니다.`
       : `${m.name} 재고가 재주문점(${Math.round(rop).toLocaleString('ko-KR')}${m.unit}) 아래로 내려갔습니다. 현재 약 ${daysLeft.toFixed(1)}일분.`;
-    createCase(state, m.id, qty, neededBy, urgent, reason);
+    created.push(createCase(state, m.id, qty, neededBy, urgent, reason, true));
   }
+  // 같은 날 요청은 생산팀이 한 메시지로 묶어 보내고 GWANG도 한 번에 답한다
+  requestChats(state, created);
 }
 
 /** 월말 구매 실적 보고 (반복 문서 업무: 향후 개선 도구 대상) */

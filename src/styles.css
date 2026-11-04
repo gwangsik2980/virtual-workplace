@@ -131,9 +131,6 @@ img { display: block; }
 html { background: var(--background); color-scheme: light; }
 html[data-theme='dark'] { color-scheme: dark; }
 
-html.lenis, html.lenis body { height: auto; }
-.lenis.lenis-smooth { scroll-behavior: auto !important; }
-.lenis.lenis-stopped { overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -519,7 +516,8 @@ textarea { width: 100%; resize: vertical; min-height: 4.5rem; }
   transition-delay: var(--rd, 0ms);
   will-change: transform, opacity;
 }
-.reveal.in { opacity: 1; transform: none; }
+/* 다 나온 뒤에는 레이어를 놓아 준다 (계속 잡고 있으면 화면마다 GPU 레이어가 수십 개 쌓인다) */
+.reveal.in { opacity: 1; transform: none; will-change: auto; }
 
 .line-mask { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
 .line-inner {
@@ -1081,14 +1079,23 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .light-red { --light: #e03131; --light-glow: rgba(224, 49, 49, 0); }
 .light-off { --light: var(--subtle); --light-glow: rgba(0, 0, 0, 0); }
 .live-dot[class*='light-'] { background: var(--light); }
-.live-dot.light-green, .live-dot.light-orange { animation: light-pulse 2s infinite; }
-.live-eyebrow::before { width: 0.5rem; height: 0.5rem; background: var(--light) !important; }
-.live-eyebrow.light-green::before, .live-eyebrow.light-orange::before { animation: light-pulse 2s infinite; }
-@keyframes light-pulse {
-  0% { box-shadow: 0 0 0 0 var(--light-glow); }
-  70% { box-shadow: 0 0 0 0.45rem rgba(0, 0, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+/* 불 둘레가 퍼지는 고리. 그림자(box-shadow)를 움직이면 매 프레임 화면을 다시 칠해서 렉이 생기므로,
+   따로 둔 고리를 transform·opacity로만 움직인다 (GPU 합성만 하고 다시 칠하지 않는다) */
+.live-dot.light-green, .live-dot.light-orange { position: relative; }
+.live-dot.light-green::after, .live-dot.light-orange::after,
+.live-eyebrow.light-green::after, .live-eyebrow.light-orange::after {
+  content: ''; position: absolute; left: 0; top: 50%; width: 0.5rem; height: 0.5rem; margin-top: -0.25rem;
+  border-radius: 99px; background: var(--light); pointer-events: none;
+  animation: light-pulse 2s infinite;
 }
+.live-eyebrow::before { width: 0.5rem; height: 0.5rem; background: var(--light) !important; }
+.live-eyebrow.light-green, .live-eyebrow.light-orange { position: relative; }
+@keyframes light-pulse {
+  0% { transform: scale(1); opacity: 0.45; }
+  70% { transform: scale(2.8); opacity: 0; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
 
 /* 알림 종 */
 .bell-wrap { position: relative; }
