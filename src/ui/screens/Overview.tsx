@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { activeTool } from '../../sim/compare';
 import { dailyUsage } from '../../sim/market';
 import { onOrderQty, reorderPoint } from '../../sim/operations';
@@ -121,8 +121,29 @@ function NowDay() {
 }
 
 /** 지금 하는 일, 구매 단계, 다음 일정, 진행 중인 구매 */
+/** 목록 아래에 더 있는지 (끝까지 내리면 false). 아래쪽 흐림 표시에 쓴다 */
+function useMoreBelow<T extends HTMLElement>(): [React.RefObject<T>, boolean] {
+  const ref = useRef<T>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 2);
+    check();
+    el.addEventListener('scroll', check, { passive: true });
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener('scroll', check);
+      ro?.disconnect();
+    };
+  });
+  return [ref, more];
+}
+
 function NowPanel() {
   const { state, openCase } = useStore();
+  const [listRef, moreBelow] = useMoreBelow<HTMLUListElement>();
   const rt = useRealtime();
   const status = useLiveStatus();
   const block = currentBlock(state, rt);
@@ -178,7 +199,7 @@ function NowPanel() {
         {open.length === 0 ? (
           <span className="faint">지금 진행 중인 구매가 없어요. 재고가 줄면 생산팀이 요청을 보냅니다.</span>
         ) : (
-          <ul data-lenis-prevent>
+          <ul ref={listRef} className={moreBelow ? 'more' : ''} data-lenis-prevent>
             {open.map(({ c, st }) => (
               <li key={c.id}>
                 <button onClick={() => openCase(c.id)}>

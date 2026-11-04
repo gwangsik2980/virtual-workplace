@@ -1211,6 +1211,11 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
   .now-cases ul { flex: 1; max-height: none; }
   .now-day { grid-column: 1 / -1; }
 }
+/* 아래에 더 있으면 맨 아래를 흐리게 (끝까지 내리면 사라진다) */
+.now-cases ul.more {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.25rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2.25rem), transparent);
+}
 .now-day { display: flex; flex-direction: column; gap: 0.375rem; padding: 0.625rem 0.875rem 0.75rem; border-radius: var(--radius-control); background: var(--surface-2); min-width: 0; }
 :root:not([data-theme='dark']) .now-day { background: rgba(241, 240, 238, 0.85); }
 .now-day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
