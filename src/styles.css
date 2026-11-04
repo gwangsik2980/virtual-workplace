@@ -1204,7 +1204,9 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .now-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
 .now-progress { margin-top: 0.125rem; }
 .now-next { font-size: 0.75rem; color: var(--text-2); }
-.now-cases ul { list-style: none; display: flex; flex-direction: column; overflow-y: auto; min-height: 0; max-height: 12rem; overscroll-behavior: contain; }
+.now-cases ul { list-style: none; display: flex; flex-direction: column; overflow-y: auto; min-height: 0; max-height: 12rem; overscroll-behavior: contain; scrollbar-width: none; }
+/* 스크롤바는 숨긴다. 아래에 더 있다는 건 맨 아래 흐림으로 알려 준다 (휠·터치 스크롤은 그대로 된다) */
+.now-cases ul::-webkit-scrollbar { display: none; }
 /* 넓은 화면: 진행 중인 구매 카드는 왼쪽 '지금' 카드 높이에 맞추고(내용 크기를 빼고 줄 높이만 따른다), 넘치면 스크롤 */
 @media (min-width: 768px) {
   .now-cases { contain: size; min-height: 8rem; }
