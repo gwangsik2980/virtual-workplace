@@ -32,6 +32,7 @@ import { PushSync } from './ui/push';
 import { DeviceSync, syncAvailable } from './ui/sync';
 import { OwnerKeyDialog } from './ui/components/OwnerKey';
 import { RealtimeProvider } from './ui/realtime';
+import { useBackToClose } from './ui/history';
 import { LITE } from './ui/lite';
 import { StoreProvider, useStore, type ScreenId } from './ui/store';
 import { applyTheme, getThemePref, resolveTheme, setThemePref, watchSystemTheme, type ThemePref } from './ui/theme';
@@ -292,6 +293,10 @@ function Shell() {
       window.removeEventListener('pointerdown', onDown);
     };
   }, [about]);
+
+  // 뒤로가기로 구매 건 드로어와 메뉴를 닫는다
+  useBackToClose(caseId !== null, () => openCase(null), 'case');
+  useBackToClose(menu, () => setMenu(false), 'menu');
 
   useEffect(() => {
     if (!caseId) return;

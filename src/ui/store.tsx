@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { initHistory, onHistory, pushScreen, screenFromHash } from './history';
 import { advanceDay } from '../sim/engine';
 import { clearLocal, loadLocal, saveLocal } from '../sim/persistence';
 import { nextBusinessDayISO } from '../sim/calendar';
@@ -11,6 +12,8 @@ const asRealtime = (s: GameState): GameState => (s.clock?.mode === 'realtime' ? 
 import type { GameState } from '../sim/types';
 
 export type ScreenId = 'overview' | 'desk' | 'chat' | 'process' | 'market' | 'lab' | 'performance' | 'learning' | 'assumptions';
+const SCREEN_IDS: ScreenId[] = ['overview', 'desk', 'chat', 'process', 'market', 'lab', 'performance', 'learning', 'assumptions'];
+const isScreen = (s: unknown): s is ScreenId => SCREEN_IDS.includes(s as ScreenId);
 
 interface Store {
   state: GameState;
@@ -50,12 +53,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GameState>(() => asRealtime(loadLocal() ?? newCompany()));
   const [saveOk, setSaveOk] = useState(true);
   const [screen, setScreenRaw] = useState<ScreenId>(() => {
+    // 주소의 #화면 이름이 먼저, 없으면 마지막에 본 화면. 모르는 이름이면 기업 현황
+    const fromHash = screenFromHash();
+    if (isScreen(fromHash)) return fromHash;
     try {
-      return (localStorage.getItem('virtual-workplace/screen') as ScreenId) || 'overview';
+      const saved = localStorage.getItem('virtual-workplace/screen');
+      return isScreen(saved) ? saved : 'overview';
     } catch {
       return 'overview';
     }
   });
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
+  // 뒤로가기·앞으로가기: 기록에 적힌 화면으로 돌아간다
+  useEffect(() => {
+    initHistory(screenRef.current);
+    return onHistory((e) => {
+      const next = isScreen(e?.screen) ? e!.screen as ScreenId : 'overview';
+      if (next === screenRef.current) return;
+      setScreenRaw(next);
+      try {
+        localStorage.setItem('virtual-workplace/screen', next);
+      } catch {
+        /* 무시 */
+      }
+      window.scrollTo({ top: 0 });
+    });
+  }, []);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [deskDay, setDeskDay] = useState<number | null>(null);
   const first = useRef(true);
@@ -160,6 +184,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const setScreen = useCallback((s: ScreenId) => {
+    if (s !== screenRef.current) pushScreen(s);
     setScreenRaw(s);
     try {
       localStorage.setItem('virtual-workplace/screen', s);
