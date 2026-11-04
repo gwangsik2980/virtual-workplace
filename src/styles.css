@@ -132,6 +132,10 @@ html { background: var(--background); color-scheme: light; }
 html[data-theme='dark'] { color-scheme: dark; }
 
 
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -229,7 +233,6 @@ h4 { font-size: 0.8125rem; color: var(--text-2); font-weight: 600; }
   gap: 0.625rem;
   border: 1px solid var(--line);
   background: var(--glass-soft);
-  backdrop-filter: blur(4px);
   border-radius: var(--radius-control);
   padding: 0.5rem 0.75rem;
   font-size: 0.75rem;
@@ -642,7 +645,6 @@ textarea { width: 100%; resize: vertical; min-height: 4.5rem; }
   width: 100%; max-width: 24rem; border-radius: var(--radius-card-sm);
   background: rgba(255, 255, 255, 0.72); padding: 0.5rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(230, 229, 226, 0.7);
-  backdrop-filter: blur(12px);
 }
 .hero-card-row { display: flex; gap: 0.5rem; cursor: pointer; border-radius: var(--radius-control); text-align: left; width: 100%; }
 .hero-card-tile {
@@ -909,7 +911,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .hero-facts {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem;
   border-radius: var(--radius-card-sm); padding: 0.5rem;
-  background: var(--glass-soft); box-shadow: 0 0 0 1px var(--line); backdrop-filter: blur(12px);
+  background: var(--glass-soft); box-shadow: 0 0 0 1px var(--line);
 }
 :root:not([data-theme='dark']) .hero-facts { background: rgba(255, 255, 255, 0.66); }
 .hero-fact { display: flex; flex-direction: column; gap: 0.125rem; padding: 0.875rem 1rem; border-radius: var(--radius-control); background: var(--surface-2); }
@@ -1185,7 +1187,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .now-panel {
   display: grid; grid-template-columns: 1fr; gap: 0.75rem; max-width: 40rem;
   padding: 0.75rem; border-radius: var(--radius-card-sm);
-  background: rgba(255, 255, 255, 0.62); box-shadow: 0 0 0 1px rgba(230, 229, 226, 0.7); backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.74); box-shadow: 0 0 0 1px rgba(230, 229, 226, 0.7);
 }
 :root[data-theme='dark'] .now-panel { background: rgba(22, 22, 22, 0.75); box-shadow: 0 0 0 1px #2a2a2a; }
 @media (min-width: 768px) { .now-panel { grid-template-columns: 1.15fr 1fr; } }

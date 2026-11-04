@@ -5,6 +5,7 @@ import { AboutContent } from './ui/components/About';
 import { CaseDrawer } from './ui/components/CaseDrawer';
 import {
   applyAdaptiveGrid,
+  initSmoothScroll,
   CloseIcon,
   lockScroll,
   markIntroDone,
@@ -256,6 +257,7 @@ function Shell() {
   }, []);
 
   useEffect(() => {
+    initSmoothScroll();
     applyAdaptiveGrid();
     window.addEventListener('resize', applyAdaptiveGrid);
     return () => window.removeEventListener('resize', applyAdaptiveGrid);

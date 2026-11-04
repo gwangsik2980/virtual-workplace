@@ -1,28 +1,64 @@
+import Lenis from 'lenis';
 import { createElement, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 /* ------------------------------------------------------------------
-   스크롤 잠금
-   예전에는 Lenis로 휠 스크롤을 부드럽게 했는데, 매 프레임 자바스크립트로 스크롤을 옮기느라
-   노트북 크롬에서 버벅였다(가만히 있어도 초당 60번 돌았다). 브라우저 기본 스크롤로 되돌렸다.
+   부드러운 스크롤 (Lenis)와 스크롤 잠금
+   예전에는 Lenis를 requestAnimationFrame으로 쉬지 않고 돌려서, 가만히 있어도 초당 60번 일했다.
+   지금은 휠·키·터치 입력이 있을 때만 돌리고, 스크롤이 멈추면 루프를 끈다.
    ------------------------------------------------------------------ */
 
+let lenis: Lenis | null = null;
 let lockCount = 0;
+let rafId = 0;
+let idleFrames = 0;
 
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+function tick(t: number) {
+  if (!lenis) return;
+  lenis.raf(t);
+  // 스크롤이 멈춘 뒤 몇 프레임 더 돌고 끈다 (마지막 위치를 확실히 맞추려고)
+  idleFrames = lenis.isScrolling ? 0 : idleFrames + 1;
+  rafId = idleFrames > 5 ? 0 : requestAnimationFrame(tick);
+}
+
+function wake() {
+  idleFrames = 0;
+  if (rafId || !lenis) return;
+  // 루프가 쉬는 동안 Lenis의 시계가 멈춰 있어서, 그대로 두면 첫 프레임의 시간 간격이 커서 한 번에 끝까지 뛴다
+  (lenis as unknown as { time: number }).time = performance.now();
+  rafId = requestAnimationFrame(tick);
+}
+
+export function initSmoothScroll(): void {
+  if (lenis || reduceMotion()) return;
+  lenis = new Lenis({
+    smoothWheel: true,
+    autoRaf: false,
+    // 드로어·메뉴처럼 자체 스크롤이 있는 곳은 Lenis가 가로채지 않게 한다
+    prevent: (node: HTMLElement) => !!node.closest?.('.drawer, .navmenu, .table-wrap, .kanban, [data-lenis-prevent]'),
+  });
+  lenis.on('virtual-scroll', wake);
+  for (const ev of ['wheel', 'keydown', 'touchstart', 'pointerdown'] as const) window.addEventListener(ev, wake, { passive: true });
+  wake();
+}
+
 export function lockScroll(): void {
   lockCount++;
+  lenis?.stop();
   document.documentElement.style.overflow = 'hidden';
 }
 
 export function unlockScroll(): void {
   lockCount = Math.max(0, lockCount - 1);
   if (lockCount > 0) return;
+  lenis?.start();
   document.documentElement.style.removeProperty('overflow');
 }
 
 export function scrollToTop(): void {
-  window.scrollTo(0, 0);
+  if (lenis) lenis.scrollTo(0, { immediate: true });
+  else window.scrollTo(0, 0);
 }
 
 /* 1920px보다 넓은 화면에서도 비율대로 계속 커지게 한다 (계수 0.6666) */
