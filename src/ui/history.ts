@@ -40,8 +40,9 @@ if (typeof window !== 'undefined') {
       if (pendingBack === 0) queue.splice(0).forEach((f) => f());
       return;
     }
-    const e = current();
-    // 건너뛰기 링크(#main) 같은 주소 조각 이동은 기록 값이 없다. 화면은 그대로 둔다
+    // 주소창에 #desk처럼 직접 고친 경우는 기록 값이 없어서 주소의 화면 이름을 쓴다.
+    // 건너뛰기 링크(#main)처럼 화면 이름이 아닌 조각은 받는 쪽(store)이 무시한다
+    const e = current() ?? (screenFromHash() ? { screen: screenFromHash()! } : null);
     if (!e) return;
     listeners.forEach((l) => l(e));
   });

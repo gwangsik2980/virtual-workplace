@@ -6,6 +6,7 @@ import { STAGE_LABELS, STAGE_ORDER } from '../../sim/purchasing';
 import type { DeptId, GameState, MaterialId, Stage } from '../../sim/types';
 import { dayToDate, DEPT_NAMES, formatDay, formatDayShort, wonShort } from '../../sim/util';
 import { LineChart } from '../components/Chart';
+import { DayBar } from '../components/DayBar';
 import { Card, clock, EventBadge, pct, Stat } from '../components/Common';
 import { useLight, useLiveStatus, useTodayDay } from '../components/LiveWidgets';
 import { currentBlock, stageAtNow, useRealtime } from '../realtime';
@@ -94,9 +95,34 @@ function useSecondClock(enabled: boolean): Date {
   return now;
 }
 
+/** 지금 패널 아래 하루 일정 줄. 근무 중이면 오늘, 아니면 마지막 근무일. 막대를 누르면 구매 건이 열린다 */
+function NowDay() {
+  const { state, openCase, setScreen } = useStore();
+  const rt = useRealtime();
+  const live = rt.liveMinute !== null;
+  const day = live ? rt.target : Math.max(0, ...state.schedule.map((b) => b.day));
+  const blocks = useMemo(() => state.schedule.filter((b) => b.day === day).sort((a, b) => a.start - b.start), [state.schedule, day]);
+  if (blocks.length === 0) return null;
+  const workday = state.params.workdayMinutes;
+  const workEnd = workday + (blocks.some((b) => b.kind === 'lunch') ? 60 : 0);
+  const end = Math.max(workEnd, ...blocks.map((b) => b.start + b.minutes));
+  const span = Math.ceil(end / 60) * 60;
+  return (
+    <div className="now-day">
+      <div className="now-day-head">
+        <span className="now-label">{live ? '오늘 일정' : `${formatDayShort(state.startDate, day)} 일정`}</span>
+        <button className="now-day-more" onClick={() => setScreen('desk')}>
+          직원 업무에서 보기 →
+        </button>
+      </div>
+      <DayBar blocks={blocks} span={span} workEnd={workEnd} end={end} onOpen={openCase} nowMinute={live ? rt.liveMinute : null} compact />
+    </div>
+  );
+}
+
 /** 지금 하는 일, 구매 단계, 다음 일정, 진행 중인 구매 */
 function NowPanel() {
-  const { state, openCase, setScreen } = useStore();
+  const { state, openCase } = useStore();
   const rt = useRealtime();
   const status = useLiveStatus();
   const block = currentBlock(state, rt);
@@ -152,8 +178,8 @@ function NowPanel() {
         {open.length === 0 ? (
           <span className="faint">지금 진행 중인 구매가 없어요. 재고가 줄면 생산팀이 요청을 보냅니다.</span>
         ) : (
-          <ul>
-            {open.slice(0, 4).map(({ c, st }) => (
+          <ul data-lenis-prevent>
+            {open.map(({ c, st }) => (
               <li key={c.id}>
                 <button onClick={() => openCase(c.id)}>
                   <span className="now-stage">{pad2(stageNo(st))}</span>
@@ -165,16 +191,10 @@ function NowPanel() {
                 </button>
               </li>
             ))}
-            {open.length > 4 && (
-              <li>
-                <button className="faint" onClick={() => setScreen('process')}>
-                  외 {open.length - 4}건 더 보기
-                </button>
-              </li>
-            )}
           </ul>
         )}
       </div>
+      <NowDay />
     </div>
   );
 }

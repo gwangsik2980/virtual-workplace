@@ -7,6 +7,7 @@ import { CaseStatus, clock, StageBadge } from '../components/Common';
 import { HeroFacts, RowList, ScreenHero, SectionHead } from '../components/Editorial';
 import { Reveal } from '../motion';
 import { useLiveStatus } from '../components/LiveWidgets';
+import { DayBar, KIND_COLORS, KIND_LABELS } from '../components/DayBar';
 import { PayrollPanel } from '../components/PayrollPanel';
 import { stageAtNow, useRealtime } from '../realtime';
 import { useStore } from '../store';
@@ -24,36 +25,6 @@ const SKILL_DESC: Record<SkillId, string> = {
   costing: '목표가를 잡는 정확도',
   negotiation: '할인을 끌어내는 힘',
   docs: '입력 속도와 오입력 확률',
-};
-
-const KIND_COLORS: Record<WorkKind, string> = {
-  case: 'var(--series-1)',
-  mail: 'var(--series-3)',
-  meeting: 'var(--series-4)',
-  report: 'var(--series-5)',
-  claim: 'var(--danger)',
-  adhoc: 'var(--series-2)',
-  expedite: 'var(--warn)',
-  lunch: 'var(--subtle)',
-  spot: 'var(--danger)',
-  sourcing: 'var(--series-3)',
-  review: 'var(--series-5)',
-  training: 'var(--ok)',
-};
-
-const KIND_LABELS: Record<WorkKind, string> = {
-  case: '구매 건',
-  mail: '메일',
-  meeting: '회의·미팅',
-  report: '보고서',
-  claim: '클레임',
-  adhoc: '일상 업무',
-  expedite: '납기 독촉',
-  lunch: '점심',
-  spot: '긴급 구매',
-  sourcing: '공급처 발굴',
-  review: '업체 평가',
-  training: '교육',
 };
 
 const WAIT_STAGE_SET = new Set<Stage>(['awaitQuotes', 'approve', 'awaitDelivery']);
@@ -172,9 +143,6 @@ export function Desk() {
         }
       />
 
-      <Skills />
-      <PayrollPanel />
-
       <SectionHead
         eyebrow="Timeline"
         title="하루 일정"
@@ -284,6 +252,9 @@ export function Desk() {
         )}
       </div>
 
+      <Skills />
+      <PayrollPanel />
+
       <Career />
     </>
   );
@@ -357,12 +328,10 @@ function DayTimeline({
   const workEnd = workday + (blocks.some((b) => b.kind === 'lunch') ? 60 : 0);
   const end = Math.max(workEnd, ...blocks.map((b) => b.start + b.minutes));
   const span = Math.ceil(end / 60) * 60;
-  const pctOf = (m: number) => `${(m / span) * 100}%`;
   const total = blocks.filter((b) => b.kind !== 'lunch').reduce((a, b) => a + b.minutes, 0);
   const toolMin = blocks.filter((b) => b.toolId).reduce((a, b) => a + b.minutes, 0);
   const byKind = new Map<WorkKind, number>();
   for (const b of blocks) byKind.set(b.kind, (byKind.get(b.kind) ?? 0) + b.minutes);
-  const hours = span / 60;
 
   return (
     <div className="stack" style={{ gap: '1rem' }}>
@@ -377,40 +346,7 @@ function DayTimeline({
           {toolMin > 0 ? `, 도구 사용 ${toolMin}분` : ''}
         </span>
       </div>
-      <div className={`timeline-wrap ${live ? 'live' : ''}`}>
-      <div className="timeline">
-        <div className="timeline-hours">
-          {Array.from({ length: hours - 1 }, (_, i) => (
-            <span key={i} style={{ left: pctOf((i + 1) * 60) }}>
-              {10 + i}시
-            </span>
-          ))}
-        </div>
-        <div className="timeline-track">
-          {blocks.map((b, i) => (
-            <div
-              key={i}
-              className={`timeline-block ${b.caseId ? 'clickable' : ''} ${b.toolId ? 'tool' : ''} ${stateOf(b)}`}
-              style={{ left: pctOf(b.start), width: pctOf(b.minutes), ['--blk' as string]: KIND_COLORS[b.kind] }}
-              title={`${clock(b.start)}~${clock(b.start + b.minutes)} ${b.label}`}
-              onClick={() => b.caseId && onOpen(b.caseId)}
-            />
-          ))}
-          {end > workEnd && <div className="timeline-workend" style={{ left: pctOf(workEnd) }} title="정규 근무 종료 (18:00)" />}
-          {live && (
-            <>
-              <div className="timeline-future" style={{ left: pctOf(nowMinute!) }} aria-hidden />
-              <div className="timeline-now" style={{ left: pctOf(nowMinute!) }} aria-hidden />
-            </>
-          )}
-        </div>
-      </div>
-      {live && (
-        <span className="timeline-now-label" style={{ left: `clamp(2.5rem, ${(nowMinute! / span) * 100}%, calc(100% - 2.5rem))` }}>
-          지금 {clock(nowMinute!)}
-        </span>
-      )}
-      </div>
+      <DayBar blocks={blocks} span={span} workEnd={workEnd} end={end} onOpen={onOpen} nowMinute={nowMinute} />
       <div className="timeline-legend">
         {[...byKind.entries()].map(([k, m]) => (
           <span key={k} style={{ ['--blk' as string]: KIND_COLORS[k] }}>

@@ -69,7 +69,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     initHistory(screenRef.current);
     return onHistory((e) => {
-      const next = isScreen(e?.screen) ? e!.screen as ScreenId : 'overview';
+      if (!isScreen(e?.screen)) return;
+      const next = e!.screen as ScreenId;
       if (next === screenRef.current) return;
       setScreenRaw(next);
       try {
