@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { activeTool } from '../../sim/compare';
 import { dailyUsage } from '../../sim/market';
 import { onOrderQty, reorderPoint } from '../../sim/operations';
@@ -7,6 +7,7 @@ import type { DeptId, GameState, MaterialId, Stage } from '../../sim/types';
 import { dayToDate, DEPT_NAMES, formatDay, formatDayShort, wonShort } from '../../sim/util';
 import { LineChart } from '../components/Chart';
 import { DayBar } from '../components/DayBar';
+import { WorkLogModal } from '../components/WorkLog';
 import { Card, clock, EventBadge, pct, Stat } from '../components/Common';
 import { useLight, useLiveStatus, useTodayDay } from '../components/LiveWidgets';
 import { currentBlock, stageAtNow, useRealtime } from '../realtime';
@@ -110,7 +111,7 @@ function NowDay() {
   return (
     <div className="now-day">
       <div className="now-day-head">
-        <span className="now-label">{live ? '오늘 일정' : `${formatDayShort(state.startDate, day)} 일정`}</span>
+        <span className="now-label">{live || (rt.phase === 'after' && day === rt.target) ? '오늘 일정' : `${formatDayShort(state.startDate, day)} 일정`}</span>
         <button className="now-day-more" onClick={() => setScreen('desk')}>
           직원 업무에서 보기 →
         </button>
@@ -143,8 +144,14 @@ function useMoreBelow<T extends HTMLElement>(): [React.RefObject<T>, boolean] {
 
 function NowPanel() {
   const { state, openCase } = useStore();
-  const [listRef, moreBelow] = useMoreBelow<HTMLUListElement>();
   const rt = useRealtime();
+  const [listRef, moreBelow] = useMoreBelow<HTMLUListElement>();
+  // 근무 중이 아닐 때: 퇴근 뒤면 오늘, 출근 전·휴일이면 마지막 근무일의 업무 일지
+  const [logOpen, setLogOpen] = useState(false);
+  const closeLog = useCallback(() => setLogOpen(false), []);
+  const lastWorked = state.schedule.length ? Math.max(...state.schedule.map((b) => b.day)) : null;
+  const logDay = rt.phase === 'after' && state.schedule.some((b) => b.day === rt.target) ? rt.target : lastWorked;
+  const logTitle = logDay !== null && rt.phase === 'after' && logDay === rt.target ? '금일 업무 일지' : `${logDay !== null ? formatDayShort(state.startDate, logDay) : ''} 업무 일지`;
   const status = useLiveStatus();
   const block = currentBlock(state, rt);
   // 지금 시각 기준 단계 (오늘 저녁에 끝날 일을 미리 보여 주지 않는다)
@@ -191,7 +198,14 @@ function NowPanel() {
             )}
           </>
         ) : (
-          <strong className="now-title">{status}</strong>
+          <>
+            <strong className="now-title">{status}</strong>
+            {logDay !== null && (
+              <button className="now-log-btn" onClick={() => setLogOpen(true)}>
+                {logTitle} 보기 →
+              </button>
+            )}
+          </>
         )}
       </div>
       <div className="now-cases">
@@ -216,6 +230,7 @@ function NowPanel() {
         )}
       </div>
       <NowDay />
+      {logOpen && logDay !== null && <WorkLogModal day={logDay} title={logTitle} onClose={closeLog} />}
     </div>
   );
 }

@@ -1,0 +1,38 @@
+/* 업무 일지 (보고서 형식 창) */
+.worklog {
+  position: fixed; left: 50%; top: 50%; z-index: 92; transform: translate(-50%, -50%);
+  width: min(42rem, calc(100vw - 1.5rem)); max-height: calc(100vh - 2rem); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--card-bg); border-radius: var(--radius-card); padding: 1.75rem 1.75rem 2rem;
+  display: flex; flex-direction: column; gap: 1.25rem; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  animation: fade-in 0.3s var(--spring);
+}
+.worklog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-bottom: 0.875rem; border-bottom: 2px solid var(--text); }
+.worklog-kicker { font-size: 0.75rem; color: var(--text-3); }
+.worklog-head h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin-top: 0.125rem; }
+.worklog section { display: flex; flex-direction: column; gap: 0.5rem; }
+.worklog h3 { font-size: 0.875rem; font-weight: 700; }
+.worklog-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+/* 결재 서식처럼 칸을 나눈 머리표. 넓으면 두 쌍씩, 폰은 한 쌍씩 */
+.worklog-meta {
+  display: grid; grid-template-columns: auto 1fr auto 1fr; font-size: 0.8125rem;
+  border-top: 1px solid var(--line); border-left: 1px solid var(--line);
+}
+.worklog-meta dt, .worklog-meta dd { padding: 0.4375rem 0.625rem; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 0; }
+.worklog-meta dt { font-weight: 500; color: var(--text-2); background: var(--surface-2); white-space: nowrap; }
+.worklog-table th { font-size: 0.6875rem; font-weight: 500; color: var(--text-3); text-align: left; padding: 0.375rem 0.5rem; border-bottom: 1px solid var(--text-3); }
+.worklog-table td { padding: 0.4375rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.45; }
+.worklog-table .r { text-align: right; }
+.worklog-table .nowrap { white-space: nowrap; }
+.worklog-table .badge { margin-left: 0.375rem; }
+.worklog .swatch { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 99px; margin-right: 0.375rem; vertical-align: 0.0625rem; background: var(--blk); }
+.worklog tr.link, .worklog li.link { cursor: pointer; }
+.worklog tr.link:hover td, .worklog li.link:hover { background: var(--surface-2); }
+.worklog-kinds { display: flex; flex-wrap: wrap; gap: 0.375rem 1rem; font-size: 0.8125rem; color: var(--text-2); }
+.worklog-kinds b { font-weight: 600; color: var(--text); }
+.worklog-note { font-size: 0.8125rem; color: var(--text-2); line-height: 1.55; }
+.worklog-events { list-style: none; display: flex; flex-direction: column; font-size: 0.8125rem; }
+.worklog-events li { display: flex; gap: 0.75rem; padding: 0.375rem 0.5rem; border-bottom: 1px solid var(--line); border-radius: 0.25rem; }
+@media (max-width: 640px) {
+  .worklog { padding: 1.25rem 1rem 1.5rem; }
+  .worklog-meta { grid-template-columns: auto 1fr; }
+}
