@@ -87,7 +87,7 @@ export const getOwnerKey = (): string | null => (SERVER ? get(OWNER_KEY) : null)
  * 실시간 따라잡기는 기기마다 열 때 계산하고 서버에 올리지 않아서, 규칙이 바뀌어도 이미 계산한 날은 예전 규칙 그대로 남는다.
  * 버전이 바뀐 기기는 서버 저장본을 한 번 다시 받아(since=0) 밀린 날을 새 규칙으로 다시 계산한다.
  */
-const SIM_VERSION = '2026-11-04-meeting';
+const SIM_VERSION = '2026-11-05-unread-mail';
 const SIM_KEY = 'virtual-workplace/sync/sim';
 const getRev = () => (get(SIM_KEY) === SIM_VERSION ? Number(get(REV_KEY) ?? 0) || 0 : 0);
 const notify = () => window.dispatchEvent(new Event(SYNC_CHANGE));

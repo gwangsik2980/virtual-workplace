@@ -80,8 +80,14 @@ function runWorkday(state: GameState): { minutes: number; compareMinutes: number
     state.nowMinute = t;
   };
 
-  // 메일 확인: 전날 이후 받은 메일 수에 비례
-  const inbox = state.messages.filter((m) => m.day === state.day && m.to.includes(state.employee.name)).length;
+  // 메일 확인: 지난번 메일 확인이 끝난 뒤로 받은 메일(안 읽은 메일) 수에 비례.
+  // 근무 중에 온 메일은 그 자리에서 읽지 않고 다음 날 아침에 몰아서 읽는 것으로 본다.
+  const me = state.employee.name;
+  const prevMail = state.schedule.find((b) => b.day === state.day - 1 && b.kind === 'mail');
+  const readUntil = prevMail ? prevMail.start + prevMail.minutes : 15; // 예전 저장본이나 첫날은 09:15로 본다
+  const inbox = state.messages.filter(
+    (m) => m.to.includes(me) && m.from !== me && (m.day === state.day || (m.day === state.day - 1 && (m.minute ?? 0) >= readUntil)),
+  ).length;
   push({ minutes: Math.min(60, 15 + inbox * 3), label: `메일 확인 (${inbox}건)`, kind: 'mail' });
   // 주간 팀 회의: 매주 첫 영업일 메일 확인 뒤 (예전에는 '5영업일마다'라서 요일이 화·금으로 떠돌았다)
   if (isWeekStart(state.startDate, state.day)) push({ minutes: 30, label: '주간 팀 회의', kind: 'meeting' });
