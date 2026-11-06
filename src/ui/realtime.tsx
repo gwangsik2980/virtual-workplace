@@ -30,6 +30,29 @@ interface RealtimeInfo {
 
 const Ctx = createContext<RealtimeInfo | null>(null);
 
+/**
+ * 이 브라우저에서 마지막으로 화면에 보여 준 날. GameState에 넣지 않는다(기기마다 다르다).
+ * 서버 저장본은 관리자가 마지막으로 조작한 날에 멈춰 있어서, 받을 때마다 며칠씩 따라잡는다.
+ * 그걸 그대로 '자리를 비운 동안'으로 띄우면 어제 본 날까지 매번 다시 알린다.
+ * 그래서 이 기기에서 이미 본 날은 빼고, 정말 못 본 날만 알린다.
+ */
+const SEEN_KEY = 'virtual-workplace/away/seen';
+function readSeen(state: GameState): number | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(SEEN_KEY) ?? 'null') as { seed: number; startDate: string; day: number } | null;
+    return v && v.seed === state.seed && v.startDate === state.startDate ? v.day : null;
+  } catch {
+    return null;
+  }
+}
+function writeSeen(state: GameState, day: number) {
+  try {
+    localStorage.setItem(SEEN_KEY, JSON.stringify({ seed: state.seed, startDate: state.startDate, day }));
+  } catch {
+    /* 무시 */
+  }
+}
+
 function useNow(ms: number): Date {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -60,12 +83,19 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isRealtime) return;
     const n = target - simulatedThrough;
-    if (n <= 0 || syncedFrom.current === state) return;
+    if (n <= 0) {
+      if (simulatedThrough >= 0) writeSeen(state, Math.min(target, simulatedThrough));
+      return;
+    }
+    if (syncedFrom.current === state) return;
     syncedFrom.current = state;
-    const fromDay = state.day;
-    if (n >= 2) checkpoint('자리를 비운 동안');
+    const seen = readSeen(state);
+    const fromDay = Math.max(state.day, seen === null ? state.day : seen + 1);
+    const missed = target - fromDay + 1;
+    if (missed >= 2) checkpoint('자리를 비운 동안');
     advance(n, { record: false });
-    if (n >= 2) setAway({ fromDay, toDay: target });
+    if (missed >= 2) setAway({ fromDay, toDay: target });
+    writeSeen(state, target);
   }, [isRealtime, target, simulatedThrough, state, advance, checkpoint]);
 
   const value = useMemo<RealtimeInfo>(() => {
